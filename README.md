@@ -1,13 +1,15 @@
 # WhatsApp Webhook — MarIAna · Quadrata Seguros
 
-Webhook Node.js que recebe mensagens do WhatsApp Business API, processa via **Langflow** e envia respostas automáticas de volta ao cliente.
+Webhook Node.js que recebe mensagens do WhatsApp Business API e processa via **Typebot**, **Langflow** ou **Make** (nessa ordem de prioridade).
 
 ---
 
 ## Arquitetura
 
 ```
-WhatsApp  →  Meta Webhook  →  Este servidor  →  Langflow (MarIAna IA)
+WhatsApp  →  Meta Webhook  →  Este servidor  →  Typebot (fluxo visual)
+                                             →  Langflow (MarIAna IA)
+                                             →  Make (fallback)
                                                       ↓
 WhatsApp  ←  WhatsApp Cloud API  ←─────────── resposta automática
 ```
@@ -23,10 +25,52 @@ Copie `.env.example` para `.env` e preencha:
 | `VERIFY_TOKEN` | Token de verificação da Meta (padrão: `quadrata123`) |
 | `WA_PHONE_NUMBER_ID` | ID do número no painel Meta |
 | `WA_ACCESS_TOKEN` | Token de acesso da Meta |
+| `TYPEBOT_API_URL` | URL base do Typebot (padrão: `https://typebot.io`) |
+| `TYPEBOT_ID` | ID do bot no Typebot — **ativa o modo Typebot** |
 | `LANGFLOW_URL` | URL do servidor Langflow |
 | `LANGFLOW_FLOW_ID` | ID do flow da MarIAna no Langflow |
 | `LANGFLOW_API_KEY` | API Key do Langflow (se habilitada) |
-| `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se não houver `LANGFLOW_FLOW_ID` |
+| `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback final |
+
+**Prioridade:** `TYPEBOT_ID` > `LANGFLOW_FLOW_ID` > `MAKE_WEBHOOK_URL`
+
+---
+
+## Integração com Typebot
+
+### 1. Criar o bot
+
+1. Acesse [typebot.io](https://typebot.io) e crie uma conta gratuita.
+2. Crie um novo Typebot com o fluxo de conversa desejado.
+3. Publique o bot (botão **Publish** no canto superior direito).
+
+### 2. Obter o TYPEBOT_ID
+
+Na URL do editor o ID aparece assim:
+```
+https://app.typebot.io/typebots/xxxxxxxxxxxxxxxx/edit
+                                ^^^^^^^^^^^^^^^^
+                                esse é o TYPEBOT_ID
+```
+
+### 3. Configurar variáveis
+
+```env
+TYPEBOT_API_URL=https://typebot.io
+TYPEBOT_ID=xxxxxxxxxxxxxxxx
+```
+
+### Sessões por usuário
+
+O servidor mantém uma sessão Typebot separada para cada número de telefone.
+As sessões são armazenadas em memória — reiniciar o servidor resetará todas as conversas ativas.
+
+### Typebot self-hosted
+
+Se você usa Typebot em servidor próprio, basta trocar a URL:
+```env
+TYPEBOT_API_URL=https://seu-typebot.com
+```
 
 ---
 
@@ -73,19 +117,6 @@ ipconfig | findstr "IPv4"
 3. Build: `pip install langflow`
 4. Start: `langflow run --host 0.0.0.0 --port 7860`
 5. Use a URL gerada como `LANGFLOW_URL`
-
-**Railway.app:**
-1. New Project → Deploy from GitHub
-2. Variável de ambiente: `START_COMMAND=langflow run --host 0.0.0.0 --port 7860`
-
----
-
-## Encontrar o Flow ID no Langflow
-
-1. Abra Langflow no tablet/browser
-2. Clique no flow da MarIAna
-3. A URL mostrará: `/flow/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-4. Copie esse UUID como `LANGFLOW_FLOW_ID`
 
 ---
 

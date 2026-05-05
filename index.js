@@ -10,8 +10,13 @@ const LANGFLOW_API_KEY = process.env.LANGFLOW_API_KEY || "";
 const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
+const TYPEBOT_API_URL = process.env.TYPEBOT_API_URL || "https://typebot.io";
+const TYPEBOT_ID = process.env.TYPEBOT_ID || "";
 
 const PORT = process.env.PORT || 3000;
+
+// phone → Typebot sessionId (resets when process restarts)
+const typebotSessions = new Map();
 
 // Meta webhook verification
 app.get("/webhook", (req, res) => {
@@ -22,13 +27,10 @@ app.get("/webhook", (req, res) => {
   }
 });
 
-// Health check — useful when monitoring from tablet
+// Health check
 app.get("/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    langflow: LANGFLOW_URL,
-    mode: LANGFLOW_FLOW_ID ? "langflow" : "make",
-  });
+  const mode = TYPEBOT_ID ? "typebot" : LANGFLOW_FLOW_ID ? "langflow" : "make";
+  res.json({ status: "ok", mode, langflow: LANGFLOW_URL, typebot: TYPEBOT_API_URL });
 });
 
 // Extract first text message from a WhatsApp webhook payload
@@ -72,6 +74,39 @@ async function sendWhatsAppReply(to, text) {
   );
 }
 
+// Pull plain text out of Typebot's messages array
+function extractTypebotText(messages) {
+  return messages
+    .filter((m) => m.type === "text")
+    .map((m) => m.content?.plainText || "")
+    .filter(Boolean)
+    .join("\n");
+}
+
+// Start a new Typebot conversation and return { sessionId, text }
+async function startTypebotChat(userText) {
+  const response = await axios.post(
+    `${TYPEBOT_API_URL}/api/v1/typebots/${TYPEBOT_ID}/startChat`,
+    {},
+    { headers: { "Content-Type": "application/json" } }
+  );
+  const { sessionId, messages } = response.data;
+  // After starting, immediately continue with the user's first message
+  const continued = await continueTypebotChat(sessionId, userText);
+  return { sessionId, text: continued.text };
+}
+
+// Continue an existing Typebot session and return { text }
+async function continueTypebotChat(sessionId, userText) {
+  const response = await axios.post(
+    `${TYPEBOT_API_URL}/api/v1/sessions/${sessionId}/continueChat`,
+    { message: userText },
+    { headers: { "Content-Type": "application/json" } }
+  );
+  const { messages } = response.data;
+  return { text: extractTypebotText(messages) };
+}
+
 // Run a Langflow flow and return the text output
 async function runLangflow(inputText, sessionId) {
   const headers = { "Content-Type": "application/json" };
@@ -88,7 +123,6 @@ async function runLangflow(inputText, sessionId) {
     { headers }
   );
 
-  // Navigate Langflow's nested response structure
   const outputs = response.data?.outputs;
   const result =
     outputs?.[0]?.outputs?.[0]?.results?.message?.text ||
@@ -104,7 +138,6 @@ app.post("/webhook", async (req, res) => {
 
   const msg = extractMessage(req.body);
 
-  // Ignore non-text messages or status updates
   if (!msg || msg.type !== "text" || !msg.text) {
     console.log("Evento ignorado (não é mensagem de texto)");
     return;
@@ -113,7 +146,25 @@ app.post("/webhook", async (req, res) => {
   console.log(`Mensagem de ${msg.name} (${msg.from}): ${msg.text}`);
 
   try {
-    if (LANGFLOW_FLOW_ID) {
+    if (TYPEBOT_ID) {
+      // Typebot mode: manage sessions per phone number
+      let reply = "";
+      const existingSession = typebotSessions.get(msg.from);
+
+      if (existingSession) {
+        const result = await continueTypebotChat(existingSession, msg.text);
+        reply = result.text;
+      } else {
+        const result = await startTypebotChat(msg.text);
+        typebotSessions.set(msg.from, result.sessionId);
+        reply = result.text;
+      }
+
+      if (reply) {
+        console.log(`Resposta Typebot: ${reply}`);
+        await sendWhatsAppReply(msg.from, reply);
+      }
+    } else if (LANGFLOW_FLOW_ID) {
       // Langflow mode: process and auto-reply
       const reply = await runLangflow(msg.text, msg.from);
       if (reply) {
@@ -125,7 +176,7 @@ app.post("/webhook", async (req, res) => {
       await axios.post(MAKE_WEBHOOK_URL, req.body);
       console.log("Payload encaminhado para Make");
     } else {
-      console.log("Nenhum destino configurado (LANGFLOW_FLOW_ID ou MAKE_WEBHOOK_URL)");
+      console.log("Nenhum destino configurado (TYPEBOT_ID, LANGFLOW_FLOW_ID ou MAKE_WEBHOOK_URL)");
     }
   } catch (err) {
     console.error("Erro ao processar mensagem:", err.message);
