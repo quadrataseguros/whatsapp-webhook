@@ -1,0 +1,146 @@
+{
+  "pilares_de_conteudo": [
+    {
+      "id": "educacao",
+      "nome": "Educação e Desmistificação",
+      "percentual": 40,
+      "objetivo": "Quebrar objeções e mitos. Ensinar o que é, como funciona, quanto custa.",
+      "formatos": ["carrossel", "reels_curto", "post_texto_longo"],
+      "exemplos_de_temas": [
+        "5 mitos sobre seguro de vida que estão te custando caro",
+        "Diferença entre seguro de vida e previdência privada",
+        "Como funciona a cobertura por invalidez permanente",
+        "O que acontece com meu financiamento se eu falecer?",
+        "Quanto custa um seguro de vida de R$ 500.000?",
+        "Porto Seguro vs SulAmérica vs Bradesco: qual escolher?",
+        "Seguro de vida por morte acidental x morte natural",
+        "O que é DIT (Diária por Incapacidade Temporária)?",
+        "Posso ter mais de um seguro de vida ao mesmo tempo?",
+        "Seguro de vida isenta de IR e não entra em inventário — entenda"
+      ]
+    },
+    {
+      "id": "emocao",
+      "nome": "Histórias e Gatilhos Emocionais",
+      "percentual": 25,
+      "objetivo": "Conectar emocionalmente. Mostrar situações reais. Ativar senso de urgência sem alarmar.",
+      "formatos": ["reels_curto", "post_texto_reflexivo", "stories_interativos"],
+      "exemplos_de_temas": [
+        "A história da Maria: ela perdeu o marido e quase perdeu a casa",
+        "Ele tinha 38 anos, dois filhos e achava que era cedo demais",
+        "'Eu não vou precisar disso' — as 3 palavras mais caras que um pai pode dizer",
+        "O que você deixaria para seus filhos se não pudesse trabalhar amanhã?",
+        "Ela recebeu R$ 800.000 em 7 dias após o falecimento do marido",
+        "Case real: como o seguro de vida salvou a empresa de um MEI"
+      ]
+    },
+    {
+      "id": "autoridade",
+      "nome": "Prova Social e Autoridade",
+      "percentual": 20,
+      "objetivo": "Construir confiança na Quadrata e nas seguradoras parceiras. Usar dados e credenciais.",
+      "formatos": ["post_imagem", "carrossel", "reels_curto"],
+      "exemplos_de_temas": [
+        "Porto Seguro pagou R$ 4,2 bilhões em indenizações em 2023",
+        "SulAmérica: 131 anos de história cuidando de famílias brasileiras",
+        "Bradesco Seguros: maior seguradora do Brasil em patrimônio",
+        "Quadrata Seguros: [número] famílias protegidas em [cidade/região]",
+        "Como escolhemos nossas seguradoras parceiras para você",
+        "Ranking das seguradoras mais confiáveis no Brasil",
+        "Tempo médio de pagamento de indenização: o que a lei garante",
+        "Depoimento de cliente: 'Não precisei de nada, mas fico tranquilo'"
+      ]
+    },
+    {
+      "id": "conversao",
+      "nome": "Conversão e CTA",
+      "percentual": 15,
+      "objetivo": "Gerar leads qualificados. Direcionar para cotação, simulação ou conversa no WhatsApp.",
+      "formatos": ["stories_com_link", "post_imagem_oferta", "reels_cta"],
+      "exemplos_de_temas": [
+        "Simule agora: seguro de vida a partir de R$ 40/mês",
+        "Faça sua cotação gratuita em 3 minutos pelo WhatsApp",
+        "Só até sexta: análise gratuita do seu perfil de proteção",
+        "Você sabe quanto a sua família precisaria se você faltasse? Calcule agora",
+        "Proteção de R$ 200.000 para sua família — qual o custo real?",
+        "Agenda aberta: consulta gratuita sobre seguro de vida"
+      ]
+    }
+  ],
+  "calendario_semanal": {
+    "segunda": {
+      "pilar": "educacao",
+      "formato": "carrossel",
+      "hora_ideal": "19h00",
+      "exemplo": "Post educativo quebrando 1 mito sobre seguro de vida"
+    },
+    "terca": {
+      "pilar": "autoridade",
+      "formato": "post_imagem",
+      "hora_ideal": "12h00",
+      "exemplo": "Dado ou estatística sobre o mercado de seguros"
+    },
+    "quarta": {
+      "pilar": "emocao",
+      "formato": "reels_curto",
+      "hora_ideal": "20h00",
+      "exemplo": "Reels curto com história real ou situação emotiva (60-90 seg)"
+    },
+    "quinta": {
+      "pilar": "educacao",
+      "formato": "post_texto_longo",
+      "hora_ideal": "07h30",
+      "exemplo": "Post de texto reflexivo para LinkedIn e Facebook"
+    },
+    "sexta": {
+      "pilar": "conversao",
+      "formato": "stories_com_link",
+      "hora_ideal": "18h00",
+      "exemplo": "Stories com CTA direto para cotação no WhatsApp"
+    },
+    "sabado": {
+      "pilar": "emocao",
+      "formato": "post_imagem_reflexivo",
+      "hora_ideal": "09h00",
+      "exemplo": "Post de fim de semana: reflexão sobre família e proteção"
+    }
+  },
+  "formatos_por_rede": {
+    "instagram": {
+      "prioridade": 1,
+      "formatos": ["Reels (principal alcance orgânico)", "Carrossel (maior tempo de tela)", "Stories (engajamento diário)", "Post estático (autoridade)"],
+      "dimensoes": {"feed": "1080x1080 ou 1080x1350", "stories_reels": "1080x1920"},
+      "legenda": "Até 2200 caracteres. Primeiras 125 aparecem sem clicar. Hook forte obrigatório.",
+      "hashtags": "#segurodevida #proteçãofamiliar #PortoSeguro #SulAmérica #Bradesco #QuadrataSeguros #seguros #planejarépreciso #independenciafinanceira #família"
+    },
+    "linkedin": {
+      "prioridade": 2,
+      "formatos": ["Post de texto longo (melhor orgânico)", "Carrossel PDF", "Artigo"],
+      "publico_ideal": "Profissionais liberais, empresários, gestores",
+      "tom": "Mais formal. Foco em planejamento financeiro e sucessório."
+    },
+    "facebook": {
+      "prioridade": 3,
+      "formatos": ["Post compartilhável", "Grupos de bairro/comunidade", "Vídeo nativo"],
+      "publico_ideal": "35-55 anos. Muito eficaz para público mais velho."
+    },
+    "whatsapp": {
+      "prioridade": 1,
+      "formatos": ["Broadcast de status", "Mensagem personalizada", "Grupos segmentados"],
+      "regra": "NUNCA enviar sem permissão. Broadcast somente para quem optou in.",
+      "frequencia": "Máximo 2x por semana no broadcast. Status: diário."
+    }
+  },
+  "kpis_principais": {
+    "awareness": ["Alcance dos posts", "Impressões", "Crescimento de seguidores"],
+    "engajamento": ["Taxa de engajamento (meta: >3%)", "Salvamentos de carrosséis", "Compartilhamentos"],
+    "conversao": ["Cliques no link da bio/CTA", "Mensagens recebidas no WhatsApp", "Cotações solicitadas"],
+    "resultado_comercial": ["Leads qualificados/mês", "Taxa de conversão lead→venda", "Apólices emitidas", "Prêmio médio (ticket médio)"],
+    "meta_90_dias": {
+      "leads_mes": 30,
+      "taxa_conversao_lead_venda": "15-25%",
+      "apolices_mes": "5-7",
+      "premio_medio": "R$ 120-R$ 200/mês"
+    }
+  }
+}

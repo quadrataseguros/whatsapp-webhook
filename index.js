@@ -10,6 +10,7 @@ const LANGFLOW_API_KEY = process.env.LANGFLOW_API_KEY || "";
 const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
+const POST_CREATOR_SECRET = process.env.POST_CREATOR_SECRET || "";
 
 const PORT = process.env.PORT || 3000;
 
@@ -97,6 +98,67 @@ async function runLangflow(inputText, sessionId) {
     "";
   return result;
 }
+
+// ─── Life Insurance Post Creator API ─────────────────────────────────────────
+
+let postGenerator = null;
+function getGenerator() {
+  if (!postGenerator && process.env.ANTHROPIC_API_KEY) {
+    postGenerator = require("./life-insurance/generator");
+  }
+  return postGenerator;
+}
+
+// POST /posts/generate — gera um post de seguro de vida
+app.post("/posts/generate", async (req, res) => {
+  if (POST_CREATOR_SECRET && req.headers["x-secret"] !== POST_CREATOR_SECRET) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const gen = getGenerator();
+  if (!gen) {
+    return res.status(503).json({ error: "ANTHROPIC_API_KEY não configurada" });
+  }
+  try {
+    const { tipo = "carrossel", persona = "provedor", pilar = "educacao", tema, contexto } = req.body;
+    const result = await gen.generatePost({ tipo, persona_id: persona, pilar, tema, contexto_adicional: contexto || "" });
+    res.json(result);
+  } catch (err) {
+    console.error("Erro ao gerar post:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /posts/calendar — gera calendário mensal completo
+app.post("/posts/calendar", async (req, res) => {
+  if (POST_CREATOR_SECRET && req.headers["x-secret"] !== POST_CREATOR_SECRET) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const gen = getGenerator();
+  if (!gen) {
+    return res.status(503).json({ error: "ANTHROPIC_API_KEY não configurada" });
+  }
+  try {
+    const { mes, ano } = req.body;
+    const result = await gen.generateMonthlyCalendar({ mes, ano });
+    res.json(result);
+  } catch (err) {
+    console.error("Erro ao gerar calendário:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /posts/options — lista tipos, personas e pilares disponíveis
+app.get("/posts/options", (req, res) => {
+  const gen = getGenerator();
+  if (!gen) return res.status(503).json({ error: "ANTHROPIC_API_KEY não configurada" });
+  res.json({
+    tipos: Object.keys(gen.POST_TYPES),
+    personas: Object.keys(gen.PERSONA_IDS),
+    pilares: ["educacao", "emocao", "autoridade", "conversao"],
+  });
+});
+
+// ─── Main webhook handler ─────────────────────────────────────────────────────
 
 // Main webhook handler
 app.post("/webhook", async (req, res) => {
