@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Quadrata Seguros</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0d1117;--bg2:#161b22;--card:#1c2230;--card-h:#232c3d;
+  --border:#2d3748;--t1:#f0f4ff;--t2:#94a3b8;--t3:#64748b;
+  --blue:#3b82f6;--green:#22c55e;--red:#ef4444;--orange:#f97316;
+  --gold:#f59e0b;--yellow:#eab308;--rad:12px;
+}
+body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;min-height:100vh}
+
+/* ── Login ── */
+.login-wrap{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.login-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:40px;width:100%;max-width:380px;text-align:center}
+.login-icon{font-size:48px;margin-bottom:16px}
+.login-card h2{font-size:22px;font-weight:700;margin-bottom:6px}
+.login-card p{color:var(--t3);font-size:14px;margin-bottom:28px}
+.login-card input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:9px;padding:12px 14px;color:var(--t1);font-size:15px;font-family:inherit;outline:none;transition:.15s;margin-bottom:14px;text-align:center;letter-spacing:.12em}
+.login-card input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+.login-err{color:var(--red);font-size:13px;margin-bottom:12px;min-height:18px}
+.btn-login{width:100%;background:var(--blue);color:#fff;border:none;padding:12px;border-radius:9px;font-weight:700;font-size:15px;cursor:pointer;transition:.15s}
+.btn-login:hover{background:#2563eb}
+.btn-login:disabled{opacity:.5;cursor:not-allowed}
+
+/* ── App shell ── */
+#app{display:none}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:16px 28px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.h-logo{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:700;flex:1}
+.h-logo span{font-size:24px}
+.h-back{color:var(--t2);text-decoration:none;font-size:13px;font-weight:500;padding:8px 14px;border:1px solid var(--border);border-radius:8px;transition:.15s;display:flex;align-items:center;gap:6px}
+.h-back:hover{background:var(--card-h);color:var(--t1)}
+.h-logout{background:none;border:1px solid var(--border);color:var(--t3);padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;transition:.15s}
+.h-logout:hover{border-color:var(--red);color:var(--red)}
+
+/* ── Tabs ── */
+.tabs{background:var(--card);border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:0}
+.tab{padding:14px 20px;font-size:14px;font-weight:600;color:var(--t3);border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;transition:.15s;white-space:nowrap}
+.tab:hover{color:var(--t2)}
+.tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+
+main{max-width:1200px;margin:0 auto;padding:28px 24px}
+
+/* ── Tab panels ── */
+.panel{display:none}
+.panel.active{display:block}
+.panel-title{font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.panel-title::before{content:'';display:block;width:4px;height:18px;border-radius:2px;background:var(--blue)}
+
+/* ── Goals ── */
+.goals-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-bottom:24px}
+.goal-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:20px}
+.goal-card-name{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.goal-card-name::before{content:'👤';font-size:16px}
+.goal-inputs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ginp-label{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;font-weight:500;margin-bottom:5px}
+.ginp-wrap{position:relative}
+.ginp-wrap span{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:13px;pointer-events:none}
+.ginp-wrap input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 10px 9px 30px;color:var(--t1);font-size:14px;font-family:inherit;outline:none;transition:.15s}
+.ginp-wrap input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.goal-period-tag{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:600;display:inline-block;margin-bottom:6px}
+.tag-week{background:rgba(59,130,246,.15);color:var(--blue)}
+.tag-month{background:rgba(168,85,247,.15);color:#a855f7}
+.btn-save-goals{background:var(--blue);color:#fff;border:none;padding:11px 28px;border-radius:9px;font-weight:700;font-size:14px;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:8px}
+.btn-save-goals:hover{background:#2563eb}
+.btn-save-goals:disabled{opacity:.5;cursor:not-allowed}
+.save-status{font-size:13px;color:var(--green);margin-left:12px;opacity:0;transition:.3s}
+.save-status.show{opacity:1}
+
+/* ── Salespeople ── */
+.add-row{display:flex;gap:10px;margin-bottom:24px;max-width:500px}
+.add-row input{flex:1;background:var(--card);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--t1);font-size:14px;font-family:inherit;outline:none;transition:.15s}
+.add-row input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.btn-add-p{background:var(--green);color:#fff;border:none;padding:11px 22px;border-radius:9px;font-weight:700;font-size:14px;cursor:pointer;transition:.15s;white-space:nowrap}
+.btn-add-p:hover{background:#16a34a}
+.people-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.person-item{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;transition:.15s}
+.person-item:hover{background:var(--card-h)}
+.person-name{font-weight:600;display:flex;align-items:center;gap:8px}
+.person-name::before{content:'👤';font-size:15px}
+.btn-del{background:none;border:1px solid transparent;color:var(--t3);width:32px;height:32px;border-radius:7px;cursor:pointer;font-size:16px;transition:.15s;display:flex;align-items:center;justify-content:center;line-height:1}
+.btn-del:hover{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.08)}
+
+/* ── Sales table ── */
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:flex-end}
+.f-group{display:flex;flex-direction:column;gap:4px}
+.f-group label{font-size:11px;color:var(--t3);text-transform:uppercase;font-weight:500;letter-spacing:.05em}
+.f-group input,.f-group select{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--t1);font-size:13px;font-family:inherit;outline:none;transition:.15s}
+.f-group input:focus,.f-group select:focus{border-color:var(--blue)}
+.btn-filter{background:var(--card);border:1px solid var(--border);color:var(--t1);padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;transition:.15s;align-self:flex-end}
+.btn-filter:hover{background:var(--card-h)}
+
+.table-wrap{overflow-x:auto;border-radius:var(--rad);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead th{background:var(--card);padding:13px 14px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);border-bottom:1px solid var(--border);white-space:nowrap}
+tbody tr{border-bottom:1px solid #1e2736;transition:.15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--card-h)}
+tbody td{padding:11px 14px;color:var(--t2);font-size:13px}
+.val-cell{font-weight:700;color:var(--t1)}
+.empty-row td{text-align:center;padding:32px;color:var(--t3);font-size:13px}
+.btn-del-sale{background:none;border:none;color:var(--t3);cursor:pointer;font-size:15px;padding:4px 6px;border-radius:6px;transition:.15s}
+.btn-del-sale:hover{color:var(--red);background:rgba(239,68,68,.08)}
+
+/* ── Toast ── */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:#1c2230;border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:14px;font-weight:500;box-shadow:0 4px 24px rgba(0,0,0,.4);transform:translateX(120%);transition:.3s;max-width:300px}
+.toast.show{transform:none}
+.toast.ok{border-left:4px solid var(--green);color:var(--green)}
+.toast.err{border-left:4px solid var(--red);color:var(--red)}
+
+.loading{text-align:center;padding:40px;color:var(--t3);font-size:14px}
+.spinner{display:inline-block;width:24px;height:24px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin-bottom:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.confirm-wrap{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:12px 16px;margin-top:8px;display:none;font-size:13px;color:#fca5a5;gap:12px;align-items:center}
+.confirm-wrap.show{display:flex}
+
+@media(max-width:600px){
+  header{padding:12px 16px}
+  .tabs{padding:0 16px;overflow-x:auto}
+  main{padding:16px 12px}
+  .goals-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- Login screen -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <div class="login-icon">🔐</div>
+    <h2>Painel Administrativo</h2>
+    <p>Quadrata Seguros — acesso restrito</p>
+    <div class="login-err" id="loginErr"></div>
+    <input type="password" id="passInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="btn-login" id="btnLogin" onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <header>
+    <div class="h-logo"><span>⚙️</span> Admin — Quadrata Seguros</div>
+    <a href="/dashboard.html" class="h-back">← Painel de Metas</a>
+    <button class="h-logout" onclick="logout()">Sair</button>
+  </header>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('goals')">🎯 Metas</button>
+    <button class="tab" onclick="showTab('people')">👥 Vendedores</button>
+    <button class="tab" onclick="showTab('sales')">📋 Vendas</button>
+  </div>
+  <main>
+    <!-- Goals -->
+    <div class="panel active" id="panelGoals">
+      <div class="panel-title">Configurar Metas</div>
+      <div class="goals-grid" id="goalsGrid">
+        <div class="loading"><div class="spinner"></div><br>Carregando…</div>
+      </div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:12px">
+        <button class="btn-save-goals" id="btnSaveGoals" onclick="saveAllGoals()">💾 Salvar Todas as Metas</button>
+        <span class="save-status" id="saveStatus">✓ Salvo!</span>
+      </div>
+    </div>
+
+    <!-- People -->
+    <div class="panel" id="panelPeople">
+      <div class="panel-title">Gerenciar Vendedores</div>
+      <div class="add-row">
+        <input type="text" id="newName" placeholder="Nome do vendedor" onkeydown="if(event.key==='Enter')addPerson()">
+        <button class="btn-add-p" onclick="addPerson()">+ Adicionar</button>
+      </div>
+      <div class="people-list" id="peopleList">
+        <div class="loading"><div class="spinner"></div><br>Carregando…</div>
+      </div>
+    </div>
+
+    <!-- Sales -->
+    <div class="panel" id="panelSales">
+      <div class="panel-title">Todas as Vendas</div>
+      <div class="filters">
+        <div class="f-group">
+          <label>Vendedor</label>
+          <select id="fltPerson"><option value="">Todos</option></select>
+        </div>
+        <div class="f-group">
+          <label>De</label>
+          <input type="date" id="fltFrom">
+        </div>
+        <div class="f-group">
+          <label>Até</label>
+          <input type="date" id="fltTo">
+        </div>
+        <button class="btn-filter" onclick="loadAdminSales()">Filtrar</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Data</th><th>Vendedor</th><th>Valor</th><th>Ramo</th><th>Seguradora</th><th>Obs.</th><th></th></tr>
+          </thead>
+          <tbody id="adminSalesBody">
+            <tr class="empty-row"><td colspan="7">Carregando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ── Utilities ──────────────────────────────────────────────────────────────
+const R=(v)=>v.toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2});
+const D=(s)=>{const[y,m,d]=s.split('-');return`${d}/${m}/${y}`;};
+
+let adminPassword='';
+
+function toast(msg,type='ok'){
+  const w=document.getElementById('toastWrap');
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.textContent=msg;
+  w.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.add('show')));
+  setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),400);},3500);
+}
+
+function adminHeaders(){
+  return{'Content-Type':'application/json','x-admin-password':adminPassword};
+}
+
+// ── Auth ───────────────────────────────────────────────────────────────────
+async function doLogin(){
+  const pass=document.getElementById('passInput').value;
+  if(!pass){document.getElementById('loginErr').textContent='Digite a senha';return;}
+  const btn=document.getElementById('btnLogin');
+  btn.disabled=true;btn.textContent='Verificando…';
+  try{
+    const r=await fetch('/api/admin/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pass})});
+    if(!r.ok) throw new Error('Senha incorreta');
+    adminPassword=pass;
+    sessionStorage.setItem('adminPass',pass);
+    showApp();
+  }catch(e){
+    document.getElementById('loginErr').textContent=e.message;
+    document.getElementById('passInput').value='';
+    document.getElementById('passInput').focus();
+  }finally{
+    btn.disabled=false;btn.textContent='Entrar';
+  }
+}
+
+function logout(){
+  sessionStorage.removeItem('adminPass');
+  adminPassword='';
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginWrap').style.display='flex';
+  document.getElementById('passInput').value='';
+}
+
+function showApp(){
+  document.getElementById('loginWrap').style.display='none';
+  document.getElementById('app').style.display='block';
+  loadGoalsTab();
+  loadPeopleTab();
+}
+
+// ── Tabs ───────────────────────────────────────────────────────────────────
+function showTab(t){
+  ['goals','people','sales'].forEach(id=>{
+    document.getElementById('panel'+id.charAt(0).toUpperCase()+id.slice(1)).classList.toggle('active',id===t);
+  });
+  document.querySelectorAll('.tab').forEach((b,i)=>{
+    b.classList.toggle('active',['goals','people','sales'][i]===t);
+  });
+  if(t==='sales') loadAdminSales();
+}
+
+// ── Goals tab ──────────────────────────────────────────────────────────────
+let allPeople=[], existingGoals={};
+
+async function loadGoalsTab(){
+  try{
+    const [people,goals]=await Promise.all([
+      fetch('/api/salespeople').then(r=>r.json()),
+      fetch('/api/goals').then(r=>r.json()),
+    ]);
+    allPeople=people;
+    existingGoals={};
+    goals.forEach(g=>{
+      existingGoals[`${g.salesperson_id}_${g.period_type}`]=g.goal_value;
+    });
+    renderGoalsGrid(people);
+    populatePeopleFilter(people);
+  }catch(e){toast('Erro ao carregar metas','err');}
+}
+
+function renderGoalsGrid(people){
+  const grid=document.getElementById('goalsGrid');
+  if(!people.length){
+    grid.innerHTML='<p style="color:var(--t3)">Nenhum vendedor cadastrado. Adicione na aba Vendedores.</p>';
+    return;
+  }
+  grid.innerHTML=people.map(p=>{
+    const wGoal=existingGoals[`${p.id}_weekly`]||'';
+    const mGoal=existingGoals[`${p.id}_monthly`]||'';
+    return `
+    <div class="goal-card">
+      <div class="goal-card-name">${p.name}</div>
+      <div class="goal-inputs">
+        <div>
+          <span class="goal-period-tag tag-week">SEMANAL</span>
+          <div class="ginp-label">Meta da Semana</div>
+          <div class="ginp-wrap">
+            <span>R$</span>
+            <input type="number" step="0.01" min="0" placeholder="0,00"
+              id="goal_${p.id}_weekly" value="${wGoal}"
+              data-pid="${p.id}" data-type="weekly">
+          </div>
+        </div>
+        <div>
+          <span class="goal-period-tag tag-month">MENSAL</span>
+          <div class="ginp-label">Meta do Mês</div>
+          <div class="ginp-wrap">
+            <span>R$</span>
+            <input type="number" step="0.01" min="0" placeholder="0,00"
+              id="goal_${p.id}_monthly" value="${mGoal}"
+              data-pid="${p.id}" data-type="monthly">
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function saveAllGoals(){
+  const btn=document.getElementById('btnSaveGoals');
+  const status=document.getElementById('saveStatus');
+  btn.disabled=true; btn.textContent='Salvando…';
+  const inputs=document.querySelectorAll('#goalsGrid input[data-pid]');
+  let ok=0, err=0;
+  for(const inp of inputs){
+    const val=parseFloat(inp.value);
+    if(!inp.value||isNaN(val)||val<0) continue;
+    try{
+      const r=await fetch('/api/goals',{method:'POST',headers:adminHeaders(),body:JSON.stringify({
+        salesperson_id:+inp.dataset.pid,
+        period_type:inp.dataset.type,
+        goal_value:val
+      })});
+      if(r.ok) ok++; else err++;
+    }catch(){ err++; }
+  }
+  btn.disabled=false; btn.textContent='💾 Salvar Todas as Metas';
+  if(err>0) toast(`${err} meta(s) com erro`,'err');
+  if(ok>0){
+    toast(`${ok} meta(s) salva(s) com sucesso!`);
+    status.classList.add('show');
+    setTimeout(()=>status.classList.remove('show'),3000);
+  }
+  loadGoalsTab();
+}
+
+// ── People tab ─────────────────────────────────────────────────────────────
+async function loadPeopleTab(){
+  try{
+    const people=await fetch('/api/salespeople').then(r=>r.json());
+    allPeople=people;
+    renderPeopleList(people);
+    populatePeopleFilter(people);
+  }catch(e){toast('Erro ao carregar vendedores','err');}
+}
+
+function renderPeopleList(people){
+  const list=document.getElementById('peopleList');
+  if(!people.length){
+    list.innerHTML='<p style="color:var(--t3)">Nenhum vendedor cadastrado.</p>';
+    return;
+  }
+  list.innerHTML=people.map(p=>`
+    <div class="person-item" id="pitem_${p.id}">
+      <div class="person-name">${p.name}</div>
+      <button class="btn-del" onclick="confirmDelPerson(${p.id},'${p.name}')" title="Remover">✕</button>
+    </div>`).join('');
+}
+
+function populatePeopleFilter(people){
+  const sel=document.getElementById('fltPerson');
+  const cur=sel.value;
+  sel.innerHTML='<option value="">Todos</option>'+people.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  sel.value=cur;
+}
+
+async function addPerson(){
+  const name=document.getElementById('newName').value.trim();
+  if(!name){toast('Digite o nome do vendedor','err');return;}
+  try{
+    const r=await fetch('/api/salespeople',{method:'POST',headers:adminHeaders(),body:JSON.stringify({name})});
+    if(!r.ok) throw new Error((await r.json()).error);
+    toast(`Vendedor "${name}" adicionado!`);
+    document.getElementById('newName').value='';
+    loadPeopleTab();
+    loadGoalsTab();
+  }catch(e){toast(e.message||'Erro ao adicionar','err');}
+}
+
+async function confirmDelPerson(id,name){
+  if(!confirm(`Remover "${name}"?\nAs vendas já registradas serão mantidas.`)) return;
+  try{
+    await fetch(`/api/salespeople/${id}`,{method:'DELETE',headers:adminHeaders()});
+    toast(`"${name}" removido.`);
+    loadPeopleTab();
+    loadGoalsTab();
+  }catch(e){toast('Erro ao remover','err');}
+}
+
+// ── Sales tab ──────────────────────────────────────────────────────────────
+async function loadAdminSales(){
+  const body=document.getElementById('adminSalesBody');
+  body.innerHTML='<tr class="empty-row"><td colspan="7"><div class="spinner" style="display:inline-block"></div></td></tr>';
+  const params=new URLSearchParams();
+  const from=document.getElementById('fltFrom').value;
+  const to=document.getElementById('fltTo').value;
+  const pid=document.getElementById('fltPerson').value;
+  if(from) params.set('from',from);
+  if(to)   params.set('to',to);
+  if(pid)  params.set('salesperson_id',pid);
+  try{
+    const sales=await fetch('/api/sales/all?'+params,{headers:adminHeaders()}).then(r=>r.json());
+    renderAdminSales(sales);
+  }catch(e){
+    body.innerHTML='<tr class="empty-row"><td colspan="7" style="color:var(--red)">Erro ao carregar vendas</td></tr>';
+  }
+}
+
+function renderAdminSales(sales){
+  const body=document.getElementById('adminSalesBody');
+  if(!sales.length){
+    body.innerHTML='<tr class="empty-row"><td colspan="7">Nenhuma venda encontrada</td></tr>';
+    return;
+  }
+  body.innerHTML=sales.map(s=>`
+    <tr id="srow_${s.id}">
+      <td>${D(s.sale_date)}</td>
+      <td>${s.salesperson_name}</td>
+      <td class="val-cell">${R(s.value)}</td>
+      <td>${s.ramo}</td>
+      <td>${s.seguradora}</td>
+      <td style="font-size:12px;color:var(--t3)">${s.notes||'—'}</td>
+      <td><button class="btn-del-sale" onclick="delSale(${s.id})" title="Excluir venda">🗑</button></td>
+    </tr>`).join('');
+}
+
+async function delSale(id){
+  if(!confirm('Excluir esta venda?')) return;
+  try{
+    await fetch(`/api/sales/${id}`,{method:'DELETE',headers:adminHeaders()});
+    document.getElementById(`srow_${id}`)?.remove();
+    toast('Venda excluída.');
+  }catch(e){toast('Erro ao excluir','err');}
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+const saved=sessionStorage.getItem('adminPass');
+if(saved){
+  adminPassword=saved;
+  // silently verify
+  fetch('/api/admin/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:saved})})
+    .then(r=>{ if(r.ok) showApp(); else sessionStorage.removeItem('adminPass'); })
+    .catch(()=>{});
+}
+</script>
+</body>
+</html>
