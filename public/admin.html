@@ -356,7 +356,7 @@ async function saveAllGoals(){
         goal_value:val
       })});
       if(r.ok) ok++; else err++;
-    }catch(){ err++; }
+    }catch(_){ err++; }
   }
   btn.disabled=false; btn.textContent='💾 Salvar Todas as Metas';
   if(err>0) toast(`${err} meta(s) com erro`,'err');
