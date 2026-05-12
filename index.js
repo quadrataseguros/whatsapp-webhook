@@ -203,9 +203,10 @@ app.get("/api/stats", (req, res) => {
 
   const rows = db.prepare(`
     SELECT sp.id, sp.name,
-           COALESCE(SUM(s.value), 0)  AS total_sold,
-           COUNT(s.id)                AS sales_count,
-           COALESCE(g.goal_value, 0)  AS goal
+           COALESCE(SUM(s.value), 0)                              AS total_sold,
+           COALESCE(SUM(s.value * COALESCE(s.commission_pct,0) / 100), 0) AS total_commission,
+           COUNT(s.id)                                            AS sales_count,
+           COALESCE(g.goal_value, 0)                             AS goal
     FROM salespeople sp
     LEFT JOIN sales s  ON s.salesperson_id = sp.id
                       AND s.sale_date >= ? AND s.sale_date <= ?
@@ -233,8 +234,9 @@ app.get("/api/stats", (req, res) => {
     breakdown: bmap[r.id] || [],
   }));
 
-  const totalSold = salespeople.reduce((s, p) => s + p.total_sold, 0);
-  const totalGoal = salespeople.reduce((s, p) => s + p.goal, 0);
+  const totalSold       = salespeople.reduce((s, p) => s + p.total_sold, 0);
+  const totalGoal       = salespeople.reduce((s, p) => s + p.goal, 0);
+  const totalCommission = salespeople.reduce((s, p) => s + p.total_commission, 0);
 
   res.json({
     period,
@@ -245,6 +247,7 @@ app.get("/api/stats", (req, res) => {
     totals: {
       totalSold,
       totalGoal,
+      totalCommission,
       percentage: totalGoal > 0 ? Math.round((totalSold / totalGoal) * 100) : 0,
       salesCount: salespeople.reduce((s, p) => s + p.sales_count, 0),
     },
@@ -279,12 +282,12 @@ app.get("/api/sales/all", requireAdmin, (req, res) => {
 });
 
 app.post("/api/sales", (req, res) => {
-  const { salesperson_id, value, ramo, seguradora, sale_date, notes } = req.body;
+  const { salesperson_id, value, ramo, seguradora, sale_date, notes, commission_pct } = req.body;
   if (!salesperson_id || !value || !ramo || !seguradora || !sale_date)
     return res.status(400).json({ error: "Campos obrigatórios faltando" });
   const r = db.prepare(
-    "INSERT INTO sales (salesperson_id,value,ramo,seguradora,sale_date,notes) VALUES (?,?,?,?,?,?)"
-  ).run(salesperson_id, value, ramo, seguradora, sale_date, notes || null);
+    "INSERT INTO sales (salesperson_id,value,ramo,seguradora,sale_date,notes,commission_pct) VALUES (?,?,?,?,?,?,?)"
+  ).run(salesperson_id, value, ramo, seguradora, sale_date, notes || null, commission_pct ?? 0);
   res.json({ id: r.lastInsertRowid, ok: true });
 });
 

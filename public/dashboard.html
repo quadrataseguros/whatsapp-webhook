@@ -101,6 +101,7 @@ main{max-width:1360px;margin:0 auto;padding:28px 24px}
 
 .vcard-breakdown{margin-top:12px;border-top:1px solid var(--border);padding-top:10px;display:flex;flex-wrap:wrap;gap:6px}
 .ramo-tag{font-size:11px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--t2)}
+.vcard-commission{font-size:12px;color:var(--gold);margin-top:8px;padding:6px 10px;background:rgba(245,158,11,.08);border-radius:7px;border:1px solid rgba(245,158,11,.2)}
 
 /* ── No goal notice ── */
 .no-goal{font-size:12px;color:var(--t3);text-align:center;margin-top:6px}
@@ -223,6 +224,11 @@ tbody td:first-child{color:var(--t1)}
       <div class="scard-value" id="sSalesCount">—</div>
       <div class="scard-sub" id="sSalesCountSub">&nbsp;</div>
     </div>
+    <div class="scard">
+      <div class="scard-label">Comissão Total Estimada</div>
+      <div class="scard-value" id="sTotalCommission" style="color:var(--gold)">—</div>
+      <div class="scard-sub" id="sTotalCommissionSub">&nbsp;</div>
+    </div>
   </div>
 
   <!-- Vendedores -->
@@ -251,13 +257,14 @@ tbody td:first-child{color:var(--t1)}
             <th>Data</th>
             <th>Vendedor</th>
             <th>Valor</th>
+            <th>Comissão</th>
             <th>Ramo</th>
             <th>Seguradora</th>
             <th>Obs.</th>
           </tr>
         </thead>
         <tbody id="salesBody">
-          <tr class="empty-row"><td colspan="6">Carregando…</td></tr>
+          <tr class="empty-row"><td colspan="7">Carregando…</td></tr>
         </tbody>
       </table>
     </div>
@@ -285,6 +292,15 @@ tbody td:first-child{color:var(--t1)}
           <div class="fg">
             <label>Data da Venda *</label>
             <input type="date" id="fDate" required>
+          </div>
+        </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>Comissão (%)</label>
+            <input type="number" id="fCommission" step="0.1" min="0" max="100" placeholder="Ex: 3,5">
+          </div>
+          <div class="fg" style="display:flex;flex-direction:column;justify-content:flex-end">
+            <div id="fCommissionPreview" style="font-size:13px;color:var(--gold);font-weight:600;padding-bottom:4px;min-height:20px"></div>
           </div>
         </div>
         <div class="fg-row">
@@ -410,6 +426,9 @@ function renderSummary(t){
   document.getElementById('sTotalGoal').textContent=R(t.totalGoal);
   document.getElementById('sOverallPct').textContent=t.totalGoal>0?`${p}%`:'—';
   document.getElementById('sSalesCount').textContent=t.salesCount;
+  document.getElementById('sTotalCommission').textContent=R(t.totalCommission||0);
+  document.getElementById('sTotalCommissionSub').textContent=
+    t.totalSold>0&&t.totalCommission>0?`${(t.totalCommission/t.totalSold*100).toFixed(1)}% do total vendido`:'';
   const fill=document.getElementById('sOverallBar');
   fill.style.width=Math.min(p,100)+'%';
   fill.style.background=c;
@@ -424,6 +443,8 @@ function renderCards(people){
     const celebrate=p.percentage>=100?' celebrate':'';
     const breakdown=p.breakdown.length?`<div class="vcard-breakdown">${p.breakdown.map(b=>`<span class="ramo-tag">${b.ramo} ${R(b.value)}</span>`).join('')}</div>`:'';
     const noGoal=p.goal===0?`<div class="no-goal">Meta não definida</div>`:'';
+    const commLine=p.total_commission>0
+      ?`<div class="vcard-commission">💰 Comissão estimada: <strong>${R(p.total_commission)}</strong></div>`:'';
     return `
     <div class="vcard${celebrate}" style="--card-accent:${c}">
       <div class="vcard-top">
@@ -445,6 +466,7 @@ function renderCards(people){
         <div class="prog-fill" style="width:${Math.min(p.percentage,100)}%;background:${c}"></div>
       </div>
       ${noGoal}
+      ${commLine}
       ${breakdown}
     </div>`;
   }).join('');
@@ -513,18 +535,23 @@ function renderChart(people){
 function renderTable(sales){
   const body=document.getElementById('salesBody');
   if(!sales.length){
-    body.innerHTML='<tr class="empty-row"><td colspan="6">Nenhuma venda registrada neste período</td></tr>';
+    body.innerHTML='<tr class="empty-row"><td colspan="7">Nenhuma venda registrada neste período</td></tr>';
     return;
   }
-  body.innerHTML=sales.map(s=>`
-    <tr>
+  body.innerHTML=sales.map(s=>{
+    const comm=s.commission_pct>0
+      ?`<span style="color:var(--gold);font-weight:600">${R(s.value*s.commission_pct/100)}</span><br><span style="font-size:11px;color:var(--t3)">${s.commission_pct}%</span>`
+      :'<span style="color:var(--t3)">—</span>';
+    return `<tr>
       <td>${D(s.sale_date)}</td>
       <td>${s.salesperson_name}</td>
       <td class="val-cell">${R(s.value)}</td>
+      <td>${comm}</td>
       <td>${s.ramo}</td>
       <td>${s.seguradora}</td>
       <td style="color:var(--t3);font-size:12px">${s.notes||'—'}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 // ── Modal ──────────────────────────────────────────────────────────────────
@@ -560,6 +587,7 @@ async function submitSale(e){
   const body={
     salesperson_id:+document.getElementById('fPerson').value,
     value:+document.getElementById('fValue').value,
+    commission_pct:+document.getElementById('fCommission').value||0,
     ramo:document.getElementById('fRamo').value,
     seguradora:document.getElementById('fSeg').value.trim(),
     sale_date:document.getElementById('fDate').value,
@@ -574,6 +602,17 @@ async function submitSale(e){
   }catch(e){ toast(e.message||'Erro ao salvar','err'); }
   finally{ btn.disabled=false; btn.textContent='Salvar Venda'; }
 }
+
+// ── Commission live preview ────────────────────────────────────────────────
+function updateCommissionPreview(){
+  const val=+document.getElementById('fValue').value||0;
+  const pct=+document.getElementById('fCommission').value||0;
+  const el=document.getElementById('fCommissionPreview');
+  el.textContent=val>0&&pct>0?`= ${R(val*pct/100)}`:'';
+}
+document.addEventListener('input',(e)=>{
+  if(e.target.id==='fValue'||e.target.id==='fCommission') updateCommissionPreview();
+});
 
 // ── Auto-refresh every 60s ─────────────────────────────────────────────────
 function scheduleRefresh(){

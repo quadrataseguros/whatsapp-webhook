@@ -202,7 +202,7 @@ tbody td{padding:11px 14px;color:var(--t2);font-size:13px}
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Data</th><th>Vendedor</th><th>Valor</th><th>Ramo</th><th>Seguradora</th><th>Obs.</th><th></th></tr>
+            <tr><th>Data</th><th>Vendedor</th><th>Valor</th><th>Comissão</th><th>Ramo</th><th>Seguradora</th><th>Obs.</th><th></th></tr>
           </thead>
           <tbody id="adminSalesBody">
             <tr class="empty-row"><td colspan="7">Carregando…</td></tr>
@@ -446,16 +446,21 @@ function renderAdminSales(sales){
     body.innerHTML='<tr class="empty-row"><td colspan="7">Nenhuma venda encontrada</td></tr>';
     return;
   }
-  body.innerHTML=sales.map(s=>`
-    <tr id="srow_${s.id}">
+  body.innerHTML=sales.map(s=>{
+    const comm=s.commission_pct>0
+      ?`<span style="color:var(--gold);font-weight:600">${R(s.value*s.commission_pct/100)}</span> <span style="font-size:11px;color:var(--t3)">(${s.commission_pct}%)</span>`
+      :'<span style="color:var(--t3)">—</span>';
+    return `<tr id="srow_${s.id}">
       <td>${D(s.sale_date)}</td>
       <td>${s.salesperson_name}</td>
       <td class="val-cell">${R(s.value)}</td>
+      <td>${comm}</td>
       <td>${s.ramo}</td>
       <td>${s.seguradora}</td>
       <td style="font-size:12px;color:var(--t3)">${s.notes||'—'}</td>
       <td><button class="btn-del-sale" onclick="delSale(${s.id})" title="Excluir venda">🗑</button></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 async function delSale(id){

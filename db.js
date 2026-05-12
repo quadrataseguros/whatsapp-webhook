@@ -34,4 +34,7 @@ db.exec(`
   );
 `);
 
+// Migration: add commission_pct if table already exists without it
+try { db.exec('ALTER TABLE sales ADD COLUMN commission_pct REAL DEFAULT 0'); } catch (_) {}
+
 module.exports = db;
