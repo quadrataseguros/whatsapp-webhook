@@ -43,6 +43,17 @@ db.exec(`
     updated_at     TEXT DEFAULT (datetime('now', 'localtime')),
     UNIQUE(salesperson_id, period_type)
   );
+
+  CREATE TABLE IF NOT EXISTS seguradora_goals (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    seguradora      TEXT    NOT NULL,
+    month           INTEGER NOT NULL CHECK(month BETWEEN 1 AND 12),
+    year            INTEGER NOT NULL,
+    prev_year_value REAL    NOT NULL DEFAULT 0,
+    bonus_value     REAL    NOT NULL DEFAULT 0,
+    updated_at      TEXT DEFAULT (datetime('now', 'localtime')),
+    UNIQUE(seguradora, month, year)
+  );
 `);
 
 // Migration: add commission_pct if table already exists without it

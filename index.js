@@ -409,6 +409,104 @@ app.get("/api/ro-stats", (req, res) => {
   });
 });
 
+// ─── Metas por Seguradora (Grupo) ─────────────────────────────────────────────
+
+const SEGURADORAS = [
+  { name: "PORTO",        patterns: ["porto"] },
+  { name: "ALLIANZ",      patterns: ["allianz"] },
+  { name: "TOKIO MARINE", patterns: ["tokio"] },
+  { name: "BRADESCO",     patterns: ["bradesco"] },
+  { name: "YELLUM",       patterns: ["yellum"] },
+  { name: "HDI",          patterns: ["hdi"] },
+  { name: "SUHAI",        patterns: ["suhai"] },
+  { name: "ZURICH",       patterns: ["zurich"] },
+];
+
+function matchesSeg(saleSeg, seg) {
+  const s = (saleSeg || "").toLowerCase();
+  return seg.patterns.some((p) => s.includes(p));
+}
+
+app.get("/api/seguradoras", (_req, res) => {
+  res.json(SEGURADORAS.map((s) => s.name));
+});
+
+app.get("/api/seguradora-goals", (req, res) => {
+  const year  = parseInt(req.query.year)  || new Date().getFullYear();
+  const month = parseInt(req.query.month) || (new Date().getMonth() + 1);
+  res.json(db.prepare("SELECT * FROM seguradora_goals WHERE year=? AND month=?").all(year, month));
+});
+
+app.post("/api/seguradora-goals", requireAdmin, (req, res) => {
+  const { seguradora, month, year, prev_year_value, bonus_value } = req.body;
+  if (!seguradora || !month || !year)
+    return res.status(400).json({ error: "Campos obrigatórios faltando" });
+  db.prepare(`
+    INSERT INTO seguradora_goals (seguradora, month, year, prev_year_value, bonus_value)
+    VALUES (?,?,?,?,?)
+    ON CONFLICT(seguradora, month, year)
+    DO UPDATE SET prev_year_value=excluded.prev_year_value,
+                  bonus_value=excluded.bonus_value,
+                  updated_at=datetime('now','localtime')
+  `).run(seguradora, month, year, prev_year_value || 0, bonus_value || 0);
+  res.json({ ok: true });
+});
+
+app.get("/api/seguradora-stats", (req, res) => {
+  const year  = parseInt(req.query.year)  || new Date().getFullYear();
+  const month = parseInt(req.query.month) || (new Date().getMonth() + 1);
+
+  const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
+  const lastDay   = new Date(year, month, 0).getDate();
+  const endDate   = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+  const sales = db.prepare(
+    "SELECT seguradora, value FROM sales WHERE sale_date BETWEEN ? AND ?"
+  ).all(startDate, endDate);
+
+  const goals = db.prepare(
+    "SELECT * FROM seguradora_goals WHERE year=? AND month=?"
+  ).all(year, month);
+  const goalMap = {};
+  goals.forEach((g) => (goalMap[g.seguradora] = g));
+
+  const seguradoras = SEGURADORAS.map((seg) => {
+    const currentValue = sales
+      .filter((s) => matchesSeg(s.seguradora, seg))
+      .reduce((sum, s) => sum + s.value, 0);
+    const g           = goalMap[seg.name] || {};
+    const prevValue   = g.prev_year_value || 0;
+    const targetValue = prevValue * 1.10;
+    const bonusValue  = g.bonus_value || 0;
+    const achieved    = prevValue > 0 && currentValue >= targetValue;
+    const percentage  = targetValue > 0
+      ? parseFloat(((currentValue / targetValue) * 100).toFixed(2))
+      : 0;
+    const growthPct = prevValue > 0
+      ? parseFloat((((currentValue - prevValue) / prevValue) * 100).toFixed(2))
+      : 0;
+    return {
+      seguradora: seg.name,
+      currentValue,
+      prevValue,
+      targetValue,
+      percentage,
+      growthPct,
+      bonusValue,
+      achieved,
+      configured: prevValue > 0 || bonusValue > 0,
+    };
+  });
+
+  res.json({
+    year, month,
+    startDate, endDate,
+    seguradoras,
+    totalBonus:    seguradoras.filter((s) => s.achieved).reduce((sum, s) => sum + s.bonusValue, 0),
+    achievedCount: seguradoras.filter((s) => s.achieved).length,
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {

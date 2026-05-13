@@ -122,6 +122,27 @@ tbody td{padding:10px 14px;color:var(--t2)}
 .toast.ok{border-left:4px solid var(--green);color:var(--green)}
 .toast.err{border-left:4px solid var(--red);color:var(--red)}
 
+/* Seguradoras */
+.sg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+.sg-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:18px;transition:.2s;border-left:4px solid var(--border)}
+.sg-card.achieved{border-left-color:var(--green)}
+.sg-card.not-achieved{border-left-color:var(--red)}
+.sg-card.unconfigured{opacity:.5}
+.sg-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.sg-name{font-size:15px;font-weight:800;letter-spacing:.03em}
+.sg-pct{font-size:18px;font-weight:800}
+.sg-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;color:var(--t2)}
+.sg-row strong{color:var(--t1);font-weight:700}
+.sg-bar{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;margin:10px 0}
+.sg-bar-fill{height:100%;border-radius:99px;transition:width .9s ease}
+.sg-marker{position:relative;margin-top:-8px;margin-bottom:6px;height:10px}
+.sg-marker::before{content:'';position:absolute;top:0;width:2px;height:10px;background:var(--t2);left:91%}
+.sg-marker::after{content:'meta';position:absolute;top:11px;font-size:9px;color:var(--t2);left:88%}
+.sg-growth{font-size:12px;font-weight:600;padding:2px 8px;border-radius:5px}
+.sg-growth.up{background:rgba(34,197,94,.15);color:var(--green)}
+.sg-growth.down{background:rgba(239,68,68,.15);color:var(--red)}
+.sg-prize{font-size:15px;font-weight:800;color:var(--gold);text-align:center;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+
 /* RO cards */
 .ro-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
 .ro-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:18px;transition:.2s}
@@ -223,6 +244,27 @@ tbody td{padding:10px 14px;color:var(--t2)}
     <div class="chart-box"><canvas id="chart"></canvas></div>
   </div>
 
+  <div class="sec" id="secSG">
+    <div class="sec-title">Metas por Seguradora (Grupo) — Crescimento +10% vs Ano Anterior</div>
+    <div class="ro-summary">
+      <div class="ro-sum-card">
+        <div class="ro-sum-lbl">Seguradoras com meta batida</div>
+        <div class="ro-sum-val" id="sgAchieved" style="color:var(--green)">—</div>
+      </div>
+      <div class="ro-sum-card">
+        <div class="ro-sum-lbl">Total de prêmios disponíveis</div>
+        <div class="ro-sum-val" id="sgTotalPrize" style="color:var(--gold)">—</div>
+      </div>
+      <div class="ro-sum-card" style="flex:2;min-width:220px">
+        <div class="ro-sum-lbl" id="sgMonthLbl">Mês de referência</div>
+        <div style="font-size:12px;color:var(--t2);margin-top:4px">Meta = valor do mesmo mês ano anterior × 1,10. Soma das vendas do grupo todo.</div>
+      </div>
+    </div>
+    <div class="sg-grid" id="sgGrid">
+      <div class="loading"><div class="spin"></div><br>Carregando…</div>
+    </div>
+  </div>
+
   <div class="sec" id="secRO">
     <div class="sec-title">Resultado Operacional — Premiação</div>
     <div class="ro-summary">
@@ -314,7 +356,12 @@ tbody td{padding:10px 14px;color:var(--t2)}
           </div>
           <div class="fg">
             <label>Seguradora *</label>
-            <input type="text" id="fSeguradora" required placeholder="Ex: Porto Seguro">
+            <input type="text" id="fSeguradora" required placeholder="Ex: PORTO" list="segList">
+            <datalist id="segList">
+              <option value="PORTO"><option value="ALLIANZ"><option value="TOKIO MARINE">
+              <option value="BRADESCO"><option value="YELLUM"><option value="HDI">
+              <option value="SUHAI"><option value="ZURICH">
+            </datalist>
           </div>
         </div>
         <div class="fg">
@@ -413,16 +460,19 @@ function load() {
   Promise.all([
     fetch('/api/stats?period=' + period).then(function(r) { return r.json(); }),
     fetch('/api/sales?period=' + period).then(function(r) { return r.json(); }),
-    fetch('/api/ro-stats?period=' + period).then(function(r) { return r.json(); })
+    fetch('/api/ro-stats?period=' + period).then(function(r) { return r.json(); }),
+    fetch('/api/seguradora-stats').then(function(r) { return r.json(); })
   ]).then(function(results) {
-    var stats    = results[0];
+    var stats     = results[0];
     var salesData = results[1];
-    var roData   = results[2];
+    var roData    = results[2];
+    var sgData    = results[3];
     document.getElementById('perLbl').textContent = stats.label;
     renderSummary(stats.totals);
     renderCards(stats.salespeople);
     renderChart(stats.salespeople);
     renderRO(roData);
+    renderSeguradoras(sgData);
     renderTable(salesData.sales);
   }).catch(function() {
     toast('Erro ao carregar dados', 'err');
@@ -542,6 +592,54 @@ function renderTable(sales) {
       + '<td style="color:var(--t3);font-size:11px">' + (s.notes || '—') + '</td></tr>';
   }
   body.innerHTML = html;
+}
+
+// ── Seguradoras ────────────────────────────────────────────────────────────
+function renderSeguradoras(data) {
+  var meses = ['', 'Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('sgMonthLbl').textContent = 'Referência: ' + meses[data.month] + '/' + data.year;
+  document.getElementById('sgAchieved').textContent = data.achievedCount + ' / ' + data.seguradoras.length;
+  document.getElementById('sgTotalPrize').textContent = fmtR(data.totalBonus || 0);
+
+  var grid = document.getElementById('sgGrid');
+  var html = '';
+  for (var i = 0; i < data.seguradoras.length; i++) {
+    var s = data.seguradoras[i];
+
+    if (!s.configured) {
+      html += '<div class="sg-card unconfigured">'
+        + '<div class="sg-head"><span class="sg-name">' + s.seguradora + '</span></div>'
+        + '<div style="font-size:12px;color:var(--t3);text-align:center;padding:18px 0">Meta não configurada</div>'
+        + '<div class="sg-row"><span>Vendido este mês</span><strong>' + fmtR(s.currentValue) + '</strong></div>'
+        + '</div>';
+      continue;
+    }
+
+    var cardCls = s.achieved ? ' achieved' : ' not-achieved';
+    var c       = cor(s.percentage);
+    var growth  = s.growthPct >= 0
+      ? '<span class="sg-growth up">+' + s.growthPct.toFixed(1) + '%</span>'
+      : '<span class="sg-growth down">' + s.growthPct.toFixed(1) + '%</span>';
+
+    html += '<div class="sg-card' + cardCls + '">'
+      + '<div class="sg-head">'
+        + '<span class="sg-name">' + s.seguradora + '</span>'
+        + '<span class="sg-pct" style="color:' + c + '">' + s.percentage.toFixed(0) + '%</span>'
+      + '</div>'
+      + '<div class="sg-row"><span>Ano anterior</span><strong>' + fmtR(s.prevValue) + '</strong></div>'
+      + '<div class="sg-row"><span>Meta (+10%)</span><strong>' + fmtR(s.targetValue) + '</strong></div>'
+      + '<div class="sg-row"><span>Vendido este mês</span><strong>' + fmtR(s.currentValue) + '</strong></div>'
+      + '<div class="sg-bar"><div class="sg-bar-fill" style="width:' + Math.min(s.percentage, 100) + '%;background:' + c + '"></div></div>'
+      + '<div class="sg-row" style="margin-top:4px"><span>Variação vs ano anterior</span>' + growth + '</div>';
+
+    if (s.bonusValue > 0) {
+      html += '<div class="sg-prize">'
+        + (s.achieved ? '🏆 ' + fmtR(s.bonusValue) : '🔒 ' + fmtR(s.bonusValue) + ' (não atingida)')
+        + '</div>';
+    }
+    html += '</div>';
+  }
+  grid.innerHTML = html;
 }
 
 // ── RO ─────────────────────────────────────────────────────────────────────

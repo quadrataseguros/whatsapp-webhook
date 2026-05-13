@@ -145,6 +145,7 @@ tbody td{padding:10px 13px;color:var(--t2)}
   <div class="tabbar">
     <button class="tab on" data-tab="goals">🎯 Metas</button>
     <button class="tab" data-tab="ro">🏆 RO</button>
+    <button class="tab" data-tab="seg">🏢 Seguradoras</button>
     <button class="tab" data-tab="people">👥 Vendedores</button>
     <button class="tab" data-tab="sales">📋 Vendas</button>
   </div>
@@ -165,6 +166,35 @@ tbody td{padding:10px 13px;color:var(--t2)}
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <button class="btn-save" id="btnSaveRO">💾 Salvar Configurações RO</button>
         <span class="save-ok" id="roSaveOk">✓ Salvo!</span>
+      </div>
+    </div>
+
+    <div class="panel" id="panelSeg">
+      <div class="panel-h">Metas por Seguradora (Grupo)</div>
+      <p style="font-size:13px;color:var(--t2);margin-bottom:8px">Meta de cada seguradora = <strong>valor vendido no mesmo mês ano anterior × 1,10</strong> (crescimento de 10%). Soma todas as vendas do grupo.</p>
+      <p style="font-size:12px;color:var(--t3);margin-bottom:18px">Configure por mês: o valor vendido no ano passado e o prêmio em dinheiro se a meta for atingida.</p>
+
+      <div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;align-items:end">
+        <div><div class="gl">Mês</div>
+          <select id="segMonth" style="background:var(--card);border:1px solid var(--border);color:var(--t1);padding:8px 11px;border-radius:7px;font-family:inherit">
+            <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+            <option value="3">Março</option><option value="4">Abril</option>
+            <option value="5">Maio</option><option value="6">Junho</option>
+            <option value="7">Julho</option><option value="8">Agosto</option>
+            <option value="9">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
+          </select>
+        </div>
+        <div><div class="gl">Ano</div>
+          <input type="number" id="segYear" min="2020" max="2099" style="background:var(--card);border:1px solid var(--border);color:var(--t1);padding:8px 11px;border-radius:7px;font-family:inherit;width:100px">
+        </div>
+        <button class="btn-flt" id="btnSegLoad">Carregar</button>
+      </div>
+
+      <div class="ggrid" id="segGrid"></div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn-save" id="btnSaveSeg">💾 Salvar Metas Seguradoras</button>
+        <span class="save-ok" id="segSaveOk">✓ Salvo!</span>
       </div>
     </div>
 
@@ -287,6 +317,7 @@ function mostrarApp() {
   try { carregarMetas(); } catch(ex) { console.error('[Admin] carregarMetas erro:', ex); }
   try { carregarPessoas(); } catch(ex) { console.error('[Admin] carregarPessoas erro:', ex); }
   try { carregarRO(); } catch(ex) { console.error('[Admin] carregarRO erro:', ex); }
+  try { initSegSelectors(); carregarSeguradoras(); } catch(ex) { console.error('[Admin] carregarSeguradoras erro:', ex); }
 }
 
 document.getElementById('btnSair').addEventListener('click', function() {
@@ -309,6 +340,7 @@ for (var ti = 0; ti < tabs.length; ti++) {
     document.getElementById(panelId).classList.add('on');
     if (t === 'sales') carregarVendas();
     if (t === 'ro') carregarRO();
+    if (t === 'seg') carregarSeguradoras();
   });
 }
 
@@ -514,6 +546,126 @@ document.getElementById('btnSaveRO').addEventListener('click', function() {
     toast('Erro ao salvar RO', 'err');
     btn.disabled = false;
     btn.textContent = '💾 Salvar Configurações RO';
+  });
+});
+
+// ── Seguradoras ────────────────────────────────────────────────────────────
+var SEGURADORAS_LIST = ['PORTO','ALLIANZ','TOKIO MARINE','BRADESCO','YELLUM','HDI','SUHAI','ZURICH'];
+var existingSeg = {};
+
+function initSegSelectors() {
+  var now = new Date();
+  document.getElementById('segMonth').value = now.getMonth() + 1;
+  document.getElementById('segYear').value  = now.getFullYear();
+}
+
+function carregarSeguradoras() {
+  var month = document.getElementById('segMonth').value;
+  var year  = document.getElementById('segYear').value;
+  if (!month || !year) { initSegSelectors(); month = document.getElementById('segMonth').value; year = document.getElementById('segYear').value; }
+  fetch('/api/seguradora-goals?month=' + month + '&year=' + year)
+    .then(function(r) { return r.json(); })
+    .then(function(goals) {
+      existingSeg = {};
+      goals.forEach(function(g) { existingSeg[g.seguradora] = g; });
+      renderSegGrid();
+    })
+    .catch(function() { toast('Erro ao carregar metas de seguradora', 'err'); });
+}
+
+function renderSegGrid() {
+  var grid = document.getElementById('segGrid');
+  var html = '';
+  for (var i = 0; i < SEGURADORAS_LIST.length; i++) {
+    var name = SEGURADORAS_LIST[i];
+    var g    = existingSeg[name] || {};
+    var prev = g.prev_year_value || '';
+    var bonus = g.bonus_value || '';
+    var meta = prev ? (prev * 1.10).toLocaleString('pt-BR', {style:'currency', currency:'BRL'}) : '—';
+
+    html += '<div class="gcard">'
+      + '<div class="gcard-name">🏢 ' + name + '</div>'
+      + '<div class="gl">Valor mesmo mês ano anterior (R$)</div>'
+      + '<div class="ginp-wrap" style="margin-bottom:8px"><em>R$</em>'
+        + '<input type="number" min="0" step="0.01" placeholder="0,00" value="' + prev + '"'
+        + ' data-seg="' + name + '" data-field="prev_year_value"></div>'
+      + '<div style="font-size:11px;color:var(--blue);margin-bottom:8px;font-weight:600">Meta (+10%): ' + meta + '</div>'
+      + '<div class="gl">Valor do prêmio (R$)</div>'
+      + '<div class="ginp-wrap"><em>R$</em>'
+        + '<input type="number" min="0" step="0.01" placeholder="0,00" value="' + bonus + '"'
+        + ' data-seg="' + name + '" data-field="bonus_value"></div>'
+      + '</div>';
+  }
+  grid.innerHTML = html;
+
+  // Atualiza meta em tempo real ao digitar
+  var inputs = grid.querySelectorAll('input[data-field="prev_year_value"]');
+  for (var j = 0; j < inputs.length; j++) {
+    inputs[j].addEventListener('input', function() {
+      var v = parseFloat(this.value) || 0;
+      var info = this.parentNode.nextElementSibling;
+      if (info) info.textContent = 'Meta (+10%): ' + (v * 1.10).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+    });
+  }
+}
+
+document.getElementById('btnSegLoad').addEventListener('click', carregarSeguradoras);
+
+document.getElementById('btnSaveSeg').addEventListener('click', function() {
+  var btn = this;
+  var month = parseInt(document.getElementById('segMonth').value);
+  var year  = parseInt(document.getElementById('segYear').value);
+  if (!month || !year) { toast('Selecione mês e ano', 'err'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  var inputs = document.querySelectorAll('#segGrid input[data-seg]');
+  var grouped = {};
+  for (var i = 0; i < inputs.length; i++) {
+    var inp = inputs[i];
+    if (!grouped[inp.dataset.seg]) grouped[inp.dataset.seg] = { seguradora: inp.dataset.seg, month: month, year: year };
+    var v = inp.value !== '' ? parseFloat(inp.value) : null;
+    grouped[inp.dataset.seg][inp.dataset.field] = v;
+  }
+
+  var promises = [];
+  var keys = Object.keys(grouped);
+  for (var k = 0; k < keys.length; k++) {
+    var g = grouped[keys[k]];
+    if (!g.prev_year_value && !g.bonus_value) continue;
+    promises.push(fetch('/api/seguradora-goals', {
+      method: 'POST',
+      headers: adminHdr(),
+      body: JSON.stringify({
+        seguradora: g.seguradora,
+        month: g.month,
+        year: g.year,
+        prev_year_value: g.prev_year_value || 0,
+        bonus_value: g.bonus_value || 0
+      })
+    }));
+  }
+
+  if (!promises.length) {
+    btn.disabled = false;
+    btn.textContent = '💾 Salvar Metas Seguradoras';
+    toast('Preencha ao menos uma seguradora', 'err');
+    return;
+  }
+
+  Promise.all(promises).then(function() {
+    toast('Metas seguradoras salvas!');
+    var ok = document.getElementById('segSaveOk');
+    ok.classList.add('show');
+    setTimeout(function() { ok.classList.remove('show'); }, 3000);
+    carregarSeguradoras();
+    btn.disabled = false;
+    btn.textContent = '💾 Salvar Metas Seguradoras';
+  }).catch(function() {
+    toast('Erro ao salvar', 'err');
+    btn.disabled = false;
+    btn.textContent = '💾 Salvar Metas Seguradoras';
   });
 });
 
