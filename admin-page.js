@@ -408,7 +408,7 @@ function renderPessoas(people) {
     btns[j].addEventListener('click', function() {
       var id = this.dataset.id;
       var nome = this.dataset.nome;
-      if (!confirm('Remover "' + nome + '"?\nAs vendas já registradas serão mantidas.')) return;
+      if (!confirm('Remover "' + nome + '"?\\nAs vendas já registradas serão mantidas.')) return;
       fetch('/api/salespeople/' + id, { method: 'DELETE', headers: adminHdr() })
         .then(function() { toast('"' + nome + '" removido.'); carregarPessoas(); carregarMetas(); })
         .catch(function() { toast('Erro ao remover', 'err'); });
