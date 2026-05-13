@@ -123,6 +123,8 @@ tbody td{padding:10px 13px;color:var(--t2)}
 </head>
 <body>
 
+<div style="position:fixed;top:6px;right:8px;background:#22c55e;color:#000;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700;z-index:9999">v3-xhr</div>
+
 <div class="login-page" id="loginPage">
   <div class="login-box">
     <div class="login-ico">🔐</div>

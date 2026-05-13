@@ -7,6 +7,10 @@ const ADMIN_HTML = require("./admin-page");
 const app = express();
 app.use(express.json());
 
+// Versão do servidor (para confirmar que o código novo está rodando)
+const SERVER_VERSION = "v3-xhr-login-2026-05-13";
+app.get("/api/version", (_req, res) => res.json({ version: SERVER_VERSION }));
+
 // Admin panel servido direto da memória (sem cache, sempre atualizado)
 app.get(["/admin", "/admin.html", "/gestor", "/gestor.html"], (_req, res) => {
   res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
@@ -330,6 +334,9 @@ app.post("/api/goals", requireAdmin, (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-app.listen(PORT, () =>
-  console.log(`Servidor MarIAna rodando na porta ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`Servidor MarIAna rodando na porta ${PORT}`);
+  console.log(`>>> VERSAO: ${SERVER_VERSION} <<<`);
+  console.log(`>>> Admin: http://localhost:${PORT}/admin.html`);
+  console.log(`>>> Senha admin: ${ADMIN_PASSWORD === "admin123" ? "admin123 (padrao)" : "(custom via .env)"}`);
+});
