@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 
 // Versão do servidor (para confirmar que o código novo está rodando)
-const SERVER_VERSION = "v3-xhr-login-2026-05-13";
+const SERVER_VERSION = "v4-light-theme-2026-05-13";
 app.get("/api/version", (_req, res) => res.json({ version: SERVER_VERSION }));
 
 // Admin panel servido direto da memória (sem cache, sempre atualizado)

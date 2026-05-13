@@ -9,9 +9,9 @@ module.exports = `
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0d1117;--card:#1c2230;--card-h:#232c3d;--border:#2d3748;
-  --t1:#f0f4ff;--t2:#94a3b8;--t3:#64748b;
-  --blue:#3b82f6;--green:#22c55e;--red:#ef4444;--gold:#f59e0b;--rad:11px;
+  --bg:#f1f5f9;--card:#ffffff;--card-h:#f8fafc;--border:#e2e8f0;
+  --t1:#1e293b;--t2:#475569;--t3:#94a3b8;
+  --blue:#3b82f6;--green:#22c55e;--red:#ef4444;--gold:#d97706;--rad:11px;
 }
 body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;min-height:100vh}
 
@@ -92,7 +92,7 @@ body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;min-hei
 .twrap{overflow-x:auto;border-radius:var(--rad);border:1px solid var(--border)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{background:var(--card);padding:11px 13px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--t3);border-bottom:1px solid var(--border);white-space:nowrap}
-tbody tr{border-bottom:1px solid #1e2736;transition:.15s}
+tbody tr{border-bottom:1px solid var(--border);transition:.15s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--card-h)}
 tbody td{padding:10px 13px;color:var(--t2)}
@@ -110,7 +110,7 @@ tbody td{padding:10px 13px;color:var(--t2)}
 .toast.ok{border-left:4px solid var(--green);color:var(--green)}
 .toast.err{border-left:4px solid var(--red);color:var(--red)}
 
-.spin{display:inline-block;width:22px;height:22px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite}
+.spin{display:inline-block;width:22px;height:22px;border:3px solid #e2e8f0;border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .loading{text-align:center;padding:36px;color:var(--t3);font-size:13px}
 
@@ -123,7 +123,7 @@ tbody td{padding:10px 13px;color:var(--t2)}
 </head>
 <body>
 
-<div style="position:fixed;top:6px;right:8px;background:#22c55e;color:#000;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700;z-index:9999">v3-xhr</div>
+<div style="position:fixed;top:6px;right:8px;background:#3b82f6;color:#fff;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700;z-index:9999">v4-light</div>
 
 <div class="login-page" id="loginPage">
   <div class="login-box">
@@ -138,7 +138,13 @@ tbody td{padding:10px 13px;color:var(--t2)}
 
 <div id="appShell">
   <div class="appheader">
-    <div class="app-logo">⚙️ Admin — Quadrata Seguros</div>
+    <div class="app-logo">
+      <svg width="28" height="28" viewBox="0 0 40 40" style="flex-shrink:0">
+        <rect width="40" height="40" rx="10" fill="#3b82f6"/>
+        <text x="20" y="28" font-size="22" font-weight="900" fill="white" text-anchor="middle" font-family="Inter,sans-serif">Q</text>
+      </svg>
+      Admin — Quadrata Seguros
+    </div>
     <a class="btn-back" href="/dashboard.html">← Painel de Metas</a>
     <button class="btn-sair" id="btnSair">Sair</button>
   </div>

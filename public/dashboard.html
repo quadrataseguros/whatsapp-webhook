@@ -9,10 +9,10 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0d1117;--card:#1c2230;--card-h:#232c3d;--border:#2d3748;
-  --t1:#f0f4ff;--t2:#94a3b8;--t3:#64748b;
+  --bg:#f1f5f9;--card:#ffffff;--card-h:#f8fafc;--border:#e2e8f0;
+  --t1:#1e293b;--t2:#475569;--t3:#94a3b8;
   --blue:#3b82f6;--green:#22c55e;--red:#ef4444;
-  --orange:#f97316;--yellow:#eab308;--gold:#f59e0b;
+  --orange:#f97316;--yellow:#ca8a04;--gold:#d97706;
   --rad:12px;
 }
 body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;min-height:100vh;padding-bottom:60px}
@@ -81,7 +81,7 @@ main{max-width:1340px;margin:0 auto;padding:24px 20px}
 .tbl-wrap{overflow-x:auto;border-radius:var(--rad);border:1px solid var(--border)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{background:var(--card);padding:12px 14px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--t3);border-bottom:1px solid var(--border);white-space:nowrap}
-tbody tr{border-bottom:1px solid #1e2736;transition:.15s}
+tbody tr{border-bottom:1px solid var(--border);transition:.15s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--card-h)}
 tbody td{padding:10px 14px;color:var(--t2)}
@@ -105,7 +105,7 @@ tbody td{padding:10px 14px;color:var(--t2)}
 .fg label{display:block;font-size:12px;font-weight:500;color:var(--t2);margin-bottom:5px}
 .fg input,.fg select,.fg textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--t1);font-size:14px;font-family:inherit;outline:none;transition:.15s}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,130,246,.14)}
-.fg select option{background:#161b22}
+.fg select option{background:#ffffff}
 .fg textarea{resize:vertical;min-height:60px}
 .fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .comm-preview{font-size:13px;color:var(--gold);font-weight:700;min-height:20px;display:flex;align-items:flex-end;padding-bottom:2px}
@@ -185,7 +185,10 @@ tbody td{padding:10px 14px;color:var(--t2)}
 <header>
   <div class="hrow">
     <div class="logo">
-      <span class="logo-icon">🏆</span>
+      <svg width="38" height="38" viewBox="0 0 40 40" style="flex-shrink:0">
+        <rect width="40" height="40" rx="10" fill="#3b82f6"/>
+        <text x="20" y="28" font-size="22" font-weight="900" fill="white" text-anchor="middle" font-family="Inter,sans-serif">Q</text>
+      </svg>
       <div>
         <h1>Painel de Metas</h1>
         <div class="logo-sub">Quadrata Seguros</div>
@@ -415,14 +418,14 @@ function ring(pct, color) {
   var off = (circ * (1 - c / 100)).toFixed(1);
   var lbl = pct >= 100 ? '🏆 META!' : 'da meta';
   return '<svg viewBox="0 0 108 108">'
-    + '<circle cx="54" cy="54" r="' + r + '" fill="none" stroke="#2d3748" stroke-width="9"/>'
+    + '<circle cx="54" cy="54" r="' + r + '" fill="none" stroke="#e2e8f0" stroke-width="9"/>'
     + '<circle cx="54" cy="54" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="9"'
     + ' stroke-dasharray="' + circ.toFixed(1) + '" stroke-dashoffset="' + off + '"'
     + ' stroke-linecap="round" transform="rotate(-90 54 54)"'
     + ' style="transition:stroke-dashoffset .9s ease,stroke .5s"/>'
     + '<text x="54" y="50" text-anchor="middle" fill="' + color + '" font-size="19" font-weight="700" font-family="Inter,sans-serif">'
     + c.toFixed(0) + '%</text>'
-    + '<text x="54" y="67" text-anchor="middle" fill="#64748b" font-size="10" font-family="Inter,sans-serif">' + lbl + '</text>'
+    + '<text x="54" y="67" text-anchor="middle" fill="#94a3b8" font-size="10" font-family="Inter,sans-serif">' + lbl + '</text>'
     + '</svg>';
 }
 
@@ -555,16 +558,16 @@ function renderChart(people) {
       responsive: true,
       interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { labels: { color: '#94a3b8', font: { family: 'Inter' } } },
+        legend: { labels: { color: '#475569', font: { family: 'Inter' } } },
         tooltip: {
-          backgroundColor: '#1c2230', borderColor: '#2d3748', borderWidth: 1,
-          titleColor: '#f0f4ff', bodyColor: '#94a3b8',
+          backgroundColor: '#ffffff', borderColor: '#e2e8f0', borderWidth: 1,
+          titleColor: '#1e293b', bodyColor: '#475569',
           callbacks: { label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + fmtR(ctx.parsed.y); } }
         }
       },
       scales: {
-        x: { ticks: { color: '#94a3b8' }, grid: { color: '#1e2736' } },
-        y: { ticks: { color: '#94a3b8', callback: function(v) { return fmtR(v); } }, grid: { color: '#1e2736' } }
+        x: { ticks: { color: '#475569' }, grid: { color: '#e2e8f0' } },
+        y: { ticks: { color: '#475569', callback: function(v) { return fmtR(v); } }, grid: { color: '#e2e8f0' } }
       }
     }
   });
