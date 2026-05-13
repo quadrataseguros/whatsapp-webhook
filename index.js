@@ -332,6 +332,83 @@ app.post("/api/goals", requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── RO (Resultado Operacional) ───────────────────────────────────────────────
+
+app.get("/api/ro-goals", (_req, res) => {
+  res.json(
+    db.prepare(`
+      SELECT rg.*, sp.name AS salesperson_name
+      FROM ro_goals rg JOIN salespeople sp ON sp.id = rg.salesperson_id
+      WHERE sp.active = 1
+    `).all()
+  );
+});
+
+app.post("/api/ro-goals", requireAdmin, (req, res) => {
+  const { salesperson_id, period_type, min_sales, min_commission, bonus_value } = req.body;
+  if (!salesperson_id || !period_type)
+    return res.status(400).json({ error: "Campos obrigatórios faltando" });
+  db.prepare(`
+    INSERT INTO ro_goals (salesperson_id, period_type, min_sales, min_commission, bonus_value)
+    VALUES (?,?,?,?,?)
+    ON CONFLICT(salesperson_id, period_type)
+    DO UPDATE SET min_sales=excluded.min_sales, min_commission=excluded.min_commission,
+                  bonus_value=excluded.bonus_value, updated_at=datetime('now','localtime')
+  `).run(
+    salesperson_id, period_type,
+    min_sales ?? 0,
+    min_commission ?? 16.0,
+    bonus_value ?? 0
+  );
+  res.json({ ok: true });
+});
+
+app.get("/api/ro-stats", (req, res) => {
+  const period = req.query.period === "monthly" ? "monthly" : "weekly";
+  const range = getPeriodRange(period);
+
+  const rows = db.prepare(`
+    SELECT sp.id, sp.name,
+           COUNT(s.id)                                                         AS sales_count,
+           COALESCE(SUM(s.value), 0)                                           AS total_value,
+           COALESCE(SUM(s.value * COALESCE(s.commission_pct,0) / 100), 0)     AS total_commission,
+           COALESCE(rg.min_sales,      0)    AS min_sales,
+           COALESCE(rg.min_commission, 16.0) AS min_commission,
+           COALESCE(rg.bonus_value,    0)    AS bonus_value
+    FROM salespeople sp
+    LEFT JOIN sales s
+           ON s.salesperson_id = sp.id
+          AND s.sale_date >= ? AND s.sale_date <= ?
+    LEFT JOIN ro_goals rg
+           ON rg.salesperson_id = sp.id AND rg.period_type = ?
+    WHERE sp.active = 1
+    GROUP BY sp.id, sp.name, rg.min_sales, rg.min_commission, rg.bonus_value
+    ORDER BY sp.name
+  `).all(range.start, range.end, period);
+
+  const salespeople = rows.map((r) => {
+    // Weighted average: total commission earned / total value × 100
+    const weighted_commission = r.total_value > 0
+      ? parseFloat(((r.total_commission / r.total_value) * 100).toFixed(2))
+      : 0;
+    const ok_sales      = r.min_sales === 0 || r.sales_count >= r.min_sales;
+    const ok_commission = r.min_commission === 0 || weighted_commission >= r.min_commission;
+    const achieved      = ok_sales && ok_commission;
+    const configured    = r.min_sales > 0 || r.min_commission > 0 || r.bonus_value > 0;
+    return { ...r, weighted_commission, ok_sales, ok_commission, achieved, configured };
+  });
+
+  res.json({
+    period,
+    startDate: range.start,
+    endDate: range.end,
+    label: range.label,
+    salespeople,
+    achieved_count: salespeople.filter((p) => p.achieved).length,
+    total_bonus:    salespeople.filter((p) => p.achieved).reduce((s, p) => s + p.bonus_value, 0),
+  });
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {

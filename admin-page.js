@@ -144,6 +144,7 @@ tbody td{padding:10px 13px;color:var(--t2)}
   </div>
   <div class="tabbar">
     <button class="tab on" data-tab="goals">🎯 Metas</button>
+    <button class="tab" data-tab="ro">🏆 RO</button>
     <button class="tab" data-tab="people">👥 Vendedores</button>
     <button class="tab" data-tab="sales">📋 Vendas</button>
   </div>
@@ -156,6 +157,17 @@ tbody td{padding:10px 13px;color:var(--t2)}
         <span class="save-ok" id="saveOk">✓ Salvo!</span>
       </div>
     </div>
+    <div class="panel" id="panelRo">
+      <div class="panel-h">Configurar Metas de RO</div>
+      <p style="font-size:13px;color:var(--t2);margin-bottom:6px">A <strong>comissão ponderada</strong> é calculada como: <em>total de comissão recebida ÷ total vendido × 100</em>.</p>
+      <p style="font-size:12px;color:var(--t3);margin-bottom:20px">Isso evita distorção: vender R$4.000 @ 10% + R$100 @ 35% resulta em média simples de 22,5%, mas comissão ponderada real de 10,7%.</p>
+      <div class="ggrid" id="roGrid"></div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <button class="btn-save" id="btnSaveRO">💾 Salvar Configurações RO</button>
+        <span class="save-ok" id="roSaveOk">✓ Salvo!</span>
+      </div>
+    </div>
+
     <div class="panel" id="panelPeople">
       <div class="panel-h">Gerenciar Vendedores</div>
       <div class="addrow">
@@ -274,6 +286,7 @@ function mostrarApp() {
   document.getElementById('appShell').style.display = 'block';
   try { carregarMetas(); } catch(ex) { console.error('[Admin] carregarMetas erro:', ex); }
   try { carregarPessoas(); } catch(ex) { console.error('[Admin] carregarPessoas erro:', ex); }
+  try { carregarRO(); } catch(ex) { console.error('[Admin] carregarRO erro:', ex); }
 }
 
 document.getElementById('btnSair').addEventListener('click', function() {
@@ -292,8 +305,10 @@ for (var ti = 0; ti < tabs.length; ti++) {
     for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('on');
     this.classList.add('on');
     document.querySelectorAll('.panel').forEach(function(p) { p.classList.remove('on'); });
-    document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1)).classList.add('on');
+    var panelId = 'panel' + t.charAt(0).toUpperCase() + t.slice(1);
+    document.getElementById(panelId).classList.add('on');
     if (t === 'sales') carregarVendas();
+    if (t === 'ro') carregarRO();
   });
 }
 
@@ -376,6 +391,129 @@ document.getElementById('btnSaveGoals').addEventListener('click', function() {
     toast('Erro ao salvar algumas metas', 'err');
     btn.disabled = false;
     btn.textContent = '💾 Salvar Todas as Metas';
+  });
+});
+
+// ── RO ─────────────────────────────────────────────────────────────────────
+var existingRO = {};
+
+function carregarRO() {
+  Promise.all([
+    fetch('/api/salespeople').then(function(r) { return r.json(); }),
+    fetch('/api/ro-goals').then(function(r) { return r.json(); })
+  ]).then(function(res) {
+    if (!allPeople.length) allPeople = res[0];
+    existingRO = {};
+    res[1].forEach(function(g) {
+      existingRO[g.salesperson_id + '_' + g.period_type] = g;
+    });
+    renderROGrid(res[0]);
+  }).catch(function() { toast('Erro ao carregar RO', 'err'); });
+}
+
+function renderROGrid(people) {
+  var grid = document.getElementById('roGrid');
+  if (!people.length) {
+    grid.innerHTML = '<p style="color:var(--t3)">Adicione vendedores primeiro.</p>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < people.length; i++) {
+    var p = people[i];
+    var gw = existingRO[p.id + '_weekly']  || {};
+    var gm = existingRO[p.id + '_monthly'] || {};
+    html += '<div class="gcard">'
+      + '<div class="gcard-name">👤 ' + p.name + '</div>'
+      + '<div class="ginputs">'
+      // --- Weekly ---
+      + '<div>'
+        + '<span class="gtag gtag-w">SEMANAL</span>'
+        + '<div class="gl">Min. Vendas</div>'
+        + '<div class="ginp-wrap" style="margin-bottom:6px"><em style="left:8px;font-size:10px">#</em>'
+          + '<input type="number" min="0" step="1" placeholder="0" value="' + (gw.min_sales || '') + '"'
+          + ' data-pid="' + p.id + '" data-tipo="weekly" data-field="min_sales" style="padding-left:22px"></div>'
+        + '<div class="gl">Comissão mínima %</div>'
+        + '<div class="ginp-wrap" style="margin-bottom:6px"><em>%</em>'
+          + '<input type="number" min="0" max="100" step="0.1" placeholder="16.0" value="' + (gw.min_commission != null ? gw.min_commission : '') + '"'
+          + ' data-pid="' + p.id + '" data-tipo="weekly" data-field="min_commission"></div>'
+        + '<div class="gl">Prêmio (R$)</div>'
+        + '<div class="ginp-wrap"><em>R$</em>'
+          + '<input type="number" min="0" step="0.01" placeholder="0,00" value="' + (gw.bonus_value || '') + '"'
+          + ' data-pid="' + p.id + '" data-tipo="weekly" data-field="bonus_value"></div>'
+      + '</div>'
+      // --- Monthly ---
+      + '<div>'
+        + '<span class="gtag gtag-m">MENSAL</span>'
+        + '<div class="gl">Min. Vendas</div>'
+        + '<div class="ginp-wrap" style="margin-bottom:6px"><em style="left:8px;font-size:10px">#</em>'
+          + '<input type="number" min="0" step="1" placeholder="0" value="' + (gm.min_sales || '') + '"'
+          + ' data-pid="' + p.id + '" data-tipo="monthly" data-field="min_sales" style="padding-left:22px"></div>'
+        + '<div class="gl">Comissão mínima %</div>'
+        + '<div class="ginp-wrap" style="margin-bottom:6px"><em>%</em>'
+          + '<input type="number" min="0" max="100" step="0.1" placeholder="16.0" value="' + (gm.min_commission != null ? gm.min_commission : '') + '"'
+          + ' data-pid="' + p.id + '" data-tipo="monthly" data-field="min_commission"></div>'
+        + '<div class="gl">Prêmio (R$)</div>'
+        + '<div class="ginp-wrap"><em>R$</em>'
+          + '<input type="number" min="0" step="0.01" placeholder="0,00" value="' + (gm.bonus_value || '') + '"'
+          + ' data-pid="' + p.id + '" data-tipo="monthly" data-field="bonus_value"></div>'
+      + '</div>'
+      + '</div></div>';
+  }
+  grid.innerHTML = html;
+}
+
+document.getElementById('btnSaveRO').addEventListener('click', function() {
+  var btn = this;
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  var inputs = document.querySelectorAll('#roGrid input[data-pid]');
+  var grouped = {};
+  for (var i = 0; i < inputs.length; i++) {
+    var inp = inputs[i];
+    var key = inp.dataset.pid + '_' + inp.dataset.tipo;
+    if (!grouped[key]) grouped[key] = { salesperson_id: parseInt(inp.dataset.pid), period_type: inp.dataset.tipo };
+    var v = inp.value !== '' ? parseFloat(inp.value) : null;
+    grouped[key][inp.dataset.field] = v;
+  }
+
+  var promises = [];
+  var keys = Object.keys(grouped);
+  for (var k = 0; k < keys.length; k++) {
+    var g = grouped[keys[k]];
+    if (g.min_sales == null && g.min_commission == null && g.bonus_value == null) continue;
+    promises.push(fetch('/api/ro-goals', {
+      method: 'POST',
+      headers: adminHdr(),
+      body: JSON.stringify({
+        salesperson_id: g.salesperson_id,
+        period_type: g.period_type,
+        min_sales: g.min_sales != null ? g.min_sales : 0,
+        min_commission: g.min_commission != null ? g.min_commission : 16.0,
+        bonus_value: g.bonus_value != null ? g.bonus_value : 0
+      })
+    }));
+  }
+
+  if (!promises.length) {
+    btn.disabled = false;
+    btn.textContent = '💾 Salvar Configurações RO';
+    toast('Preencha ao menos um campo', 'err');
+    return;
+  }
+
+  Promise.all(promises).then(function() {
+    toast('RO salvo com sucesso!');
+    var ok = document.getElementById('roSaveOk');
+    ok.classList.add('show');
+    setTimeout(function() { ok.classList.remove('show'); }, 3000);
+    carregarRO();
+    btn.disabled = false;
+    btn.textContent = '💾 Salvar Configurações RO';
+  }).catch(function() {
+    toast('Erro ao salvar RO', 'err');
+    btn.disabled = false;
+    btn.textContent = '💾 Salvar Configurações RO';
   });
 });
 

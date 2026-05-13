@@ -122,6 +122,27 @@ tbody td{padding:10px 14px;color:var(--t2)}
 .toast.ok{border-left:4px solid var(--green);color:var(--green)}
 .toast.err{border-left:4px solid var(--red);color:var(--red)}
 
+/* RO cards */
+.ro-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.ro-card{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:18px;transition:.2s}
+.ro-card.achieved{border-color:var(--green);box-shadow:0 0 0 1px var(--green)22}
+.ro-card.not-achieved{border-color:var(--red)}
+.ro-card.unconfigured{opacity:.55}
+.ro-name{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.ro-crit{margin-bottom:10px}
+.ro-lbl{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;display:flex;justify-content:space-between;align-items:center}
+.ro-bar{height:7px;background:var(--bg);border-radius:99px;overflow:hidden}
+.ro-bar-fill{height:100%;border-radius:99px;transition:width .9s ease}
+.ro-badge{padding:5px 0;border-radius:8px;font-size:13px;font-weight:700;margin-top:12px;text-align:center}
+.ro-badge.ok{background:rgba(34,197,94,.12);color:var(--green)}
+.ro-badge.nok{background:rgba(239,68,68,.12);color:var(--red)}
+.ro-badge.nc{background:rgba(100,116,139,.1);color:var(--t3)}
+.ro-prize{font-size:18px;font-weight:800;color:var(--gold);text-align:center;margin-top:4px}
+.ro-summary{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.ro-sum-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 18px;flex:1;min-width:140px}
+.ro-sum-lbl{font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.ro-sum-val{font-size:20px;font-weight:800}
+
 /* misc */
 .loading{text-align:center;padding:50px;color:var(--t3);font-size:13px}
 .spin{display:inline-block;width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:sp .7s linear infinite;margin-bottom:10px}
@@ -200,6 +221,27 @@ tbody td{padding:10px 14px;color:var(--t2)}
   <div class="sec">
     <div class="sec-title">Comparativo — Vendido vs Meta</div>
     <div class="chart-box"><canvas id="chart"></canvas></div>
+  </div>
+
+  <div class="sec" id="secRO">
+    <div class="sec-title">Resultado Operacional — Premiação</div>
+    <div class="ro-summary">
+      <div class="ro-sum-card">
+        <div class="ro-sum-lbl">Premiados</div>
+        <div class="ro-sum-val" id="roAchieved" style="color:var(--green)">—</div>
+      </div>
+      <div class="ro-sum-card">
+        <div class="ro-sum-lbl">Total Prêmios</div>
+        <div class="ro-sum-val" id="roTotalPrize" style="color:var(--gold)">—</div>
+      </div>
+      <div class="ro-sum-card" style="flex:2;min-width:220px">
+        <div class="ro-sum-lbl">Critério: Média Ponderada de Comissão</div>
+        <div style="font-size:12px;color:var(--t2);margin-top:4px">Calcula comissão real ÷ valor vendido. Evita distorção por vendas pequenas com % alto.</div>
+      </div>
+    </div>
+    <div class="ro-grid" id="roGrid">
+      <div class="loading"><div class="spin"></div><br>Carregando…</div>
+    </div>
   </div>
 
   <div class="sec">
@@ -370,14 +412,17 @@ function load() {
   topbarAnim();
   Promise.all([
     fetch('/api/stats?period=' + period).then(function(r) { return r.json(); }),
-    fetch('/api/sales?period=' + period).then(function(r) { return r.json(); })
+    fetch('/api/sales?period=' + period).then(function(r) { return r.json(); }),
+    fetch('/api/ro-stats?period=' + period).then(function(r) { return r.json(); })
   ]).then(function(results) {
-    var stats = results[0];
+    var stats    = results[0];
     var salesData = results[1];
+    var roData   = results[2];
     document.getElementById('perLbl').textContent = stats.label;
     renderSummary(stats.totals);
     renderCards(stats.salespeople);
     renderChart(stats.salespeople);
+    renderRO(roData);
     renderTable(salesData.sales);
   }).catch(function() {
     toast('Erro ao carregar dados', 'err');
@@ -497,6 +542,69 @@ function renderTable(sales) {
       + '<td style="color:var(--t3);font-size:11px">' + (s.notes || '—') + '</td></tr>';
   }
   body.innerHTML = html;
+}
+
+// ── RO ─────────────────────────────────────────────────────────────────────
+function renderRO(data) {
+  document.getElementById('roAchieved').textContent = data.achieved_count + ' / ' + data.salespeople.length;
+  document.getElementById('roTotalPrize').textContent = fmtR(data.total_bonus || 0);
+
+  var grid = document.getElementById('roGrid');
+  if (!data.salespeople.length) {
+    grid.innerHTML = '<div class="loading">Nenhum vendedor cadastrado.</div>';
+    return;
+  }
+
+  var html = '';
+  for (var i = 0; i < data.salespeople.length; i++) {
+    var p = data.salespeople[i];
+
+    if (!p.configured) {
+      html += '<div class="ro-card unconfigured">'
+        + '<div class="ro-name">' + p.name + '</div>'
+        + '<div class="ro-badge nc">Meta RO não configurada</div>'
+        + '</div>';
+      continue;
+    }
+
+    // Sales count bar
+    var salesPct = p.min_sales > 0 ? Math.min(p.sales_count / p.min_sales * 100, 100) : 100;
+    var salesColor = p.ok_sales ? 'var(--green)' : (salesPct >= 70 ? 'var(--yellow)' : 'var(--red)');
+    var salesBar = p.min_sales > 0
+      ? '<div class="ro-crit">'
+        + '<div class="ro-lbl"><span>Vendas realizadas</span><span style="color:' + salesColor + '">' + p.sales_count + ' / ' + p.min_sales + '</span></div>'
+        + '<div class="ro-bar"><div class="ro-bar-fill" style="width:' + salesPct + '%;background:' + salesColor + '"></div></div>'
+        + '</div>'
+      : '';
+
+    // Weighted commission bar (target = min_commission, max display = max_commission*1.5)
+    var commTarget = p.min_commission;
+    var commPct = commTarget > 0 ? Math.min(p.weighted_commission / commTarget * 100, 100) : 100;
+    var commColor = p.ok_commission ? 'var(--green)' : (commPct >= 70 ? 'var(--yellow)' : 'var(--red)');
+    var commDisplay = p.weighted_commission.toFixed(1) + '% / ' + commTarget.toFixed(0) + '%';
+
+    var cardCls = p.achieved ? ' achieved' : ' not-achieved';
+    var badge = p.achieved
+      ? '<div class="ro-badge ok">🏆 Meta atingida!</div>'
+      : '<div class="ro-badge nok">✗ Meta não atingida</div>';
+    var prize = p.bonus_value > 0
+      ? '<div class="ro-prize">' + (p.achieved ? fmtR(p.bonus_value) : '—') + '</div>'
+      : '';
+
+    html += '<div class="ro-card' + cardCls + '">'
+      + '<div class="ro-name"><span>' + p.name + '</span>'
+      + (p.bonus_value > 0 ? '<span style="font-size:11px;color:var(--gold);font-weight:600">Prêmio: ' + fmtR(p.bonus_value) + '</span>' : '')
+      + '</div>'
+      + salesBar
+      + '<div class="ro-crit">'
+        + '<div class="ro-lbl"><span>Comissão ponderada</span><span style="color:' + commColor + '">' + commDisplay + '</span></div>'
+        + '<div class="ro-bar"><div class="ro-bar-fill" style="width:' + commPct + '%;background:' + commColor + '"></div></div>'
+      + '</div>'
+      + badge
+      + prize
+      + '</div>';
+  }
+  grid.innerHTML = html;
 }
 
 // ── modal ──────────────────────────────────────────────────────────────────
