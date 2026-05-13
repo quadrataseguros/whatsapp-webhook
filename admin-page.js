@@ -21,7 +21,7 @@ body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;min-hei
 .login-ico{font-size:46px;margin-bottom:14px}
 .login-box h2{font-size:21px;font-weight:700;margin-bottom:5px}
 .login-box p{color:var(--t3);font-size:13px;margin-bottom:26px}
-.login-err{color:var(--red);font-size:13px;margin-bottom:10px;min-height:18px}
+.login-err{background:rgba(239,68,68,.13);border:1px solid var(--red);color:var(--red);font-size:13px;margin-bottom:12px;padding:9px 12px;border-radius:7px;display:none;text-align:left;font-weight:600}
 .login-box input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;color:var(--t1);font-size:15px;font-family:inherit;outline:none;margin-bottom:12px;text-align:center;letter-spacing:.1em;transition:.15s}
 .login-box input:focus{border-color:var(--blue)}
 .btn-entrar{width:100%;background:var(--blue);color:#fff;border:none;padding:12px;border-radius:8px;font-weight:700;font-size:15px;cursor:pointer;transition:.15s}
@@ -128,9 +128,9 @@ tbody td{padding:10px 13px;color:var(--t2)}
     <div class="login-ico">🔐</div>
     <h2>Painel Administrativo</h2>
     <p>Quadrata Seguros — acesso restrito</p>
-    <div class="login-err" id="loginErr"></div>
-    <input type="password" id="passInput" placeholder="••••••••">
-    <button class="btn-entrar" id="btnEntrar">Entrar</button>
+    <div class="login-err" id="loginErr" style="display:none"></div>
+    <input type="password" id="passInput" placeholder="••••••••" autocomplete="current-password">
+    <button class="btn-entrar" id="btnEntrar" onclick="doLogin()">Entrar</button>
   </div>
 </div>
 
@@ -185,8 +185,6 @@ tbody td{padding:10px 13px;color:var(--t2)}
 <div class="toasts" id="toasts"></div>
 
 <script>
-'use strict';
-
 var adminPass = '';
 var allPeople = [];
 var existingGoals = {};
@@ -213,44 +211,67 @@ function adminHdr() {
   return { 'Content-Type': 'application/json', 'x-admin-password': adminPass };
 }
 
+function mostrarErroLogin(msg) {
+  var el = document.getElementById('loginErr');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+
+function ocultarErroLogin() {
+  var el = document.getElementById('loginErr');
+  el.textContent = '';
+  el.style.display = 'none';
+}
+
 // ── login ──────────────────────────────────────────────────────────────────
 function doLogin() {
   var pass = document.getElementById('passInput').value;
-  if (!pass) { document.getElementById('loginErr').textContent = 'Digite a senha'; return; }
+  console.log('[Admin] doLogin chamado');
+  if (!pass) { mostrarErroLogin('Digite a senha'); return; }
   var btn = document.getElementById('btnEntrar');
   btn.disabled = true;
-  btn.textContent = 'Verificando…';
-  fetch('/api/admin/verify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: pass })
-  }).then(function(r) {
-    if (!r.ok) throw new Error('Senha incorreta');
-    return r.json();
-  }).then(function() {
-    adminPass = pass;
-    sessionStorage.setItem('ap', pass);
-    mostrarApp();
-  }).catch(function(e) {
-    document.getElementById('loginErr').textContent = e.message;
-    document.getElementById('passInput').value = '';
-    document.getElementById('passInput').focus();
+  btn.textContent = 'Verificando...';
+  ocultarErroLogin();
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/admin/verify', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState !== 4) return;
+    console.log('[Admin] Resposta HTTP:', xhr.status);
+    if (xhr.status === 200) {
+      adminPass = pass;
+      try { sessionStorage.setItem('ap', pass); } catch(ex) {}
+      mostrarApp();
+    } else {
+      mostrarErroLogin('Senha incorreta (status ' + xhr.status + ')');
+      document.getElementById('passInput').value = '';
+      document.getElementById('passInput').focus();
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
+    }
+  };
+  xhr.onerror = function() {
+    console.error('[Admin] Erro de rede');
+    mostrarErroLogin('Erro de conexao com o servidor');
     btn.disabled = false;
     btn.textContent = 'Entrar';
-  });
+  };
+  xhr.send(JSON.stringify({ password: pass }));
 }
+window.doLogin = doLogin;
 
-document.getElementById('btnEntrar').addEventListener('click', doLogin);
 document.getElementById('passInput').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') doLogin();
 });
 
 // ── app ────────────────────────────────────────────────────────────────────
 function mostrarApp() {
+  console.log('[Admin] mostrarApp chamado');
   document.getElementById('loginPage').style.display = 'none';
   document.getElementById('appShell').style.display = 'block';
-  carregarMetas();
-  carregarPessoas();
+  try { carregarMetas(); } catch(ex) { console.error('[Admin] carregarMetas erro:', ex); }
+  try { carregarPessoas(); } catch(ex) { console.error('[Admin] carregarPessoas erro:', ex); }
 }
 
 document.getElementById('btnSair').addEventListener('click', function() {
@@ -347,9 +368,10 @@ document.getElementById('btnSaveGoals').addEventListener('click', function() {
     ok.classList.add('show');
     setTimeout(function() { ok.classList.remove('show'); }, 3000);
     carregarMetas();
+    btn.disabled = false;
+    btn.textContent = '💾 Salvar Todas as Metas';
   }).catch(function() {
     toast('Erro ao salvar algumas metas', 'err');
-  }).finally(function() {
     btn.disabled = false;
     btn.textContent = '💾 Salvar Todas as Metas';
   });
@@ -487,17 +509,21 @@ function renderVendas(sales) {
 }
 
 // ── init ───────────────────────────────────────────────────────────────────
-var saved = sessionStorage.getItem('ap');
-if (saved) {
-  fetch('/api/admin/verify', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: saved })
-  }).then(function(r) {
-    if (r.ok) { adminPass = saved; mostrarApp(); }
-    else sessionStorage.removeItem('ap');
-  }).catch(function() {});
-}
+(function() {
+  var saved;
+  try { saved = sessionStorage.getItem('ap'); } catch(ex) { saved = null; }
+  if (!saved) return;
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/admin/verify', true);
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState !== 4) return;
+    if (xhr.status === 200) { adminPass = saved; mostrarApp(); }
+    else { try { sessionStorage.removeItem('ap'); } catch(ex) {} }
+  };
+  xhr.onerror = function() {};
+  xhr.send(JSON.stringify({ password: saved }));
+})();
 </script>
 </body>
 </html>
