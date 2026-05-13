@@ -2,9 +2,19 @@ const express = require("express");
 const axios = require("axios");
 const path = require("path");
 const db = require("./db");
+const ADMIN_HTML = require("./admin-page");
 
 const app = express();
 app.use(express.json());
+
+// Admin panel servido direto da memória (sem cache, sempre atualizado)
+app.get(["/admin", "/admin.html", "/gestor", "/gestor.html"], (_req, res) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+  res.type("html").send(ADMIN_HTML);
+});
+
 app.use(express.static(path.join(__dirname, "public")));
 
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "quadrata123";
