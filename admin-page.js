@@ -887,7 +887,7 @@ var lastSalesData = [];
 
 document.getElementById('btnExportCSV').addEventListener('click', function() {
   if (!lastSalesData.length) { toast('Nenhuma venda para exportar', 'err'); return; }
-  var header = 'Data,Vendedor,Valor (R$),Comissao %,Comissao R$,Ramo,Seguradora,Obs.\n';
+  var header = 'Data,Vendedor,Valor (R$),Comissao %,Comissao R$,Ramo,Seguradora,Obs.\\n';
   var rows = lastSalesData.map(function(s) {
     var commR = s.commission_pct > 0 ? (s.value * s.commission_pct / 100).toFixed(2) : '0.00';
     return [
@@ -900,9 +900,9 @@ document.getElementById('btnExportCSV').addEventListener('click', function() {
       '"' + s.seguradora.replace(/"/g, '""') + '"',
       '"' + (s.notes || '').replace(/"/g, '""') + '"'
     ].join(',');
-  }).join('\n');
+  }).join('\\n');
   var csv = header + rows;
-  var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  var blob = new Blob(['\\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
   a.href = url;
