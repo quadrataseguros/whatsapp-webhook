@@ -123,7 +123,7 @@ tbody td{padding:10px 13px;color:var(--t2)}
 </head>
 <body>
 
-<div style="position:fixed;top:6px;right:8px;background:#3b82f6;color:#fff;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700;z-index:9999">v4-light</div>
+<div style="position:fixed;top:6px;right:8px;background:#3b82f6;color:#fff;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700;z-index:9999">v5</div>
 
 <div class="login-page" id="loginPage">
   <div class="login-box">
@@ -154,6 +154,7 @@ tbody td{padding:10px 13px;color:var(--t2)}
     <button class="tab" data-tab="seg">🏢 Seguradoras</button>
     <button class="tab" data-tab="people">👥 Vendedores</button>
     <button class="tab" data-tab="sales">📋 Vendas</button>
+    <button class="tab" data-tab="config">⚙️ Config</button>
   </div>
   <div class="appmain">
     <div class="panel on" id="panelGoals">
@@ -212,6 +213,24 @@ tbody td{padding:10px 13px;color:var(--t2)}
       </div>
       <div class="pgrid" id="peopleGrid"><div class="loading"><div class="spin"></div></div></div>
     </div>
+    <div class="panel" id="panelConfig">
+      <div class="panel-h">Configurações</div>
+      <div class="gcard" style="max-width:420px;margin-bottom:24px">
+        <div class="gcard-name">🔑 Alterar Senha Admin</div>
+        <div class="gl">Nova senha (mínimo 4 caracteres)</div>
+        <div class="ginp-wrap" style="margin-bottom:8px">
+          <input type="password" id="cfgNewPass" placeholder="Nova senha" autocomplete="new-password" style="padding-left:10px">
+        </div>
+        <div class="gl">Confirmar nova senha</div>
+        <div class="ginp-wrap" style="margin-bottom:12px">
+          <input type="password" id="cfgConfPass" placeholder="Confirmar senha" autocomplete="new-password" style="padding-left:10px">
+        </div>
+        <div id="cfgPassErr" style="color:var(--red);font-size:12px;margin-bottom:8px;min-height:16px"></div>
+        <button class="btn-save" id="btnSavePass">🔑 Alterar Senha</button>
+        <span class="save-ok" id="passSaveOk" style="margin-left:10px">✓ Senha alterada!</span>
+      </div>
+    </div>
+
     <div class="panel" id="panelSales">
       <div class="panel-h">Todas as Vendas</div>
       <div class="filters">
@@ -219,6 +238,7 @@ tbody td{padding:10px 13px;color:var(--t2)}
         <div class="fgrp"><label>De</label><input type="date" id="fltDe"></div>
         <div class="fgrp"><label>Até</label><input type="date" id="fltAte"></div>
         <button class="btn-flt" id="btnFiltrar">Filtrar</button>
+        <button class="btn-flt" id="btnExportCSV" style="background:var(--green);color:#fff;border-color:var(--green)">📥 Exportar CSV</button>
       </div>
       <div class="twrap">
         <table>
@@ -695,7 +715,13 @@ function renderPessoas(people) {
     var p = people[i];
     html += '<div class="pitem">'
       + '<span class="pname">👤 ' + p.name + '</span>'
-      + '<button class="btn-rem" data-id="' + p.id + '" data-nome="' + p.name + '">✕</button>'
+      + '<div style="display:flex;align-items:center;gap:6px">'
+        + '<input type="text" class="pin-inp" maxlength="6" placeholder="PIN" data-id="' + p.id + '"'
+          + ' style="width:62px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:5px 8px;color:var(--t1);font-size:13px;font-family:inherit;outline:none;text-align:center;letter-spacing:.1em"'
+          + ' title="PIN de acesso deste vendedor (deixe vazio para remover)">'
+        + '<button class="btn-pin btn-flt" data-id="' + p.id + '" style="padding:5px 10px;font-size:12px" title="Salvar PIN">🔑</button>'
+        + '<button class="btn-rem" data-id="' + p.id + '" data-nome="' + p.name + '">✕</button>'
+      + '</div>'
       + '</div>';
   }
   grid.innerHTML = html;
@@ -708,6 +734,21 @@ function renderPessoas(people) {
       fetch('/api/salespeople/' + id, { method: 'DELETE', headers: adminHdr() })
         .then(function() { toast('"' + nome + '" removido.'); carregarPessoas(); carregarMetas(); })
         .catch(function() { toast('Erro ao remover', 'err'); });
+    });
+  }
+  var pinBtns = grid.querySelectorAll('.btn-pin');
+  for (var k = 0; k < pinBtns.length; k++) {
+    pinBtns[k].addEventListener('click', function() {
+      var id  = this.dataset.id;
+      var inp = grid.querySelector('.pin-inp[data-id="' + id + '"]');
+      var pin = inp ? inp.value.trim() : '';
+      fetch('/api/salespeople/' + id + '/pin', {
+        method: 'POST', headers: adminHdr(),
+        body: JSON.stringify({ pin: pin || null })
+      }).then(function(r) {
+        if (!r.ok) throw new Error();
+        toast(pin ? 'PIN salvo!' : 'PIN removido.');
+      }).catch(function() { toast('Erro ao salvar PIN', 'err'); });
     });
   }
 }
@@ -766,6 +807,7 @@ function carregarVendas() {
 }
 
 function renderVendas(sales) {
+  lastSalesData = sales;
   var body = document.getElementById('salesBody');
   if (!sales.length) {
     body.innerHTML = '<tr class="empty"><td colspan="8">Nenhuma venda encontrada</td></tr>';
@@ -805,6 +847,72 @@ function renderVendas(sales) {
     });
   }
 }
+
+// ── alterar senha ──────────────────────────────────────────────────────────
+document.getElementById('btnSavePass').addEventListener('click', function() {
+  var np = document.getElementById('cfgNewPass').value;
+  var cp = document.getElementById('cfgConfPass').value;
+  var errEl = document.getElementById('cfgPassErr');
+  errEl.textContent = '';
+  if (!np) { errEl.textContent = 'Digite a nova senha'; return; }
+  if (np.length < 4) { errEl.textContent = 'Mínimo 4 caracteres'; return; }
+  if (np !== cp) { errEl.textContent = 'As senhas não coincidem'; return; }
+  var btn = this; btn.disabled = true; btn.textContent = 'Salvando...';
+  fetch('/api/admin/password', {
+    method: 'PUT', headers: adminHdr(),
+    body: JSON.stringify({ newPassword: np })
+  }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+  .then(function(res) {
+    if (res.ok) {
+      adminPass = np;
+      try { sessionStorage.setItem('ap', np); } catch(ex) {}
+      document.getElementById('cfgNewPass').value = '';
+      document.getElementById('cfgConfPass').value = '';
+      var ok = document.getElementById('passSaveOk');
+      ok.classList.add('show');
+      setTimeout(function() { ok.classList.remove('show'); }, 3000);
+      toast('Senha alterada com sucesso!');
+    } else {
+      errEl.textContent = res.data.error || 'Erro ao salvar';
+    }
+    btn.disabled = false; btn.textContent = '🔑 Alterar Senha';
+  }).catch(function() {
+    errEl.textContent = 'Erro de conexão';
+    btn.disabled = false; btn.textContent = '🔑 Alterar Senha';
+  });
+});
+
+// ── exportar CSV ───────────────────────────────────────────────────────────
+var lastSalesData = [];
+
+document.getElementById('btnExportCSV').addEventListener('click', function() {
+  if (!lastSalesData.length) { toast('Nenhuma venda para exportar', 'err'); return; }
+  var header = 'Data,Vendedor,Valor (R$),Comissao %,Comissao R$,Ramo,Seguradora,Obs.\n';
+  var rows = lastSalesData.map(function(s) {
+    var commR = s.commission_pct > 0 ? (s.value * s.commission_pct / 100).toFixed(2) : '0.00';
+    return [
+      fmtD(s.sale_date),
+      '"' + s.salesperson_name.replace(/"/g, '""') + '"',
+      s.value.toFixed(2),
+      s.commission_pct || 0,
+      commR,
+      '"' + s.ramo.replace(/"/g, '""') + '"',
+      '"' + s.seguradora.replace(/"/g, '""') + '"',
+      '"' + (s.notes || '').replace(/"/g, '""') + '"'
+    ].join(',');
+  }).join('\n');
+  var csv = header + rows;
+  var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'vendas_quadrata_' + new Date().toISOString().split('T')[0] + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('CSV exportado!');
+});
 
 // ── init ───────────────────────────────────────────────────────────────────
 (function() {

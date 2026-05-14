@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 
 // Versão do servidor (para confirmar que o código novo está rodando)
-const SERVER_VERSION = "v4-light-theme-2026-05-13";
+const SERVER_VERSION = "v5-full-features-2026-05-14";
 app.get("/api/version", (_req, res) => res.json({ version: SERVER_VERSION }));
 
 // Admin panel servido direto da memória (sem cache, sempre atualizado)
@@ -153,8 +153,15 @@ app.post("/webhook", async (req, res) => {
 
 // ─── Dashboard API ────────────────────────────────────────────────────────────
 
+function getAdminPassword() {
+  try {
+    const row = db.prepare("SELECT value FROM settings WHERE key='admin_password'").get();
+    return row ? row.value : ADMIN_PASSWORD;
+  } catch { return ADMIN_PASSWORD; }
+}
+
 function requireAdmin(req, res, next) {
-  if (req.headers["x-admin-password"] !== ADMIN_PASSWORD)
+  if (req.headers["x-admin-password"] !== getAdminPassword())
     return res.status(401).json({ error: "Não autorizado" });
   next();
 }
@@ -184,8 +191,26 @@ function getPeriodRange(period) {
   };
 }
 
+function getPrevPeriodRange(period) {
+  const now = new Date();
+  if (period === "monthly") {
+    const m = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
+    const y = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    const start = new Date(y, m, 1);
+    const end   = new Date(y, m + 1, 0);
+    return { start: start.toISOString().split("T")[0], end: end.toISOString().split("T")[0] };
+  }
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - day + (day === 0 ? -6 : 1) - 7);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { start: monday.toISOString().split("T")[0], end: sunday.toISOString().split("T")[0] };
+}
+
 app.post("/api/admin/verify", (req, res) => {
-  req.body.password === ADMIN_PASSWORD
+  req.body.password === getAdminPassword()
     ? res.json({ ok: true })
     : res.status(401).json({ error: "Senha incorreta" });
 });
@@ -242,10 +267,23 @@ app.get("/api/stats", (req, res) => {
     (bmap[r.salesperson_id] = bmap[r.salesperson_id] || []).push({ ramo: r.ramo, value: r.value });
   });
 
+  const prevRange = getPrevPeriodRange(period);
+  const prevRows = db.prepare(`
+    SELECT sp.id, COALESCE(SUM(s.value), 0) AS prev_sold
+    FROM salespeople sp
+    LEFT JOIN sales s ON s.salesperson_id = sp.id
+                     AND s.sale_date >= ? AND s.sale_date <= ?
+    WHERE sp.active = 1
+    GROUP BY sp.id
+  `).all(prevRange.start, prevRange.end);
+  const prevMap = {};
+  prevRows.forEach((r) => (prevMap[r.id] = r.prev_sold));
+
   const salespeople = rows.map((r) => ({
     ...r,
     percentage: r.goal > 0 ? Math.round((r.total_sold / r.goal) * 100) : 0,
     breakdown: bmap[r.id] || [],
+    prev_sold: prevMap[r.id] || 0,
   }));
 
   const totalSold       = salespeople.reduce((s, p) => s + p.total_sold, 0);
@@ -505,6 +543,71 @@ app.get("/api/seguradora-stats", (req, res) => {
     totalBonus:    seguradoras.filter((s) => s.achieved).reduce((sum, s) => sum + s.bonusValue, 0),
     achievedCount: seguradoras.filter((s) => s.achieved).length,
   });
+});
+
+// ─── PIN Authentication ───────────────────────────────────────────────────────
+
+app.post("/api/salespeople/:id/verify-pin", (req, res) => {
+  const person = db.prepare("SELECT id, name, pin FROM salespeople WHERE id=? AND active=1").get(req.params.id);
+  if (!person) return res.status(404).json({ error: "Vendedor não encontrado" });
+  if (!person.pin) return res.json({ ok: true, name: person.name });
+  if (String(req.body.pin || "") === String(person.pin)) return res.json({ ok: true, name: person.name });
+  res.status(401).json({ error: "PIN incorreto" });
+});
+
+app.post("/api/salespeople/:id/pin", requireAdmin, (req, res) => {
+  const pinVal = req.body.pin ? String(req.body.pin).slice(0, 6) : null;
+  db.prepare("UPDATE salespeople SET pin=? WHERE id=?").run(pinVal, req.params.id);
+  res.json({ ok: true });
+});
+
+// ─── Admin Password Change ────────────────────────────────────────────────────
+
+app.put("/api/admin/password", requireAdmin, (req, res) => {
+  const { newPassword } = req.body;
+  if (!newPassword || String(newPassword).length < 4)
+    return res.status(400).json({ error: "Senha deve ter pelo menos 4 caracteres" });
+  db.prepare("INSERT OR REPLACE INTO settings(key,value) VALUES('admin_password',?)").run(String(newPassword));
+  res.json({ ok: true });
+});
+
+// ─── Daily Stats ──────────────────────────────────────────────────────────────
+
+app.get("/api/daily-stats", (req, res) => {
+  const period = req.query.period === "monthly" ? "monthly" : "weekly";
+  const range  = getPeriodRange(period);
+  const today  = new Date().toISOString().split("T")[0];
+  const endD   = range.end < today ? range.end : today;
+
+  const salesRows = db.prepare(`
+    SELECT s.salesperson_id, sp.name, s.sale_date, SUM(s.value) AS day_total
+    FROM sales s JOIN salespeople sp ON sp.id = s.salesperson_id
+    WHERE s.sale_date BETWEEN ? AND ? AND sp.active = 1
+    GROUP BY s.salesperson_id, s.sale_date
+    ORDER BY s.sale_date
+  `).all(range.start, endD);
+
+  const dates = [];
+  let d = new Date(range.start);
+  const eD = new Date(endD);
+  while (d <= eD) {
+    dates.push(d.toISOString().split("T")[0]);
+    d.setDate(d.getDate() + 1);
+  }
+
+  const people = db.prepare("SELECT id, name FROM salespeople WHERE active=1 ORDER BY name").all();
+
+  const datasets = people.map((p) => {
+    let cum = 0;
+    const data = dates.map((date) => {
+      const row = salesRows.find((r) => r.salesperson_id === p.id && r.sale_date === date);
+      cum += row ? row.day_total : 0;
+      return parseFloat(cum.toFixed(2));
+    });
+    return { id: p.id, name: p.name, data };
+  }).filter((ds) => ds.data.some((v) => v > 0));
+
+  res.json({ dates, datasets, period });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

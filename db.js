@@ -60,9 +60,15 @@ db.exec(`
     updated_at      TEXT DEFAULT (datetime('now', 'localtime')),
     UNIQUE(seguradora, month, year)
   );
+
+  CREATE TABLE IF NOT EXISTS settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
 `);
 
-// Migration: add commission_pct if table already exists without it
+// Migrations
 try { db.exec('ALTER TABLE sales ADD COLUMN commission_pct REAL DEFAULT 0'); } catch (_) {}
+try { db.exec('ALTER TABLE salespeople ADD COLUMN pin TEXT'); } catch (_) {}
 
 module.exports = db;

@@ -176,6 +176,37 @@ tbody td{padding:10px 14px;color:var(--t2)}
   .modal{border-radius:0;position:fixed;inset:0;max-height:100vh;border:none}
   .fg-row{grid-template-columns:1fr}
 }
+
+/* ranking */
+.rank-list{display:flex;flex-direction:column;gap:8px}
+.rank-item{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:13px 16px;display:flex;align-items:center;gap:12px}
+.rank-medal{font-size:22px;width:30px;text-align:center;flex-shrink:0}
+.rank-num{width:30px;height:30px;border-radius:50%;background:var(--bg);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--t3);flex-shrink:0}
+
+/* pace + compare */
+.pace-line{font-size:12px;margin-top:8px;padding:5px 10px;background:rgba(59,130,246,.07);border-radius:7px;border:1px solid rgba(59,130,246,.15);color:var(--blue)}
+.cmp-line{font-size:12px;margin-top:4px;padding:5px 10px;border-radius:7px}
+.cmp-line.up{color:var(--green);background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.15)}
+.cmp-line.down{color:var(--red);background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.15)}
+
+/* PIN identification */
+.btn-id{background:var(--card);color:var(--blue);border:1px solid var(--blue);padding:7px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s}
+.btn-id:hover{background:var(--blue);color:#fff}
+.id-chip{background:rgba(59,130,246,.08);color:var(--blue);border:1px solid rgba(59,130,246,.2);padding:6px 12px;border-radius:8px;font-size:13px;font-weight:600;align-items:center;gap:8px}
+.id-chip-btn{background:none;border:none;color:var(--t3);cursor:pointer;font-size:16px;line-height:1;padding:0 2px}
+.id-chip-btn:hover{color:var(--red)}
+
+/* detail modal */
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.dstat{background:var(--bg);border-radius:10px;padding:12px 14px}
+.dstat-lbl{font-size:11px;color:var(--t3);font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.dstat-val{font-size:20px;font-weight:800}
+.dlist-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.dlist-row:last-child{border-bottom:none}
+.dlist-lbl{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 6px}
+
+/* card clickable */
+.vc{cursor:pointer}
 </style>
 </head>
 <body>
@@ -200,6 +231,11 @@ tbody td{padding:10px 14px;color:var(--t2)}
     </div>
     <div class="period-lbl" id="perLbl">—</div>
     <div class="hbtns">
+      <div class="id-chip" id="idChip" style="display:none">
+        <span id="idChipName"></span>
+        <button class="id-chip-btn" id="btnSairId" title="Sair">✕</button>
+      </div>
+      <button class="btn-id" id="btnIdentificar">👤 Identificar-me</button>
       <button class="btn-new" id="btnNovaVenda">+ Nova Venda</button>
       <a class="btn-adm" href="/gestor.html">⚙ Admin</a>
     </div>
@@ -235,6 +271,11 @@ tbody td{padding:10px 14px;color:var(--t2)}
     </div>
   </div>
 
+  <div class="sec" id="secRank">
+    <div class="sec-title">Ranking do Período</div>
+    <div class="rank-list" id="rankList"></div>
+  </div>
+
   <div class="sec">
     <div class="sec-title">Vendedores</div>
     <div class="cgrid" id="cgrid">
@@ -245,6 +286,11 @@ tbody td{padding:10px 14px;color:var(--t2)}
   <div class="sec">
     <div class="sec-title">Comparativo — Vendido vs Meta</div>
     <div class="chart-box"><canvas id="chart"></canvas></div>
+  </div>
+
+  <div class="sec" id="secDaily" style="display:none">
+    <div class="sec-title">Evolução Diária Acumulada</div>
+    <div class="chart-box"><canvas id="chartDaily"></canvas></div>
   </div>
 
   <div class="sec" id="secSG">
@@ -307,7 +353,60 @@ tbody td{padding:10px 14px;color:var(--t2)}
   </div>
 </main>
 
-<!-- Modal -->
+<!-- PIN Modal -->
+<div class="overlay" id="pinOverlay">
+  <div class="modal" style="max-width:360px">
+    <div class="mhdr">
+      <h3>Identificar-me</h3>
+      <button class="mbtn-x" id="btnFecharPin">✕</button>
+    </div>
+    <div class="mbody">
+      <div class="fg">
+        <label>Seu nome</label>
+        <select id="pinPersonSel"><option value="">Selecione…</option></select>
+      </div>
+      <div class="fg">
+        <label>PIN (se configurado)</label>
+        <input type="password" id="pinInput" maxlength="6" placeholder="•••••" inputmode="numeric" autocomplete="off">
+      </div>
+      <div id="pinErr" style="color:var(--red);font-size:13px;margin-bottom:8px;min-height:18px"></div>
+    </div>
+    <div class="mftr">
+      <button type="button" class="btn-s" id="btnCancelarPin">Cancelar</button>
+      <button type="button" class="btn-p" id="btnPinEntrar">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal" style="max-width:520px">
+    <div class="mhdr">
+      <div>
+        <h3 id="detailName">—</h3>
+        <div style="font-size:13px;color:var(--t3);margin-top:2px" id="detailPeriodLbl"></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span id="detailPct" style="font-size:22px;font-weight:800"></span>
+        <button class="mbtn-x" id="btnFecharDetalhe">✕</button>
+      </div>
+    </div>
+    <div class="mbody">
+      <div class="detail-grid">
+        <div class="dstat"><div class="dstat-lbl">Total Vendido</div><div class="dstat-val" id="detailSold">—</div></div>
+        <div class="dstat"><div class="dstat-lbl">Meta</div><div class="dstat-val" id="detailGoal">—</div></div>
+        <div class="dstat"><div class="dstat-lbl">Vendas</div><div class="dstat-val" id="detailCount">—</div></div>
+        <div class="dstat"><div class="dstat-lbl">Comissão Est.</div><div class="dstat-val" id="detailComm" style="color:var(--gold)">—</div></div>
+      </div>
+      <div class="dlist-lbl">Por Ramo</div>
+      <div id="detailRamoList"></div>
+      <div class="dlist-lbl">Vendas do Período</div>
+      <div id="detailSalesList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Sale Modal -->
 <div class="overlay" id="overlay">
   <div class="modal">
     <div class="mhdr">
@@ -444,7 +543,11 @@ function topbarAnim() {
 // ── state ──────────────────────────────────────────────────────────────────
 var period = 'weekly';
 var chartInst = null;
+var dailyChartInst = null;
 var refreshTimer = null;
+var lastStats = null;
+var identifiedPerson = null;
+try { var _ip = sessionStorage.getItem('iqp'); if (_ip) identifiedPerson = JSON.parse(_ip); } catch(e) {}
 
 // ── period toggle ──────────────────────────────────────────────────────────
 document.getElementById('togW').addEventListener('click', function() { setPeriod('weekly'); });
@@ -464,16 +567,21 @@ function load() {
     fetch('/api/stats?period=' + period).then(function(r) { return r.json(); }),
     fetch('/api/sales?period=' + period).then(function(r) { return r.json(); }),
     fetch('/api/ro-stats?period=' + period).then(function(r) { return r.json(); }),
-    fetch('/api/seguradora-stats').then(function(r) { return r.json(); })
+    fetch('/api/seguradora-stats').then(function(r) { return r.json(); }),
+    fetch('/api/daily-stats?period=' + period).then(function(r) { return r.json(); })
   ]).then(function(results) {
-    var stats     = results[0];
-    var salesData = results[1];
-    var roData    = results[2];
-    var sgData    = results[3];
+    var stats      = results[0];
+    var salesData  = results[1];
+    var roData     = results[2];
+    var sgData     = results[3];
+    var dailyData  = results[4];
+    lastStats = stats;
     document.getElementById('perLbl').textContent = stats.label;
     renderSummary(stats.totals);
-    renderCards(stats.salespeople);
+    renderRanking(stats.salespeople);
+    renderCards(stats.salespeople, stats.startDate, stats.endDate);
     renderChart(stats.salespeople);
+    renderDailyChart(dailyData);
     renderRO(roData);
     renderSeguradoras(sgData);
     renderTable(salesData.sales);
@@ -499,17 +607,26 @@ function renderSummary(t) {
   }
 }
 
-function renderCards(people) {
+function renderCards(people, startDate, endDate) {
   var grid = document.getElementById('cgrid');
   if (!people.length) {
     grid.innerHTML = '<div class="loading">Nenhum vendedor cadastrado.<br>Acesse o Admin para adicionar.</div>';
     return;
   }
+
+  // Pace calculation vars
+  var start = startDate ? new Date(startDate + 'T00:00:00') : null;
+  var end   = endDate   ? new Date(endDate   + 'T00:00:00') : null;
+  var today = new Date(); today.setHours(0,0,0,0);
+  var totalDays   = (start && end) ? Math.round((end - start) / 86400000) + 1 : 0;
+  var daysElapsed = (start) ? Math.max(1, Math.min(Math.round((today - start) / 86400000) + 1, totalDays)) : 0;
+
   var html = '';
   for (var i = 0; i < people.length; i++) {
     var p = people[i];
     var c = cor(p.percentage);
     var cls = p.percentage >= 100 ? ' meta100' : '';
+
     var breakdown = '';
     if (p.breakdown && p.breakdown.length) {
       var tags = '';
@@ -522,7 +639,26 @@ function renderCards(people) {
       ? '<div class="comm-line">💰 Comissão estimada: <strong>' + fmtR(p.total_commission) + '</strong></div>'
       : '';
     var noGoal = p.goal === 0 ? '<div class="no-goal">Meta não definida</div>' : '';
-    html += '<div class="vc' + cls + '" style="--vc-color:' + c + '">'
+
+    // Pace line
+    var paceLine = '';
+    if (p.goal > 0 && daysElapsed > 0 && totalDays > 0) {
+      var projected = (p.total_sold / daysElapsed) * totalDays;
+      var projPct = Math.round((projected / p.goal) * 100);
+      var paceColor = projPct >= 100 ? 'var(--green)' : (projPct >= 75 ? 'var(--yellow)' : 'var(--red)');
+      paceLine = '<div class="pace-line">📈 Ritmo: <strong style="color:' + paceColor + '">' + projPct + '%</strong> projetado (' + daysElapsed + '/' + totalDays + ' dias)</div>';
+    }
+
+    // Compare line
+    var cmpLine = '';
+    if (p.prev_sold > 0) {
+      var delta = ((p.total_sold - p.prev_sold) / p.prev_sold * 100).toFixed(1);
+      var up = parseFloat(delta) >= 0;
+      cmpLine = '<div class="cmp-line ' + (up ? 'up' : 'down') + '">'
+        + (up ? '▲ +' : '▼ ') + delta + '% vs período anterior</div>';
+    }
+
+    html += '<div class="vc' + cls + '" style="--vc-color:' + c + '" data-pid="' + p.id + '" onclick="abrirDetalhe(' + p.id + ')">'
       + '<div class="vc-top"><div><div class="vc-name">' + p.name + '</div>'
       + '<div class="vc-cnt">' + p.sales_count + ' venda' + (p.sales_count !== 1 ? 's' : '') + '</div></div>'
       + '<div class="vc-badge" style="background:' + c + '22;color:' + c + '">' + p.percentage + '%</div></div>'
@@ -530,7 +666,7 @@ function renderCards(people) {
       + '<div class="vc-vals"><div class="vc-sold">' + fmtR(p.total_sold) + '</div>'
       + '<div><div class="vc-goal-lbl">Meta</div><div class="vc-goal-val">' + (p.goal > 0 ? fmtR(p.goal) : '—') + '</div></div></div>'
       + '<div class="prog"><div class="prog-fill" style="width:' + Math.min(p.percentage, 100) + '%;background:' + c + '"></div></div>'
-      + noGoal + commLine + breakdown
+      + noGoal + paceLine + cmpLine + commLine + breakdown
       + '</div>';
   }
   grid.innerHTML = html;
@@ -727,6 +863,7 @@ function abrirModal() {
     document.getElementById('saleForm').reset();
     document.getElementById('fData').value = new Date().toISOString().split('T')[0];
     document.getElementById('commPreview').textContent = '';
+    if (identifiedPerson) sel.value = identifiedPerson.id;
     document.getElementById('overlay').classList.add('open');
   }).catch(function() { toast('Erro ao carregar vendedores', 'err'); });
 }
@@ -775,6 +912,215 @@ document.getElementById('saleForm').addEventListener('submit', function(e) {
     btn.textContent = 'Salvar Venda';
   });
 });
+
+// ── ranking ────────────────────────────────────────────────────────────────
+function renderRanking(people) {
+  var sorted = people.slice().sort(function(a, b) { return b.percentage - a.percentage; });
+  var list = document.getElementById('rankList');
+  if (!sorted.length || sorted.every(function(p) { return p.total_sold === 0; })) {
+    list.innerHTML = '<div style="color:var(--t3);font-size:13px">Nenhuma venda registrada ainda.</div>';
+    return;
+  }
+  var medals = ['🥇','🥈','🥉'];
+  var html = '';
+  for (var i = 0; i < sorted.length; i++) {
+    var p = sorted[i];
+    var c = cor(p.percentage);
+    var pos = i < 3
+      ? '<span class="rank-medal">' + medals[i] + '</span>'
+      : '<div class="rank-num">' + (i+1) + '</div>';
+    var delta = '';
+    if (p.prev_sold > 0) {
+      var d = ((p.total_sold - p.prev_sold) / p.prev_sold * 100).toFixed(1);
+      delta = ' <span style="font-size:11px;font-weight:600;color:' + (parseFloat(d) >= 0 ? 'var(--green)' : 'var(--red)') + '">'
+        + (parseFloat(d) >= 0 ? '▲ +' : '▼ ') + d + '%</span>';
+    }
+    html += '<div class="rank-item" style="border-left:4px solid ' + c + ';cursor:pointer" onclick="abrirDetalhe(' + p.id + ')">'
+      + pos
+      + '<div style="flex:1">'
+        + '<div style="font-weight:700;font-size:14px">' + p.name + delta + '</div>'
+        + '<div style="height:6px;background:var(--bg);border-radius:99px;margin-top:6px;overflow:hidden">'
+          + '<div style="height:100%;border-radius:99px;background:' + c + ';width:' + Math.min(p.percentage, 100) + '%;transition:width .9s ease"></div></div>'
+      + '</div>'
+      + '<div style="text-align:right">'
+        + '<div style="font-weight:800;font-size:16px;color:' + c + '">' + p.percentage + '%</div>'
+        + '<div style="font-size:11px;color:var(--t3)">' + fmtR(p.total_sold) + '</div>'
+      + '</div>'
+      + '</div>';
+  }
+  list.innerHTML = html;
+}
+
+// ── daily chart ────────────────────────────────────────────────────────────
+function renderDailyChart(data) {
+  var sec = document.getElementById('secDaily');
+  var ctx = document.getElementById('chartDaily').getContext('2d');
+  if (dailyChartInst) { dailyChartInst.destroy(); dailyChartInst = null; }
+  if (!data.datasets || !data.datasets.length) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  var colors = ['#3b82f6','#22c55e','#f97316','#a855f7','#ef4444','#06b6d4','#f59e0b','#ec4899'];
+  dailyChartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.dates.map(function(d) { var p = d.split('-'); return p[2]+'/'+p[1]; }),
+      datasets: data.datasets.map(function(ds, i) {
+        return { label: ds.name, data: ds.data,
+          borderColor: colors[i % colors.length], backgroundColor: 'transparent',
+          borderWidth: 2, pointRadius: 3, tension: 0.35 };
+      })
+    },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#475569', font: { family: 'Inter' } } },
+        tooltip: {
+          backgroundColor: '#fff', borderColor: '#e2e8f0', borderWidth: 1,
+          titleColor: '#1e293b', bodyColor: '#475569',
+          callbacks: { label: function(ctx) { return ' ' + ctx.dataset.label + ': ' + fmtR(ctx.parsed.y); } }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#475569' }, grid: { color: '#e2e8f0' } },
+        y: { ticks: { color: '#475569', callback: function(v) { return fmtR(v); } }, grid: { color: '#e2e8f0' } }
+      }
+    }
+  });
+}
+
+// ── PIN identification ─────────────────────────────────────────────────────
+function updateIdentityUI() {
+  var btn  = document.getElementById('btnIdentificar');
+  var chip = document.getElementById('idChip');
+  if (identifiedPerson) {
+    btn.style.display = 'none';
+    chip.style.display = 'flex';
+    document.getElementById('idChipName').textContent = 'Olá, ' + identifiedPerson.name;
+  } else {
+    btn.style.display = '';
+    chip.style.display = 'none';
+  }
+}
+updateIdentityUI();
+
+document.getElementById('btnIdentificar').addEventListener('click', function() {
+  fetch('/api/salespeople').then(function(r) { return r.json(); }).then(function(people) {
+    var sel = document.getElementById('pinPersonSel');
+    var opts = '<option value="">Selecione seu nome…</option>';
+    for (var i = 0; i < people.length; i++) {
+      opts += '<option value="' + people[i].id + '">' + people[i].name + '</option>';
+    }
+    sel.innerHTML = opts;
+    if (identifiedPerson) sel.value = identifiedPerson.id;
+    document.getElementById('pinInput').value = '';
+    document.getElementById('pinErr').textContent = '';
+    document.getElementById('pinOverlay').classList.add('open');
+  });
+});
+document.getElementById('btnFecharPin').addEventListener('click', function() { document.getElementById('pinOverlay').classList.remove('open'); });
+document.getElementById('btnCancelarPin').addEventListener('click', function() { document.getElementById('pinOverlay').classList.remove('open'); });
+document.getElementById('btnSairId').addEventListener('click', function() {
+  identifiedPerson = null;
+  try { sessionStorage.removeItem('iqp'); } catch(e) {}
+  updateIdentityUI();
+  toast('Sessão encerrada.');
+});
+document.getElementById('pinOverlay').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
+document.getElementById('btnPinEntrar').addEventListener('click', verificarPin);
+document.getElementById('pinInput').addEventListener('keydown', function(e) { if (e.key === 'Enter') verificarPin(); });
+
+function verificarPin() {
+  var selEl = document.getElementById('pinPersonSel');
+  var id = selEl.value;
+  var pin = document.getElementById('pinInput').value;
+  if (!id) { document.getElementById('pinErr').textContent = 'Selecione seu nome'; return; }
+  var btn = document.getElementById('btnPinEntrar');
+  btn.disabled = true; btn.textContent = 'Verificando...';
+  fetch('/api/salespeople/' + id + '/verify-pin', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pin: pin })
+  }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+  .then(function(res) {
+    if (res.ok) {
+      identifiedPerson = { id: parseInt(id), name: res.data.name };
+      try { sessionStorage.setItem('iqp', JSON.stringify(identifiedPerson)); } catch(e) {}
+      document.getElementById('pinOverlay').classList.remove('open');
+      updateIdentityUI();
+      toast('Olá, ' + identifiedPerson.name + '! 👋');
+    } else {
+      document.getElementById('pinErr').textContent = res.data.error || 'PIN incorreto';
+      btn.disabled = false; btn.textContent = 'Entrar';
+    }
+  }).catch(function() {
+    document.getElementById('pinErr').textContent = 'Erro de conexão';
+    btn.disabled = false; btn.textContent = 'Entrar';
+  });
+}
+
+// ── detail modal ───────────────────────────────────────────────────────────
+document.getElementById('btnFecharDetalhe').addEventListener('click', function() {
+  document.getElementById('detailOverlay').classList.remove('open');
+});
+document.getElementById('detailOverlay').addEventListener('click', function(e) {
+  if (e.target === this) this.classList.remove('open');
+});
+
+function abrirDetalhe(personId) {
+  if (!lastStats) return;
+  var person = null;
+  for (var i = 0; i < lastStats.salespeople.length; i++) {
+    if (lastStats.salespeople[i].id === personId) { person = lastStats.salespeople[i]; break; }
+  }
+  if (!person) return;
+  var c = cor(person.percentage);
+  document.getElementById('detailName').textContent = person.name;
+  document.getElementById('detailPct').textContent  = person.percentage + '%';
+  document.getElementById('detailPct').style.color  = c;
+  document.getElementById('detailPeriodLbl').textContent = lastStats.label || '';
+  document.getElementById('detailSold').textContent  = fmtR(person.total_sold);
+  document.getElementById('detailGoal').textContent  = person.goal > 0 ? fmtR(person.goal) : '—';
+  document.getElementById('detailCount').textContent = person.sales_count + ' venda' + (person.sales_count !== 1 ? 's' : '');
+  document.getElementById('detailComm').textContent  = person.total_commission > 0 ? fmtR(person.total_commission) : '—';
+
+  var ramoHtml = '';
+  if (person.breakdown && person.breakdown.length) {
+    for (var j = 0; j < person.breakdown.length; j++) {
+      var b = person.breakdown[j];
+      var pct = person.total_sold > 0 ? (b.value / person.total_sold * 100).toFixed(0) : 0;
+      ramoHtml += '<div class="dlist-row"><span>' + b.ramo + '</span>'
+        + '<span><strong>' + fmtR(b.value) + '</strong> <span style="color:var(--t3)">(' + pct + '%)</span></span></div>';
+    }
+  } else {
+    ramoHtml = '<div style="color:var(--t3);font-size:12px;text-align:center;padding:10px">Sem vendas no período</div>';
+  }
+  document.getElementById('detailRamoList').innerHTML = ramoHtml;
+  document.getElementById('detailSalesList').innerHTML = '<div style="color:var(--t3);text-align:center;padding:12px">Carregando…</div>';
+  document.getElementById('detailOverlay').classList.add('open');
+
+  fetch('/api/sales?period=' + period + '&salesperson_id=' + personId)
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var sales = data.sales || [];
+      var sHtml = '';
+      if (!sales.length) {
+        sHtml = '<div style="color:var(--t3);font-size:12px;text-align:center;padding:10px">Nenhuma venda no período</div>';
+      } else {
+        for (var k = 0; k < sales.length; k++) {
+          var s = sales[k];
+          sHtml += '<div class="dlist-row">'
+            + '<div><strong>' + fmtD(s.sale_date) + '</strong> &nbsp;<span style="color:var(--t3)">' + s.ramo + ' — ' + s.seguradora + '</span></div>'
+            + '<div style="text-align:right"><div style="font-weight:700">' + fmtR(s.value) + '</div>'
+            + (s.commission_pct > 0 ? '<div style="font-size:11px;color:var(--gold)">' + s.commission_pct + '% = ' + fmtR(s.value * s.commission_pct / 100) + '</div>' : '')
+            + '</div></div>';
+        }
+      }
+      document.getElementById('detailSalesList').innerHTML = sHtml;
+    }).catch(function() {
+      document.getElementById('detailSalesList').innerHTML = '<div style="color:var(--red);font-size:12px;text-align:center;padding:10px">Erro ao carregar</div>';
+    });
+}
 
 // ── auto-refresh ───────────────────────────────────────────────────────────
 function agendar() {
