@@ -30,7 +30,44 @@ Copie `.env.example` para `.env` e preencha:
 
 ---
 
-## Deploy no Render
+## Gerar API Key no Langflow
+
+1. Acesse `https://langflow.quadratadigital.com.br`
+2. Menu lateral esquerdo → **Settings** (ícone de engrenagem)
+3. Clique em **API Keys**
+4. Clique em **+ Add New** (ou **Create API Key**)
+5. Dê um nome (ex.: `whatsapp-webhook`) e copie a chave gerada
+6. Cole como valor de `LANGFLOW_API_KEY`
+
+> A chave só aparece uma vez — guarde em local seguro.
+
+---
+
+## Deploy no Cloudflare
+
+Se o servidor roda atrás do **Cloudflare Tunnel** (ou num VPS com Cloudflare como proxy):
+
+1. No servidor, crie o arquivo `.env` com todas as variáveis
+2. Execute: `npm install && npm start`
+3. No Cloudflare Tunnel, aponte o domínio para `localhost:3000`
+4. No painel da Meta, configure:
+   - **Callback URL:** `https://seu-dominio.com/webhook`
+   - **Verify Token:** valor de `VERIFY_TOKEN`
+
+### Variáveis obrigatórias para produção
+
+```env
+VERIFY_TOKEN=quadrata123
+WA_PHONE_NUMBER_ID=<ID do número Meta>
+WA_ACCESS_TOKEN=<Token permanente Meta>
+LANGFLOW_URL=https://langflow.quadratadigital.com.br
+LANGFLOW_FLOW_ID=aa5f37a2-f5f2-4ea6-8480-564f322036bf
+LANGFLOW_API_KEY=<chave gerada no Langflow>
+```
+
+---
+
+## Deploy no Render (alternativa)
 
 1. Suba este repositório no GitHub.
 2. No Render, crie um **Web Service** conectado ao repositório.
@@ -45,47 +82,12 @@ Copie `.env.example` para `.env` e preencha:
 
 ---
 
-## Langflow — acesso pelo tablet
-
-### Opção 1 — Local (mesmo WiFi)
-
-```bash
-pip install langflow
-langflow run --host 0.0.0.0 --port 7860
-```
-
-No tablet, acesse: `http://IP-DO-PC:7860`
-
-Para descobrir o IP do PC:
-```bash
-# Linux/Mac
-ip route get 1 | awk '{print $7}'
-
-# Windows
-ipconfig | findstr "IPv4"
-```
-
-### Opção 2 — Nuvem gratuita (acesso de qualquer lugar)
-
-**Render.com:**
-1. Crie conta em render.com
-2. New → Web Service → conecte repositório com Langflow
-3. Build: `pip install langflow`
-4. Start: `langflow run --host 0.0.0.0 --port 7860`
-5. Use a URL gerada como `LANGFLOW_URL`
-
-**Railway.app:**
-1. New Project → Deploy from GitHub
-2. Variável de ambiente: `START_COMMAND=langflow run --host 0.0.0.0 --port 7860`
-
----
-
 ## Encontrar o Flow ID no Langflow
 
-1. Abra Langflow no tablet/browser
+1. Acesse `https://langflow.quadratadigital.com.br`
 2. Clique no flow da MarIAna
-3. A URL mostrará: `/flow/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-4. Copie esse UUID como `LANGFLOW_FLOW_ID`
+3. A URL mostrará: `/flow/aa5f37a2-f5f2-4ea6-8480-564f322036bf/...`
+4. O UUID entre `/flow/` e `/folder/` é o `LANGFLOW_FLOW_ID`
 
 ---
 
