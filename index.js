@@ -3,7 +3,7 @@ const axios = require("axios");
 const app = express();
 app.use(express.json());
 
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "quadrata123";
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "mariana_quadrata";
 const LANGFLOW_URL = process.env.LANGFLOW_URL || "http://localhost:7860";
 const LANGFLOW_FLOW_ID = process.env.LANGFLOW_FLOW_ID || "";
 const LANGFLOW_API_KEY = process.env.LANGFLOW_API_KEY || "";
