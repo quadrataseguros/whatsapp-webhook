@@ -61,7 +61,7 @@ VERIFY_TOKEN=quadrata123
 WA_PHONE_NUMBER_ID=<ID do número Meta>
 WA_ACCESS_TOKEN=<Token permanente Meta>
 LANGFLOW_URL=https://langflow.quadratadigital.com.br
-LANGFLOW_FLOW_ID=aa5f37a2-f5f2-4ea6-8480-564f322036bf
+LANGFLOW_FLOW_ID=cbd8bf5f-608b-40fb-8dc5-2d8c29de0503
 LANGFLOW_API_KEY=<chave gerada no Langflow>
 ```
 
@@ -86,7 +86,7 @@ LANGFLOW_API_KEY=<chave gerada no Langflow>
 
 1. Acesse `https://langflow.quadratadigital.com.br`
 2. Clique no flow da MarIAna
-3. A URL mostrará: `/flow/aa5f37a2-f5f2-4ea6-8480-564f322036bf/...`
+3. A URL mostrará: `/flow/cbd8bf5f-608b-40fb-8dc5-2d8c29de0503/...`
 4. O UUID entre `/flow/` e `/folder/` é o `LANGFLOW_FLOW_ID`
 
 ---
