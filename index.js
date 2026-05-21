@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const app = express();
@@ -9,6 +10,7 @@ const LANGFLOW_FLOW_ID = process.env.LANGFLOW_FLOW_ID || "";
 const LANGFLOW_API_KEY = process.env.LANGFLOW_API_KEY || "";
 const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
+const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || WA_ACCESS_TOKEN;
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
 
 const PORT = process.env.PORT || 3000;
@@ -31,21 +33,35 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// Extract first text message from a WhatsApp webhook payload
-function extractMessage(body) {
+function extractWhatsAppMessage(body) {
   try {
-    const entry = body.entry?.[0];
-    const change = entry?.changes?.[0];
-    const value = change?.value;
+    const value = body.entry?.[0]?.changes?.[0]?.value;
     const message = value?.messages?.[0];
     if (!message) return null;
-
     return {
+      platform: "whatsapp",
       from: message.from,
       messageId: message.id,
       type: message.type,
       text: message.text?.body || "",
       name: value.contacts?.[0]?.profile?.name || message.from,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function extractInstagramMessage(body) {
+  try {
+    const messaging = body.entry?.[0]?.messaging?.[0];
+    if (!messaging?.message?.text) return null;
+    return {
+      platform: "instagram",
+      from: messaging.sender.id,
+      messageId: messaging.message.mid,
+      type: "text",
+      text: messaging.message.text,
+      name: messaging.sender.id,
     };
   } catch {
     return null;
@@ -66,6 +82,24 @@ async function sendWhatsAppReply(to, text) {
     {
       headers: {
         Authorization: `Bearer ${WA_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
+
+async function sendInstagramReply(to, text) {
+  if (!INSTAGRAM_ACCESS_TOKEN) return;
+  await axios.post(
+    `https://graph.facebook.com/v19.0/me/messages`,
+    {
+      recipient: { id: to },
+      message: { text },
+      messaging_type: "RESPONSE",
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${INSTAGRAM_ACCESS_TOKEN}`,
         "Content-Type": "application/json",
       },
     }
@@ -102,23 +136,25 @@ async function runLangflow(inputText, sessionId) {
 app.post("/webhook", async (req, res) => {
   res.sendStatus(200); // Acknowledge immediately per Meta requirements
 
-  const msg = extractMessage(req.body);
+  const msg = extractWhatsAppMessage(req.body) || extractInstagramMessage(req.body);
 
-  // Ignore non-text messages or status updates
   if (!msg || msg.type !== "text" || !msg.text) {
     console.log("Evento ignorado (não é mensagem de texto)");
     return;
   }
 
-  console.log(`Mensagem de ${msg.name} (${msg.from}): ${msg.text}`);
+  console.log(`[${msg.platform}] Mensagem de ${msg.name} (${msg.from}): ${msg.text}`);
 
   try {
     if (LANGFLOW_FLOW_ID) {
-      // Langflow mode: process and auto-reply
       const reply = await runLangflow(msg.text, msg.from);
       if (reply) {
-        console.log(`Resposta Langflow: ${reply}`);
-        await sendWhatsAppReply(msg.from, reply);
+        console.log(`Resposta MarIAna: ${reply}`);
+        if (msg.platform === "whatsapp") {
+          await sendWhatsAppReply(msg.from, reply);
+        } else {
+          await sendInstagramReply(msg.from, reply);
+        }
       }
     } else if (MAKE_WEBHOOK_URL) {
       // Fallback: forward raw payload to Make
