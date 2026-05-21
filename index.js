@@ -11,9 +11,62 @@ const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
 
+// Roteamento de intenções — flows alternativos (opcionais)
+const LANGFLOW_FLOW_VENDEDOR = process.env.LANGFLOW_FLOW_VENDEDOR || "";
+const LANGFLOW_ROUTE_VENDEDOR = process.env.LANGFLOW_ROUTE_VENDEDOR || "comprar,cotação,preço,proposta,seguro,plano,contratar,valor,orçamento";
+const LANGFLOW_FLOW_SECRETARIA = process.env.LANGFLOW_FLOW_SECRETARIA || "";
+const LANGFLOW_ROUTE_SECRETARIA = process.env.LANGFLOW_ROUTE_SECRETARIA || "agendar,horário,reunião,agenda,marcar,visita,data,disponível";
+
+// Rate limiting
+const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX || "10");
+const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || "60000");
+
 const PORT = process.env.PORT || 3000;
 
-// Meta webhook verification
+// ── 1. Deduplicação ────────────────────────────────────────────────────────────
+// Evita responder duas vezes a mesma mensagem (Meta pode reenviar o webhook)
+const processedMessages = new Map();
+setInterval(() => {
+  const cutoff = Date.now() - 5 * 60 * 1000;
+  for (const [id, ts] of processedMessages) {
+    if (ts < cutoff) processedMessages.delete(id);
+  }
+}, 5 * 60 * 1000);
+
+// ── 2. Rate limiting ───────────────────────────────────────────────────────────
+const userRateLimits = new Map();
+setInterval(() => {
+  const cutoff = Date.now() - RATE_LIMIT_WINDOW_MS * 2;
+  for (const [from, entry] of userRateLimits) {
+    if (entry.windowStart < cutoff) userRateLimits.delete(from);
+  }
+}, RATE_LIMIT_WINDOW_MS);
+
+function isRateLimited(from) {
+  const now = Date.now();
+  const entry = userRateLimits.get(from) || { count: 0, windowStart: now };
+  if (now - entry.windowStart > RATE_LIMIT_WINDOW_MS) {
+    userRateLimits.set(from, { count: 1, windowStart: now });
+    return false;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) return true;
+  userRateLimits.set(from, { ...entry, count: entry.count + 1 });
+  return false;
+}
+
+// ── 3. Retry com backoff exponencial ──────────────────────────────────────────
+async function withRetry(fn, retries = 3, baseDelayMs = 1000) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (attempt === retries) throw err;
+      await new Promise((r) => setTimeout(r, baseDelayMs * Math.pow(2, attempt)));
+    }
+  }
+}
+
+// ── Meta webhook verification ──────────────────────────────────────────────────
 app.get("/webhook", (req, res) => {
   if (req.query["hub.verify_token"] === VERIFY_TOKEN) {
     res.send(req.query["hub.challenge"]);
@@ -22,16 +75,21 @@ app.get("/webhook", (req, res) => {
   }
 });
 
-// Health check — useful when monitoring from tablet
+// ── Health check ───────────────────────────────────────────────────────────────
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
     langflow: LANGFLOW_URL,
     mode: LANGFLOW_FLOW_ID ? "langflow" : "make",
+    agents: {
+      atendente: LANGFLOW_FLOW_ID ? "configured" : "not set",
+      vendedor: LANGFLOW_FLOW_VENDEDOR ? "configured" : "not set",
+      secretaria: LANGFLOW_FLOW_SECRETARIA ? "configured" : "not set",
+    },
   });
 });
 
-// Extract first text message from a WhatsApp webhook payload
+// ── Extract message ────────────────────────────────────────────────────────────
 function extractMessage(body) {
   try {
     const entry = body.entry?.[0];
@@ -52,17 +110,31 @@ function extractMessage(body) {
   }
 }
 
-// Send a text reply via WhatsApp Cloud API
+// ── 4. Mark as Read ────────────────────────────────────────────────────────────
+async function markAsRead(messageId) {
+  if (!WA_PHONE_NUMBER_ID || !WA_ACCESS_TOKEN) return;
+  try {
+    await axios.post(
+      `https://graph.facebook.com/v19.0/${WA_PHONE_NUMBER_ID}/messages`,
+      { messaging_product: "whatsapp", status: "read", message_id: messageId },
+      {
+        headers: {
+          Authorization: `Bearer ${WA_ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+  } catch {
+    // Não crítico — ignora falha silenciosamente
+  }
+}
+
+// ── Send reply ─────────────────────────────────────────────────────────────────
 async function sendWhatsAppReply(to, text) {
   if (!WA_PHONE_NUMBER_ID || !WA_ACCESS_TOKEN) return;
   await axios.post(
     `https://graph.facebook.com/v19.0/${WA_PHONE_NUMBER_ID}/messages`,
-    {
-      messaging_product: "whatsapp",
-      to,
-      type: "text",
-      text: { body: text },
-    },
+    { messaging_product: "whatsapp", to, type: "text", text: { body: text } },
     {
       headers: {
         Authorization: `Bearer ${WA_ACCESS_TOKEN}`,
@@ -72,13 +144,39 @@ async function sendWhatsAppReply(to, text) {
   );
 }
 
-// Run a Langflow flow and return the text output
+// ── 5. Roteamento por intenção ─────────────────────────────────────────────────
+// Simula o padrão de múltiplos agentes: Atendente / Vendedor / Secretária
+function resolveFlowId(text) {
+  const lower = text.toLowerCase();
+
+  if (LANGFLOW_FLOW_VENDEDOR) {
+    const keywords = LANGFLOW_ROUTE_VENDEDOR.split(",").map((k) => k.trim());
+    if (keywords.some((k) => lower.includes(k))) {
+      console.log(`[ROTA] → Vendedor`);
+      return LANGFLOW_FLOW_VENDEDOR;
+    }
+  }
+
+  if (LANGFLOW_FLOW_SECRETARIA) {
+    const keywords = LANGFLOW_ROUTE_SECRETARIA.split(",").map((k) => k.trim());
+    if (keywords.some((k) => lower.includes(k))) {
+      console.log(`[ROTA] → Secretária`);
+      return LANGFLOW_FLOW_SECRETARIA;
+    }
+  }
+
+  console.log(`[ROTA] → Atendente (default)`);
+  return LANGFLOW_FLOW_ID;
+}
+
+// ── Run Langflow ───────────────────────────────────────────────────────────────
 async function runLangflow(inputText, sessionId) {
+  const flowId = resolveFlowId(inputText);
   const headers = { "Content-Type": "application/json" };
   if (LANGFLOW_API_KEY) headers["x-api-key"] = LANGFLOW_API_KEY;
 
   const response = await axios.post(
-    `${LANGFLOW_URL}/api/v1/run/${LANGFLOW_FLOW_ID}`,
+    `${LANGFLOW_URL}/api/v1/run/${flowId}`,
     {
       input_value: inputText,
       input_type: "chat",
@@ -88,50 +186,81 @@ async function runLangflow(inputText, sessionId) {
     { headers }
   );
 
-  // Navigate Langflow's nested response structure
   const outputs = response.data?.outputs;
-  const result =
+  return (
     outputs?.[0]?.outputs?.[0]?.results?.message?.text ||
     outputs?.[0]?.outputs?.[0]?.results?.message?.data?.text ||
     outputs?.[0]?.outputs?.[0]?.messages?.[0]?.message ||
-    "";
-  return result;
+    ""
+  );
 }
 
-// Main webhook handler
+// ── Main webhook handler ───────────────────────────────────────────────────────
 app.post("/webhook", async (req, res) => {
   res.sendStatus(200); // Acknowledge immediately per Meta requirements
 
   const msg = extractMessage(req.body);
+  if (!msg) return;
 
-  // Ignore non-text messages or status updates
-  if (!msg || msg.type !== "text" || !msg.text) {
-    console.log("Evento ignorado (não é mensagem de texto)");
+  // Deduplicação — ignora reenvios do Meta
+  if (processedMessages.has(msg.messageId)) {
+    console.log(`[DEDUP] Mensagem já processada: ${msg.messageId}`);
+    return;
+  }
+  processedMessages.set(msg.messageId, Date.now());
+
+  // Mark as read — cliente vê o ✓✓ azul
+  await markAsRead(msg.messageId);
+
+  // 6. Tratamento de mensagens de áudio e outros tipos não-texto
+  if (msg.type !== "text") {
+    if (["audio", "voice"].includes(msg.type)) {
+      await sendWhatsAppReply(
+        msg.from,
+        "Olá! No momento só consigo responder mensagens de texto. Por favor, escreva sua dúvida que te ajudo 😊"
+      );
+      console.log(`[ÁUDIO] ${msg.name} (${msg.from}) — respondido com aviso`);
+    } else {
+      console.log(`[IGNORADO] Tipo '${msg.type}' de ${msg.from}`);
+    }
     return;
   }
 
-  console.log(`Mensagem de ${msg.name} (${msg.from}): ${msg.text}`);
+  if (!msg.text) return;
+
+  // Rate limiting — protege contra flood
+  if (isRateLimited(msg.from)) {
+    console.log(`[RATE LIMIT] ${msg.from} excedeu o limite`);
+    await sendWhatsAppReply(
+      msg.from,
+      "Muitas mensagens em pouco tempo. Aguarde um momento e tente novamente 🙏"
+    );
+    return;
+  }
+
+  console.log(`[MSG] ${msg.name} (${msg.from}): ${msg.text}`);
 
   try {
     if (LANGFLOW_FLOW_ID) {
-      // Langflow mode: process and auto-reply
-      const reply = await runLangflow(msg.text, msg.from);
+      // Retry automático: até 3 tentativas com backoff exponencial
+      const reply = await withRetry(() => runLangflow(msg.text, msg.from));
       if (reply) {
-        console.log(`Resposta Langflow: ${reply}`);
+        console.log(`[REPLY] ${reply}`);
         await sendWhatsAppReply(msg.from, reply);
       }
     } else if (MAKE_WEBHOOK_URL) {
-      // Fallback: forward raw payload to Make
       await axios.post(MAKE_WEBHOOK_URL, req.body);
-      console.log("Payload encaminhado para Make");
+      console.log("[MAKE] Payload encaminhado");
     } else {
-      console.log("Nenhum destino configurado (LANGFLOW_FLOW_ID ou MAKE_WEBHOOK_URL)");
+      console.log("[WARN] Nenhum destino configurado (LANGFLOW_FLOW_ID ou MAKE_WEBHOOK_URL)");
     }
   } catch (err) {
-    console.error("Erro ao processar mensagem:", err.message);
+    console.error("[ERRO]", err.message);
+    await sendWhatsAppReply(
+      msg.from,
+      "Desculpe, tive um problema técnico. Por favor, tente novamente em instantes 🙏"
+    );
   }
 });
 
-app.listen(PORT, () =>
-  console.log(`Servidor MarIAna rodando na porta ${PORT}`)
-);
+app.listen(PORT, () => console.log(`Servidor MarIAna rodando na porta ${PORT}`));
