@@ -124,30 +124,30 @@
           "sourceHandle": {
             "dataType": "File",
             "id": "File-RWL6E",
-            "name": "advanced_markdown",
+            "name": "message",
             "output_types": [
-              "Message",
-              "Data",
-              "Table"
+              "Message"
             ]
           },
           "targetHandle": {
             "fieldName": "data_inputs",
             "id": "SplitText-9VU9F",
             "inputTypes": [
-              "Message",
               "Data",
-              "Table"
+              "JSON",
+              "DataFrame",
+              "Table",
+              "Message"
             ],
             "type": "other"
           }
         },
-        "id": "reactflow__edge-File-RWL6E{œdataTypeœ:œFileœ,œidœ:œFile-RWL6Eœ,œnameœ:œadvanced_markdownœ,œoutput_typesœ:[œMessageœ]}-SplitText-9VU9F{œfieldNameœ:œdata_inputsœ,œidœ:œSplitText-9VU9Fœ,œinputTypesœ:[œMessageœ,œDataœ,œTableœ],œtypeœ:œotherœ}",
+        "id": "reactflow__edge-File-RWL6E{œdataTypeœ:œFileœ,œidœ:œFile-RWL6Eœ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}-SplitText-9VU9F{œfieldNameœ:œdata_inputsœ,œidœ:œSplitText-9VU9Fœ,œinputTypesœ:[œDataœ,œJSONœ,œDataFrameœ,œTableœ,œMessageœ],œtypeœ:œotherœ}",
         "selected": false,
         "source": "File-RWL6E",
-        "sourceHandle": "{œdataTypeœ:œFileœ,œidœ:œFile-RWL6Eœ,œnameœ:œadvanced_markdownœ,œoutput_typesœ:[œMessageœ]}",
+        "sourceHandle": "{œdataTypeœ:œFileœ,œidœ:œFile-RWL6Eœ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}",
         "target": "SplitText-9VU9F",
-        "targetHandle": "{œfieldNameœ:œdata_inputsœ,œidœ:œSplitText-9VU9Fœ,œinputTypesœ:[œMessageœ,œDataœ,œTableœ],œtypeœ:œotherœ}"
+        "targetHandle": "{œfieldNameœ:œdata_inputsœ,œidœ:œSplitText-9VU9Fœ,œinputTypesœ:[œDataœ,œJSONœ,œDataFrameœ,œTableœ,œMessageœ],œtypeœ:œotherœ}"
       },
       {
         "animated": false,
@@ -158,9 +158,7 @@
             "id": "SplitText-9VU9F",
             "name": "dataframe",
             "output_types": [
-              "Data",
-              "Table",
-              "DataFrame"
+              "Table"
             ]
           },
           "targetHandle": {
@@ -174,10 +172,10 @@
             "type": "other"
           }
         },
-        "id": "reactflow__edge-SplitText-9VU9F{œdataTypeœ:œSplitTextœ,œidœ:œSplitText-9VU9Fœ,œnameœ:œdataframeœ,œoutput_typesœ:[œDataœ]}-AstraDB-QUADRATA{œfieldNameœ:œingest_dataœ,œidœ:œAstraDB-QUADRATAœ,œinputTypesœ:[œDataœ,œTableœ,œDataFrameœ],œtypeœ:œotherœ}",
+        "id": "reactflow__edge-SplitText-9VU9F{œdataTypeœ:œSplitTextœ,œidœ:œSplitText-9VU9Fœ,œnameœ:œdataframeœ,œoutput_typesœ:[œTableœ]}-AstraDB-QUADRATA{œfieldNameœ:œingest_dataœ,œidœ:œAstraDB-QUADRATAœ,œinputTypesœ:[œDataœ,œTableœ,œDataFrameœ],œtypeœ:œotherœ}",
         "selected": false,
         "source": "SplitText-9VU9F",
-        "sourceHandle": "{œdataTypeœ:œSplitTextœ,œidœ:œSplitText-9VU9Fœ,œnameœ:œdataframeœ,œoutput_typesœ:[œDataœ]}",
+        "sourceHandle": "{œdataTypeœ:œSplitTextœ,œidœ:œSplitText-9VU9Fœ,œnameœ:œdataframeœ,œoutput_typesœ:[œTableœ]}",
         "target": "AstraDB-QUADRATA",
         "targetHandle": "{œfieldNameœ:œingest_dataœ,œidœ:œAstraDB-QUADRATAœ,œinputTypesœ:[œDataœ,œTableœ,œDataFrameœ],œtypeœ:œotherœ}"
       },
@@ -227,15 +225,15 @@
             "inputTypes": [
               "Message"
             ],
-            "type": "other"
+            "type": "str"
           }
         },
-        "id": "reactflow__edge-ChatInput-gaat9{œdataTypeœ:œChatInputœ,œidœ:œChatInput-gaat9œ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}-AstraDB-QUADRATA{œfieldNameœ:œsearch_inputœ,œidœ:œAstraDB-QUADRATAœ,œinputTypesœ:[œMessageœ],œtypeœ:œotherœ}",
+        "id": "reactflow__edge-ChatInput-gaat9{œdataTypeœ:œChatInputœ,œidœ:œChatInput-gaat9œ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}-AstraDB-QUADRATA{œfieldNameœ:œsearch_inputœ,œidœ:œAstraDB-QUADRATAœ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}",
         "selected": false,
         "source": "ChatInput-gaat9",
         "sourceHandle": "{œdataTypeœ:œChatInputœ,œidœ:œChatInput-gaat9œ,œnameœ:œmessageœ,œoutput_typesœ:[œMessageœ]}",
         "target": "AstraDB-QUADRATA",
-        "targetHandle": "{œfieldNameœ:œsearch_inputœ,œidœ:œAstraDB-QUADRATAœ,œinputTypesœ:[œMessageœ],œtypeœ:œotherœ}"
+        "targetHandle": "{œfieldNameœ:œsearch_inputœ,œidœ:œAstraDB-QUADRATAœ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}"
       },
       {
         "animated": false,
@@ -246,28 +244,27 @@
             "id": "AstraDB-QUADRATA",
             "name": "search_results",
             "output_types": [
-              "Data",
-              "Table",
-              "DataFrame"
+              "Data"
             ]
           },
           "targetHandle": {
             "fieldName": "input_data",
             "id": "ParserComponent-n06SI",
             "inputTypes": [
-              "Data",
+              "DataFrame",
               "Table",
-              "DataFrame"
+              "Data",
+              "JSON"
             ],
             "type": "other"
           }
         },
-        "id": "reactflow__edge-AstraDB-QUADRATA{œdataTypeœ:œAstraDBœ,œidœ:œAstraDB-QUADRATAœ,œnameœ:œsearch_resultsœ,œoutput_typesœ:[œDataœ]}-ParserComponent-n06SI{œfieldNameœ:œinput_dataœ,œidœ:œParserComponent-n06SIœ,œinputTypesœ:[œDataœ,œTableœ,œDataFrameœ],œtypeœ:œotherœ}",
+        "id": "reactflow__edge-AstraDB-QUADRATA{œdataTypeœ:œAstraDBœ,œidœ:œAstraDB-QUADRATAœ,œnameœ:œsearch_resultsœ,œoutput_typesœ:[œDataœ]}-ParserComponent-n06SI{œfieldNameœ:œinput_dataœ,œidœ:œParserComponent-n06SIœ,œinputTypesœ:[œDataFrameœ,œTableœ,œDataœ,œJSONœ],œtypeœ:œotherœ}",
         "selected": false,
         "source": "AstraDB-QUADRATA",
         "sourceHandle": "{œdataTypeœ:œAstraDBœ,œidœ:œAstraDB-QUADRATAœ,œnameœ:œsearch_resultsœ,œoutput_typesœ:[œDataœ]}",
         "target": "ParserComponent-n06SI",
-        "targetHandle": "{œfieldNameœ:œinput_dataœ,œidœ:œParserComponent-n06SIœ,œinputTypesœ:[œDataœ,œTableœ,œDataFrameœ],œtypeœ:œotherœ}"
+        "targetHandle": "{œfieldNameœ:œinput_dataœ,œidœ:œParserComponent-n06SIœ,œinputTypesœ:[œDataFrameœ,œTableœ,œDataœ,œJSONœ],œtypeœ:œotherœ}"
       },
       {
         "animated": false,
@@ -287,15 +284,15 @@
             "inputTypes": [
               "Message"
             ],
-            "type": "other"
+            "type": "str"
           }
         },
-        "id": "reactflow__edge-ParserComponent-n06SI{œdataTypeœ:œParserComponentœ,œidœ:œParserComponent-n06SIœ,œnameœ:œparsed_textœ,œoutput_typesœ:[œMessageœ]}-Prompt Template-fgCJI{œfieldNameœ:œcontextœ,œidœ:œPrompt Template-fgCJIœ,œinputTypesœ:[œMessageœ],œtypeœ:œotherœ}",
+        "id": "reactflow__edge-ParserComponent-n06SI{œdataTypeœ:œParserComponentœ,œidœ:œParserComponent-n06SIœ,œnameœ:œparsed_textœ,œoutput_typesœ:[œMessageœ]}-Prompt Template-fgCJI{œfieldNameœ:œcontextœ,œidœ:œPrompt Template-fgCJIœ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}",
         "selected": false,
         "source": "ParserComponent-n06SI",
         "sourceHandle": "{œdataTypeœ:œParserComponentœ,œidœ:œParserComponent-n06SIœ,œnameœ:œparsed_textœ,œoutput_typesœ:[œMessageœ]}",
         "target": "Prompt Template-fgCJI",
-        "targetHandle": "{œfieldNameœ:œcontextœ,œidœ:œPrompt Template-fgCJIœ,œinputTypesœ:[œMessageœ],œtypeœ:œotherœ}"
+        "targetHandle": "{œfieldNameœ:œcontextœ,œidœ:œPrompt Template-fgCJIœ,œinputTypesœ:[œMessageœ],œtypeœ:œstrœ}"
       }
     ],
     "nodes": [
@@ -456,7 +453,7 @@
                 "trace_as_metadata": true,
                 "track_in_telemetry": true,
                 "type": "bool",
-                "value": true
+                "value": false
               },
               "aws_access_key_id": {
                 "_input_type": "SecretStrInput",

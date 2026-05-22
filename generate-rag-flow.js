@@ -337,16 +337,42 @@ flow.data.edges = flow.data.edges.filter(e => {
   return !remove;
 });
 
-// ── Função auxiliar para criar arestas ────────────────────────────────────────
-function makeEdge(sourceId, sourceName, sourceType, targetId, targetField, targetTypes) {
-  const sh = `{œdataTypeœ:œ${sourceType}œ,œidœ:œ${sourceId}œ,œnameœ:œ${sourceName}œ,œoutput_typesœ:[œ${targetTypes[0]}œ]}`;
-  const th = `{œfieldNameœ:œ${targetField}œ,œidœ:œ${targetId}œ,œinputTypesœ:[${targetTypes.map(t => `œ${t}œ`).join(",")}],œtypeœ:œotherœ}`;
+// ── Função auxiliar para criar arestas (formato exato do Langflow) ───────────
+// O Langflow codifica as handles usando œ no lugar de " nas strings JSON
+function makeEdge(
+  sourceId, sourceDataType, sourceName, sourceOutputTypes,
+  targetId, targetFieldName, targetInputTypes, targetType
+) {
+  const q = "œ"; // caractere especial que o Langflow usa no lugar de aspas
+
+  const sh =
+    `{${q}dataType${q}:${q}${sourceDataType}${q},` +
+    `${q}id${q}:${q}${sourceId}${q},` +
+    `${q}name${q}:${q}${sourceName}${q},` +
+    `${q}output_types${q}:[${sourceOutputTypes.map(t => `${q}${t}${q}`).join(",")}]}`;
+
+  const th =
+    `{${q}fieldName${q}:${q}${targetFieldName}${q},` +
+    `${q}id${q}:${q}${targetId}${q},` +
+    `${q}inputTypes${q}:[${targetInputTypes.map(t => `${q}${t}${q}`).join(",")}],` +
+    `${q}type${q}:${q}${targetType}${q}}`;
+
   return {
     animated: false,
     className: "",
     data: {
-      sourceHandle: { dataType: sourceType, id: sourceId, name: sourceName, output_types: targetTypes },
-      targetHandle: { fieldName: targetField, id: targetId, inputTypes: targetTypes, type: "other" },
+      sourceHandle: {
+        dataType: sourceDataType,
+        id: sourceId,
+        name: sourceName,
+        output_types: sourceOutputTypes,
+      },
+      targetHandle: {
+        fieldName: targetFieldName,
+        id: targetId,
+        inputTypes: targetInputTypes,
+        type: targetType,
+      },
     },
     id: `reactflow__edge-${sourceId}${sh}-${targetId}${th}`,
     selected: false,
@@ -357,49 +383,57 @@ function makeEdge(sourceId, sourceName, sourceType, targetId, targetField, targe
   };
 }
 
-// ── 7. Adiciona novas arestas ─────────────────────────────────────────────────
+// ── 7. Desativa advanced_mode no File para garantir saída "message" ───────────
+const fileNode = flow.data.nodes.find(n => n.id === ID.file);
+if (fileNode) {
+  fileNode.data.node.template.advanced_mode.value = false;
+  fileNode.data.selected_output = "message";
+  console.log("✅ File: advanced_mode desativado → saída 'message'");
+}
 
-// File (markdown) → SplitText
-flow.data.edges.push(makeEdge(
-  ID.file, "advanced_markdown", "File",
-  ID.splitText, "data_inputs", ["Message", "Data", "Table"]
-));
-console.log("✅ Aresta adicionada: File → SplitText");
+// ── 8. Adiciona novas arestas ─────────────────────────────────────────────────
 
-// SplitText → AstraDB (ingest_data)
+// File (message) → SplitText
 flow.data.edges.push(makeEdge(
-  ID.splitText, "dataframe", "SplitText",
-  ID.astraDB, "ingest_data", ["Data", "Table", "DataFrame"]
+  ID.file,        "File",                          "message",        ["Message"],
+  ID.splitText,   "data_inputs",  ["Data","JSON","DataFrame","Table","Message"],  "other"
 ));
-console.log("✅ Aresta adicionada: SplitText → AstraDB (ingest)");
+console.log("✅ Aresta: File → SplitText");
+
+// SplitText (dataframe/chunks) → AstraDB (ingest_data)
+flow.data.edges.push(makeEdge(
+  ID.splitText,   "SplitText",                     "dataframe",      ["Table"],
+  ID.astraDB,     "ingest_data",  ["Data","Table","DataFrame"],                   "other"
+));
+console.log("✅ Aresta: SplitText → AstraDB (ingest)");
 
 // Google Embeddings → AstraDB (embedding)
 flow.data.edges.push(makeEdge(
-  ID.embeddings, "embeddings", "Google Generative AI Embeddings",
-  ID.astraDB, "embedding", ["Embeddings"]
+  ID.embeddings,  "Google Generative AI Embeddings", "embeddings",   ["Embeddings"],
+  ID.astraDB,     "embedding",    ["Embeddings"],                                 "other"
 ));
-console.log("✅ Aresta adicionada: Google Embeddings → AstraDB");
+console.log("✅ Aresta: Google Embeddings → AstraDB");
 
 // ChatInput → AstraDB (search_input)
 flow.data.edges.push(makeEdge(
-  ID.chatInput, "message", "ChatInput",
-  ID.astraDB, "search_input", ["Message"]
+  ID.chatInput,   "ChatInput",                     "message",        ["Message"],
+  ID.astraDB,     "search_input", ["Message"],                                    "str"
 ));
-console.log("✅ Aresta adicionada: ChatInput → AstraDB (search)");
+console.log("✅ Aresta: ChatInput → AstraDB (search)");
 
 // AstraDB (search_results) → Parser (input_data)
 flow.data.edges.push(makeEdge(
-  ID.astraDB, "search_results", "AstraDB",
-  ID.parser, "input_data", ["Data", "Table", "DataFrame"]
+  ID.astraDB,     "AstraDB",                       "search_results", ["Data"],
+  ID.parser,      "input_data",   ["DataFrame","Table","Data","JSON"],             "other"
 ));
-console.log("✅ Aresta adicionada: AstraDB → Parser");
+console.log("✅ Aresta: AstraDB → Parser");
 
-// Parser → Prompt Template (context)
+// Parser (parsed_text) → Prompt Template (context)
 flow.data.edges.push(makeEdge(
-  ID.parser, "parsed_text", "ParserComponent",
-  ID.prompt, "context", ["Message"]
+  ID.parser,      "ParserComponent",               "parsed_text",    ["Message"],
+  ID.prompt,      "context",      ["Message"],                                    "str"
 ));
-console.log("✅ Aresta adicionada: Parser → Prompt Template (context)");
+console.log("✅ Aresta: Parser → Prompt Template (context)");
 
 // ── 8. Move TextInput para área de notas (desconectado, mantém o texto) ───────
 const textNode = flow.data.nodes.find(n => n.id === ID.textInput);
