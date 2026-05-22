@@ -1,0 +1,10 @@
+node_modules/
+.env
+
+# PDFs de propostas de clientes (dados pessoais — não commitar)
+PROPOSTA*.pdf
+proposta*.pdf
+
+# PDFs de produtos ficam em docs/ e SÃO versionados
+# (remova a linha abaixo se preferir não versionar os docs)
+# docs/**/*.pdf
