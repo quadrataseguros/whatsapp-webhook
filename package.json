@@ -4,7 +4,8 @@
   "description": "Webhook para WhatsApp Business API integrado ao Make",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "setup:langflow": "node setup-langflow.js"
   },
   "dependencies": {
     "axios": "^1.6.0",
