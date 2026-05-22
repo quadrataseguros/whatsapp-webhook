@@ -181,7 +181,7 @@ const astraDBNode = {
           show: true,
           title_case: false,
           type: "str",
-          value: "",
+          value: "https://bb8223e1-0d07-476d-a725-532041ba0c26-us-east1.apps.astra.datastax.com",
         },
         collection_name: {
           _input_type: "StrInput",
