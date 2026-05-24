@@ -9,6 +9,10 @@ const LANGFLOW_FLOW_ID = process.env.LANGFLOW_FLOW_ID || "";
 const LANGFLOW_API_KEY = process.env.LANGFLOW_API_KEY || "";
 const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
+
+// Instagram
+const IG_ACCESS_TOKEN = process.env.IG_ACCESS_TOKEN || "";
+const IG_PAGE_ID = process.env.IG_PAGE_ID || "";
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
 
 // Roteamento de intenções — flows alternativos (opcionais)
@@ -89,7 +93,7 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// ── Extract message ────────────────────────────────────────────────────────────
+// ── Extract WhatsApp message ───────────────────────────────────────────────────
 function extractMessage(body) {
   try {
     const entry = body.entry?.[0];
@@ -104,6 +108,31 @@ function extractMessage(body) {
       type: message.type,
       text: message.text?.body || "",
       name: value.contacts?.[0]?.profile?.name || message.from,
+      channel: "whatsapp",
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ── Extract Instagram message ──────────────────────────────────────────────────
+function extractInstagramMessage(body) {
+  try {
+    const entry = body.entry?.[0];
+    const messaging = entry?.messaging?.[0];
+    if (!messaging || !messaging.message) return null;
+
+    const message = messaging.message;
+    // Ignora mensagens eco (enviadas pelo próprio bot)
+    if (message.is_echo) return null;
+
+    return {
+      from: messaging.sender.id,
+      messageId: message.mid,
+      type: message.attachments ? message.attachments[0]?.type : "text",
+      text: message.text || "",
+      name: messaging.sender.id,
+      channel: "instagram",
     };
   } catch {
     return null;
@@ -129,7 +158,7 @@ async function markAsRead(messageId) {
   }
 }
 
-// ── Send reply ─────────────────────────────────────────────────────────────────
+// ── Send WhatsApp reply ────────────────────────────────────────────────────────
 async function sendWhatsAppReply(to, text) {
   if (!WA_PHONE_NUMBER_ID || !WA_ACCESS_TOKEN) return;
   await axios.post(
@@ -138,6 +167,28 @@ async function sendWhatsAppReply(to, text) {
     {
       headers: {
         Authorization: `Bearer ${WA_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
+
+// ── Send Instagram reply ───────────────────────────────────────────────────────
+async function sendInstagramReply(recipientId, text) {
+  if (!IG_ACCESS_TOKEN) {
+    console.warn("[INSTA] IG_ACCESS_TOKEN não configurado");
+    return;
+  }
+  await axios.post(
+    `https://graph.facebook.com/v19.0/me/messages`,
+    {
+      recipient: { id: recipientId },
+      message: { text },
+      messaging_type: "RESPONSE",
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${IG_ACCESS_TOKEN}`,
         "Content-Type": "application/json",
       },
     }
@@ -195,11 +246,31 @@ async function runLangflow(inputText, sessionId) {
   );
 }
 
+// ── Função unificada de envio de resposta ──────────────────────────────────────
+async function sendReply(msg, text) {
+  if (msg.channel === "instagram") {
+    await sendInstagramReply(msg.from, text);
+  } else {
+    await sendWhatsAppReply(msg.from, text);
+  }
+}
+
 // ── Main webhook handler ───────────────────────────────────────────────────────
 app.post("/webhook", async (req, res) => {
   res.sendStatus(200); // Acknowledge immediately per Meta requirements
 
-  const msg = extractMessage(req.body);
+  const object = req.body?.object;
+
+  // Detecta canal: WhatsApp ou Instagram
+  let msg = null;
+  if (object === "instagram") {
+    msg = extractInstagramMessage(req.body);
+    if (msg) console.log(`[CANAL] Instagram`);
+  } else {
+    msg = extractMessage(req.body);
+    if (msg) console.log(`[CANAL] WhatsApp`);
+  }
+
   if (!msg) return;
 
   // Deduplicação — ignora reenvios do Meta
@@ -209,16 +280,13 @@ app.post("/webhook", async (req, res) => {
   }
   processedMessages.set(msg.messageId, Date.now());
 
-  // Mark as read — cliente vê o ✓✓ azul
-  await markAsRead(msg.messageId);
+  // Mark as read — só para WhatsApp (Instagram não tem essa API)
+  if (msg.channel === "whatsapp") await markAsRead(msg.messageId);
 
-  // 6. Tratamento de mensagens de áudio e outros tipos não-texto
+  // Tratamento de mensagens de áudio e outros tipos não-texto
   if (msg.type !== "text") {
     if (["audio", "voice"].includes(msg.type)) {
-      await sendWhatsAppReply(
-        msg.from,
-        "Olá! No momento só consigo responder mensagens de texto. Por favor, escreva sua dúvida que te ajudo 😊"
-      );
+      await sendReply(msg, "Olá! No momento só consigo responder mensagens de texto. Por favor, escreva sua dúvida que te ajudo 😊");
       console.log(`[ÁUDIO] ${msg.name} (${msg.from}) — respondido com aviso`);
     } else {
       console.log(`[IGNORADO] Tipo '${msg.type}' de ${msg.from}`);
@@ -231,22 +299,18 @@ app.post("/webhook", async (req, res) => {
   // Rate limiting — protege contra flood
   if (isRateLimited(msg.from)) {
     console.log(`[RATE LIMIT] ${msg.from} excedeu o limite`);
-    await sendWhatsAppReply(
-      msg.from,
-      "Muitas mensagens em pouco tempo. Aguarde um momento e tente novamente 🙏"
-    );
+    await sendReply(msg, "Muitas mensagens em pouco tempo. Aguarde um momento e tente novamente 🙏");
     return;
   }
 
-  console.log(`[MSG] ${msg.name} (${msg.from}): ${msg.text}`);
+  console.log(`[MSG][${msg.channel?.toUpperCase()}] ${msg.name} (${msg.from}): ${msg.text}`);
 
   try {
     if (LANGFLOW_FLOW_ID) {
-      // Retry automático: até 3 tentativas com backoff exponencial
       const reply = await withRetry(() => runLangflow(msg.text, msg.from));
       if (reply) {
         console.log(`[REPLY] ${reply}`);
-        await sendWhatsAppReply(msg.from, reply);
+        await sendReply(msg, reply);
       }
     } else if (MAKE_WEBHOOK_URL) {
       await axios.post(MAKE_WEBHOOK_URL, req.body);
@@ -256,10 +320,7 @@ app.post("/webhook", async (req, res) => {
     }
   } catch (err) {
     console.error("[ERRO]", err.message);
-    await sendWhatsAppReply(
-      msg.from,
-      "Desculpe, tive um problema técnico. Por favor, tente novamente em instantes 🙏"
-    );
+    await sendReply(msg, "Desculpe, tive um problema técnico. Por favor, tente novamente em instantes 🙏");
   }
 });
 
