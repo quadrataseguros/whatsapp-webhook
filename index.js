@@ -13,6 +13,9 @@ const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
 
 const PORT = process.env.PORT || 3000;
 
+// Serve site institucional
+app.use(express.static(__dirname));
+
 // Meta webhook verification
 app.get("/webhook", (req, res) => {
   if (req.query["hub.verify_token"] === VERIFY_TOKEN) {
