@@ -91,7 +91,7 @@ async function sendInstagramReply(recipientId, text) {
   const igUserId = "17841433950239157";
   try {
     const res = await axios.post(
-      `https://graph.facebook.com/v19.0/${igUserId}/messages`,
+      `https://graph.instagram.com/v25.0/${igUserId}/messages`,
       { recipient: { id: recipientId }, message: { text } },
       { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
     );
