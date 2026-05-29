@@ -12,6 +12,7 @@ const LANGFLOW_API_KEY = process.env.LANGFLOW_API_KEY || "";
 const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
 const IG_ACCESS_TOKEN = process.env.IG_ACCESS_TOKEN || "";
+const IG_USER_ID = process.env.IG_USER_ID || "";
 
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
 const PORT = process.env.PORT || 3000;
@@ -89,7 +90,7 @@ async function sendInstagramReply(recipientId, text) {
   if (!IG_ACCESS_TOKEN) return;
   try {
     const res = await axios.post(
-      `https://graph.facebook.com/v19.0/me/messages`,
+      `https://graph.facebook.com/v19.0/${IG_USER_ID}/messages`,
       { recipient: { id: recipientId }, message: { text }, messaging_type: "RESPONSE" },
       { headers: { Authorization: `Bearer ${IG_ACCESS_TOKEN}`, "Content-Type": "application/json" } }
     );
