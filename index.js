@@ -87,13 +87,12 @@ async function sendWhatsAppReply(to, text) {
 }
 
 async function sendInstagramReply(recipientId, text) {
-  const token = "IGAARwEtaBktVBZAFlPSkh4RmNmMWVxTFREQXlTbGYtRUR4OUFfMXpWQlJxWnJraFh3ZAnNlSnhqMFUwV19Kc2RoMTFKRVFTY3ExYkNXc0ltWVBNN1diLWxUYmZA0Q1B5ZAWtvUmtldHg2Y0tOMzFabW0zX1ktNHZAYUl9fQjJJYlBsUQZDZD";
-  const igUserId = "17841433950239157";
+  if (!IG_ACCESS_TOKEN || !IG_USER_ID) return;
   try {
     const res = await axios.post(
-      `https://graph.instagram.com/v25.0/${igUserId}/messages`,
+      `https://graph.instagram.com/v25.0/${IG_USER_ID}/messages`,
       { recipient: { id: recipientId }, message: { text } },
-      { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      { headers: { Authorization: `Bearer ${IG_ACCESS_TOKEN}`, "Content-Type": "application/json" } }
     );
     console.log("[instagram] Mensagem enviada:", res.data);
   } catch (err) {
