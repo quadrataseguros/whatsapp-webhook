@@ -1,15 +1,18 @@
-# WhatsApp Webhook — MarIAna · Quadrata Seguros
+# WhatsApp + Instagram Webhook — MarIAna · Quadrata Seguros
 
-Webhook Node.js que recebe mensagens do WhatsApp Business API, processa via **Langflow** e envia respostas automáticas de volta ao cliente.
+Webhook Node.js que recebe mensagens do **WhatsApp Business API** e do **Instagram Direct**, processa via **Langflow** e envia respostas automáticas de volta ao cliente.
 
 ---
 
 ## Arquitetura
 
 ```
-WhatsApp  →  Meta Webhook  →  Este servidor  →  Langflow (MarIAna IA)
-                                                      ↓
-WhatsApp  ←  WhatsApp Cloud API  ←─────────── resposta automática
+WhatsApp  ─┐
+            ├→  Meta Webhook  →  Este servidor  →  Langflow (MarIAna IA)
+Instagram ─┘                                              ↓
+                                              resposta automática
+                                         ↙                    ↘
+                              WhatsApp Cloud API      Instagram Send API
 ```
 
 ---
@@ -20,13 +23,28 @@ Copie `.env.example` para `.env` e preencha:
 
 | Variável | Descrição |
 |----------|-----------|
-| `VERIFY_TOKEN` | Token de verificação da Meta (padrão: `quadrata123`) |
-| `WA_PHONE_NUMBER_ID` | ID do número no painel Meta |
-| `WA_ACCESS_TOKEN` | Token de acesso da Meta |
+| `VERIFY_TOKEN` | Token de verificação da Meta — mesmo valor para ambos os canais (padrão: `quadrata123`) |
+| `WA_PHONE_NUMBER_ID` | ID do número WhatsApp no painel Meta |
+| `WA_ACCESS_TOKEN` | Token de acesso WhatsApp |
+| `IG_ACCESS_TOKEN` | Token de acesso da página Facebook vinculada ao Instagram |
 | `LANGFLOW_URL` | URL do servidor Langflow |
 | `LANGFLOW_FLOW_ID` | ID do flow da MarIAna no Langflow |
 | `LANGFLOW_API_KEY` | API Key do Langflow (se habilitada) |
 | `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se não houver `LANGFLOW_FLOW_ID` |
+
+---
+
+## Configurar Instagram no painel Meta
+
+1. Acesse [Meta for Developers](https://developers.facebook.com/) → seu app.
+2. Em **Produtos**, adicione **Instagram** (se ainda não estiver).
+3. Em **Instagram → Configuração**, vincule a conta Instagram à Página Facebook.
+4. Gere o **Token de Acesso da Página** e coloque em `IG_ACCESS_TOKEN`.
+5. Em **Webhooks → Instagram**, configure:
+   - **Callback URL:** `https://SEU-SERVIDOR/webhook`
+   - **Verify Token:** valor de `VERIFY_TOKEN`
+   - **Campos assinados:** marque `messages`
+6. Clique em **Verificar e Salvar**.
 
 ---
 
@@ -93,9 +111,9 @@ ipconfig | findstr "IPv4"
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
-| `GET` | `/webhook` | Verificação Meta |
-| `POST` | `/webhook` | Recebe mensagens WhatsApp |
-| `GET` | `/health` | Status do servidor e modo ativo |
+| `GET` | `/webhook` | Verificação Meta (WhatsApp e Instagram) |
+| `POST` | `/webhook` | Recebe mensagens WhatsApp e Instagram |
+| `GET` | `/health` | Status do servidor, modo ativo e canais configurados |
 
 ---
 
