@@ -5,516 +5,472 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Controle do PC</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; }
-
-  .header { background: #1a1a2e; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #2a2a4a; position: sticky; top: 0; z-index: 100; }
-  .header h1 { font-size: 18px; font-weight: 700; color: #7c6af7; }
-  .status { display: flex; align-items: center; gap: 6px; font-size: 12px; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; animation: pulse 2s infinite; }
-  .dot.off { background: #f44336; animation: none; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-
-  .config-bar { background: #13131f; padding: 12px 16px; border-bottom: 1px solid #2a2a4a; display: flex; gap: 8px; align-items: center; }
-  .config-bar input { flex: 1; background: #1e1e30; border: 1px solid #3a3a5a; border-radius: 8px; padding: 8px 12px; color: #e0e0e0; font-size: 13px; }
-  .config-bar input::placeholder { color: #666; }
-  .btn-sm { background: #7c6af7; border: none; color: white; padding: 8px 14px; border-radius: 8px; font-size: 12px; cursor: pointer; white-space: nowrap; }
-  .btn-sm:active { background: #5a4ad0; }
-
-  .tabs { display: flex; background: #13131f; border-bottom: 1px solid #2a2a4a; overflow-x: auto; }
-  .tab { padding: 12px 18px; font-size: 13px; color: #888; cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; transition: all .2s; }
-  .tab.active { color: #7c6af7; border-bottom-color: #7c6af7; }
-
-  .page { display: none; padding: 16px; }
-  .page.active { display: block; }
-
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f0f13;color:#e0e0e0;min-height:100vh}
+  .header{background:#1a1a2e;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2a2a4a;position:sticky;top:0;z-index:100}
+  .header h1{font-size:17px;font-weight:700;color:#7c6af7}
+  .status{display:flex;align-items:center;gap:6px;font-size:12px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#4caf50;animation:pulse 2s infinite}
+  .dot.off{background:#f44336;animation:none}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .config-bar{background:#13131f;padding:10px 14px;border-bottom:1px solid #2a2a4a;display:flex;gap:8px;align-items:center}
+  .config-bar input{flex:1;background:#1e1e30;border:1px solid #3a3a5a;border-radius:8px;padding:8px 10px;color:#e0e0e0;font-size:13px}
+  .config-bar input::placeholder{color:#555}
+  .btn-sm{background:#7c6af7;border:none;color:#fff;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap}
+  .btn-sm:active{background:#5a4ad0}
+  .tabs{display:flex;background:#13131f;border-bottom:1px solid #2a2a4a;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tab{padding:11px 16px;font-size:13px;color:#888;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:.15s}
+  .tab.active{color:#7c6af7;border-bottom-color:#7c6af7}
+  .page{display:none;padding:14px}
+  .page.active{display:block}
   /* IA */
-  .ia-box { background: #1a1a2e; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-  .ia-box h3 { font-size: 14px; color: #7c6af7; margin-bottom: 12px; }
-  .ia-input-row { display: flex; gap: 8px; }
-  .ia-input { flex: 1; background: #0f0f13; border: 1px solid #3a3a5a; border-radius: 10px; padding: 12px; color: #e0e0e0; font-size: 14px; resize: none; min-height: 52px; }
-  .ia-input:focus { outline: none; border-color: #7c6af7; }
-  .btn-ia { background: #7c6af7; border: none; color: white; padding: 12px 16px; border-radius: 10px; font-size: 20px; cursor: pointer; }
-  .btn-ia:active { background: #5a4ad0; }
-  .ia-response { margin-top: 12px; background: #0f0f13; border-radius: 8px; padding: 12px; font-size: 13px; color: #aaa; min-height: 40px; white-space: pre-wrap; display: none; }
-  .ia-response.show { display: block; }
-  .ia-thinking { color: #7c6af7; font-style: italic; }
-
-  /* Botões rápidos */
-  .section-title { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
-  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
-  .btn-card { background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 12px; padding: 14px 10px; text-align: center; cursor: pointer; transition: all .15s; user-select: none; }
-  .btn-card:active { background: #252545; border-color: #7c6af7; transform: scale(.97); }
-  .btn-card .icon { font-size: 24px; margin-bottom: 6px; }
-  .btn-card .label { font-size: 12px; color: #aaa; }
-  .btn-card.danger { border-color: #f44336; }
-  .btn-card.danger:active { background: #2a1a1a; }
-  .btn-card.danger .icon { filter: hue-rotate(0deg); }
-
+  .ia-box{background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:14px}
+  .ia-box h3{font-size:13px;color:#7c6af7;margin-bottom:10px}
+  .ia-input-row{display:flex;gap:8px}
+  .ia-input{flex:1;background:#0f0f13;border:1px solid #3a3a5a;border-radius:10px;padding:11px;color:#e0e0e0;font-size:14px;resize:none;min-height:50px}
+  .ia-input:focus{outline:none;border-color:#7c6af7}
+  .btn-ia{background:#7c6af7;border:none;color:#fff;padding:11px 14px;border-radius:10px;font-size:20px;cursor:pointer}
+  .btn-ia:active{background:#5a4ad0}
+  .ia-response{margin-top:10px;background:#0f0f13;border-radius:8px;padding:11px;font-size:13px;color:#aaa;min-height:36px;white-space:pre-wrap;display:none}
+  .ia-response.show{display:block}
+  .ia-thinking{color:#7c6af7;font-style:italic}
+  .key-field{width:100%;background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:9px 11px;color:#e0e0e0;font-size:13px;margin-bottom:12px}
+  /* Cards */
+  .section-title{font-size:11px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;margin-top:4px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+  .btn-card{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:11px;padding:13px 8px;text-align:center;cursor:pointer;transition:.12s;user-select:none;-webkit-tap-highlight-color:transparent}
+  .btn-card:active{background:#252545;border-color:#7c6af7;transform:scale(.96)}
+  .btn-card .icon{font-size:22px;margin-bottom:5px}
+  .btn-card .label{font-size:11px;color:#999}
+  .btn-card.danger{border-color:#5a2020}
+  .btn-card.danger:active{background:#2a1515}
   /* Volume */
-  .vol-row { display: flex; align-items: center; gap: 12px; background: #1a1a2e; border-radius: 12px; padding: 14px 16px; margin-bottom: 8px; }
-  .vol-row span { font-size: 20px; }
-  input[type=range] { flex: 1; -webkit-appearance: none; height: 4px; border-radius: 2px; background: #3a3a5a; }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #7c6af7; cursor: pointer; }
-  .vol-value { font-size: 14px; color: #7c6af7; width: 36px; text-align: right; }
-
+  .vol-row{display:flex;align-items:center;gap:10px;background:#1a1a2e;border-radius:12px;padding:13px 14px;margin-bottom:8px}
+  input[type=range]{flex:1;-webkit-appearance:none;height:4px;border-radius:2px;background:#3a3a5a}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#7c6af7;cursor:pointer}
+  .vol-val{font-size:14px;color:#7c6af7;min-width:34px;text-align:right}
   /* Terminal */
-  .terminal { background: #050508; border: 1px solid #2a2a4a; border-radius: 12px; padding: 12px; font-family: 'Courier New', monospace; font-size: 12px; height: 220px; overflow-y: auto; margin-bottom: 10px; }
-  .terminal .line { color: #4caf50; margin-bottom: 2px; word-break: break-all; }
-  .terminal .line.err { color: #f44336; }
-  .terminal .line.out { color: #e0e0e0; }
-  .terminal .line.sys { color: #7c6af7; }
-  .cmd-row { display: flex; gap: 8px; }
-  .cmd-input { flex: 1; background: #1a1a2e; border: 1px solid #3a3a5a; border-radius: 8px; padding: 10px 12px; color: #e0e0e0; font-family: monospace; font-size: 13px; }
-  .cmd-input:focus { outline: none; border-color: #7c6af7; }
-
-  /* Mouse/Teclado */
-  .touchpad { background: #1a1a2e; border-radius: 12px; height: 180px; display: flex; align-items: center; justify-content: center; color: #444; font-size: 13px; margin-bottom: 10px; border: 1px solid #2a2a4a; position: relative; overflow: hidden; touch-action: none; }
-  .touchpad-hint { pointer-events: none; }
-  .key-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-  .key-btn { background: #1a1a2e; border: 1px solid #2a2a4a; border-radius: 8px; padding: 12px 6px; text-align: center; font-size: 13px; cursor: pointer; }
-  .key-btn:active { background: #252545; border-color: #7c6af7; }
-
-  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #444; border-top-color: #7c6af7; border-radius: 50%; animation: spin .6s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-
-  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #252545; color: #e0e0e0; padding: 10px 20px; border-radius: 20px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 999; }
-  .toast.show { opacity: 1; }
+  .terminal{background:#050508;border:1px solid #2a2a4a;border-radius:11px;padding:11px;font-family:'Courier New',monospace;font-size:12px;height:210px;overflow-y:auto;margin-bottom:10px}
+  .line{margin-bottom:2px;word-break:break-all}
+  .line.prompt{color:#7c6af7}
+  .line.out{color:#ccc}
+  .line.err{color:#f44336}
+  .line.sys{color:#4caf50}
+  .cmd-row{display:flex;gap:8px}
+  .cmd-input{flex:1;background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:9px 11px;color:#e0e0e0;font-family:monospace;font-size:13px}
+  .cmd-input:focus{outline:none;border-color:#7c6af7}
+  /* Touchpad */
+  .touchpad{background:#1a1a2e;border-radius:12px;height:170px;display:flex;align-items:center;justify-content:center;color:#444;font-size:13px;margin-bottom:10px;border:1px solid #2a2a4a;touch-action:none;position:relative;overflow:hidden;user-select:none}
+  .key-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px}
+  .key-btn{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;padding:11px 4px;text-align:center;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .key-btn:active{background:#252545;border-color:#7c6af7}
+  .type-row{display:flex;gap:8px}
+  .type-input{flex:1;background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:9px 11px;color:#e0e0e0;font-size:14px}
+  /* Processos */
+  .proc-list{background:#1a1a2e;border-radius:11px;overflow:hidden;margin-bottom:14px}
+  .proc-item{display:flex;align-items:center;padding:9px 12px;border-bottom:1px solid #1e1e30;font-size:12px}
+  .proc-item:last-child{border-bottom:none}
+  .proc-name{flex:1;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .proc-cpu{color:#7c6af7;min-width:44px;text-align:right;font-family:monospace}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#252545;color:#e0e0e0;padding:9px 18px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:999;white-space:nowrap}
+  .toast.show{opacity:1}
 </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>🖥️ Controle do PC</h1>
-  <div class="status">
-    <div class="dot" id="statusDot"></div>
-    <span id="statusText">conectando…</span>
-  </div>
+  <h1>🖥️ PC Remoto</h1>
+  <div class="status"><div class="dot off" id="dot"></div><span id="stxt">offline</span></div>
 </div>
 
 <div class="config-bar">
-  <input type="text" id="serverUrl" placeholder="URL do servidor (https://...trycloudflare.com)" />
-  <input type="password" id="serverToken" placeholder="Token" style="max-width:120px" />
-  <button class="btn-sm" onclick="saveConfig()">✓</button>
+  <input id="sUrl" placeholder="https://xxxx.trycloudflare.com" />
+  <input id="sTok" type="password" placeholder="Token" style="max-width:110px" />
+  <button class="btn-sm" onclick="saveConfig()">OK</button>
 </div>
 
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('ia')">✨ IA</div>
-  <div class="tab" onclick="switchTab('apps')">Apps</div>
-  <div class="tab" onclick="switchTab('volume')">Volume</div>
-  <div class="tab" onclick="switchTab('terminal')">Terminal</div>
-  <div class="tab" onclick="switchTab('mouse')">Mouse</div>
-  <div class="tab" onclick="switchTab('sistema')">Sistema</div>
+  <div class="tab active" onclick="tab('ia')">✨ IA</div>
+  <div class="tab" onclick="tab('apps')">Apps</div>
+  <div class="tab" onclick="tab('vol')">Volume</div>
+  <div class="tab" onclick="tab('term')">Terminal</div>
+  <div class="tab" onclick="tab('mouse')">Mouse</div>
+  <div class="tab" onclick="tab('sis')">Sistema</div>
+  <div class="tab" onclick="tab('proc')">Processos</div>
 </div>
 
 <!-- IA -->
 <div class="page active" id="page-ia">
   <div class="ia-box">
-    <h3>✨ Comando em linguagem natural</h3>
+    <h3>✨ Diga o que quer fazer no PC</h3>
     <div class="ia-input-row">
-      <textarea class="ia-input" id="iaInput" placeholder="Ex: abre o chrome, coloca o volume no máximo e minimiza tudo" rows="2"></textarea>
+      <textarea class="ia-input" id="iaIn" placeholder="Ex: abre o chrome, coloca volume no máximo e minimiza tudo"></textarea>
       <button class="btn-ia" onclick="sendIA()">▶</button>
     </div>
-    <div class="ia-response" id="iaResponse"></div>
+    <div class="ia-response" id="iaResp"></div>
   </div>
-  <div style="margin-bottom:10px">
-    <input type="password" id="claudeKey" style="width:100%;background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:10px 12px;color:#e0e0e0;font-size:13px" placeholder="Chave da API Claude (sk-ant-...)" />
-  </div>
-
+  <input type="password" class="key-field" id="cKey" placeholder="Chave Claude API (sk-ant-...)" />
   <p class="section-title">Ações rápidas</p>
-  <div class="grid-2">
-    <div class="btn-card" onclick="quickCmd('chrome')"><div class="icon">🌐</div><div class="label">Chrome</div></div>
-    <div class="btn-card" onclick="quickCmd('notepad')"><div class="icon">📝</div><div class="label">Bloco de Notas</div></div>
-    <div class="btn-card" onclick="quickCmd('explorer')"><div class="icon">📁</div><div class="label">Explorer</div></div>
-    <div class="btn-card" onclick="quickCmd('calc')"><div class="icon">🧮</div><div class="label">Calculadora</div></div>
-    <div class="btn-card" onclick="quickCmd('whatsapp')"><div class="icon">💬</div><div class="label">WhatsApp</div></div>
-    <div class="btn-card" onclick="quickCmd('spotify')"><div class="icon">🎵</div><div class="label">Spotify</div></div>
+  <div class="grid-3">
+    <div class="btn-card" onclick="abrirApp('chrome')"><div class="icon">🌐</div><div class="label">Chrome</div></div>
+    <div class="btn-card" onclick="abrirApp('spotify')"><div class="icon">🎵</div><div class="label">Spotify</div></div>
+    <div class="btn-card" onclick="atalho(['win','d'])"><div class="icon">🗗</div><div class="label">Minimizar</div></div>
+    <div class="btn-card" onclick="abrirApp('notepad')"><div class="icon">📝</div><div class="label">Bloco Notas</div></div>
+    <div class="btn-card" onclick="abrirApp('explorer')"><div class="icon">📁</div><div class="label">Explorer</div></div>
+    <div class="btn-card" onclick="atalho(['ctrl','alt','delete'])"><div class="icon">🔐</div><div class="label">Ctrl+Alt+Del</div></div>
   </div>
 </div>
 
 <!-- Apps -->
 <div class="page" id="page-apps">
   <p class="section-title">Aplicativos</p>
-  <div class="grid-2">
-    <div class="btn-card" onclick="openApp('chrome')"><div class="icon">🌐</div><div class="label">Chrome</div></div>
-    <div class="btn-card" onclick="openApp('firefox')"><div class="icon">🦊</div><div class="label">Firefox</div></div>
-    <div class="btn-card" onclick="openApp('notepad')"><div class="icon">📝</div><div class="label">Bloco Notas</div></div>
-    <div class="btn-card" onclick="openApp('explorer')"><div class="icon">📁</div><div class="label">Explorer</div></div>
-    <div class="btn-card" onclick="openApp('calc')"><div class="icon">🧮</div><div class="label">Calculadora</div></div>
-    <div class="btn-card" onclick="openApp('mspaint')"><div class="icon">🎨</div><div class="label">Paint</div></div>
-    <div class="btn-card" onclick="openApp('spotify')"><div class="icon">🎵</div><div class="label">Spotify</div></div>
-    <div class="btn-card" onclick="openApp('code')"><div class="icon">💻</div><div class="label">VS Code</div></div>
+  <div class="grid-3">
+    <div class="btn-card" onclick="abrirApp('chrome')"><div class="icon">🌐</div><div class="label">Chrome</div></div>
+    <div class="btn-card" onclick="abrirApp('firefox')"><div class="icon">🦊</div><div class="label">Firefox</div></div>
+    <div class="btn-card" onclick="abrirApp('edge')"><div class="icon">🌀</div><div class="label">Edge</div></div>
+    <div class="btn-card" onclick="abrirApp('notepad')"><div class="icon">📝</div><div class="label">Bloco Notas</div></div>
+    <div class="btn-card" onclick="abrirApp('explorer')"><div class="icon">📁</div><div class="label">Explorer</div></div>
+    <div class="btn-card" onclick="abrirApp('calc')"><div class="icon">🧮</div><div class="label">Calculadora</div></div>
+    <div class="btn-card" onclick="abrirApp('spotify')"><div class="icon">🎵</div><div class="label">Spotify</div></div>
+    <div class="btn-card" onclick="abrirApp('vscode')"><div class="icon">💻</div><div class="label">VS Code</div></div>
+    <div class="btn-card" onclick="abrirApp('terminal')"><div class="icon">⬛</div><div class="label">CMD</div></div>
+    <div class="btn-card" onclick="abrirApp('powershell')"><div class="icon">🔵</div><div class="label">PowerShell</div></div>
+    <div class="btn-card" onclick="abrirApp('paint')"><div class="icon">🎨</div><div class="label">Paint</div></div>
+    <div class="btn-card" onclick="abrirApp('word')"><div class="icon">📄</div><div class="label">Word</div></div>
   </div>
   <p class="section-title">Janelas</p>
-  <div class="grid-2">
-    <div class="btn-card" onclick="sendKey('win+d')"><div class="icon">🗗</div><div class="label">Minimizar tudo</div></div>
-    <div class="btn-card" onclick="sendKey('alt+f4')"><div class="icon">✖</div><div class="label">Fechar janela</div></div>
-    <div class="btn-card" onclick="sendKey('win+tab')"><div class="icon">⊞</div><div class="label">Task View</div></div>
-    <div class="btn-card" onclick="sendKey('alt+tab')"><div class="icon">⇥</div><div class="label">Alt+Tab</div></div>
+  <div class="grid-3">
+    <div class="btn-card" onclick="atalho(['win','d'])"><div class="icon">🗗</div><div class="label">Minimizar tudo</div></div>
+    <div class="btn-card" onclick="atalho(['alt','f4'])"><div class="icon">✖️</div><div class="label">Fechar</div></div>
+    <div class="btn-card" onclick="atalho(['alt','tab'])"><div class="icon">⇥</div><div class="label">Alt+Tab</div></div>
+    <div class="btn-card" onclick="atalho(['win','tab'])"><div class="icon">⊞</div><div class="label">Task View</div></div>
+    <div class="btn-card" onclick="atalho(['win','e'])"><div class="icon">📂</div><div class="label">Explorer</div></div>
+    <div class="btn-card" onclick="atalho(['win','l'])"><div class="icon">🔒</div><div class="label">Bloquear</div></div>
   </div>
 </div>
 
 <!-- Volume -->
-<div class="page" id="page-volume">
-  <p class="section-title">Volume</p>
+<div class="page" id="page-vol">
+  <p class="section-title">Controle de volume</p>
   <div class="vol-row">
     <span>🔈</span>
-    <input type="range" min="0" max="100" value="50" id="volSlider" oninput="updateVolDisplay(this.value)" onchange="setVolume(this.value)" />
+    <input type="range" min="0" max="20" value="10" id="volR" oninput="volDisplay(this.value)" onchange="volSet(this.value)" />
     <span>🔊</span>
-    <span class="vol-value" id="volDisplay">50%</span>
+    <span class="vol-val" id="volV">50%</span>
   </div>
   <div class="grid-3">
-    <div class="btn-card" onclick="setVolume(0)"><div class="icon">🔇</div><div class="label">Mudo</div></div>
-    <div class="btn-card" onclick="setVolume(50)"><div class="icon">🔉</div><div class="label">50%</div></div>
-    <div class="btn-card" onclick="setVolume(100)"><div class="icon">🔊</div><div class="label">100%</div></div>
+    <div class="btn-card" onclick="volMudo()"><div class="icon">🔇</div><div class="label">Mudo</div></div>
+    <div class="btn-card" onclick="volAjustar('diminuir',5)"><div class="icon">🔉</div><div class="label">Baixar</div></div>
+    <div class="btn-card" onclick="volAjustar('aumentar',5)"><div class="icon">🔊</div><div class="label">Subir</div></div>
   </div>
   <p class="section-title">Mídia</p>
   <div class="grid-3">
-    <div class="btn-card" onclick="sendKey('media_prev')"><div class="icon">⏮</div><div class="label">Anterior</div></div>
-    <div class="btn-card" onclick="sendKey('media_play_pause')"><div class="icon">⏯</div><div class="label">Play/Pause</div></div>
-    <div class="btn-card" onclick="sendKey('media_next')"><div class="icon">⏭</div><div class="label">Próxima</div></div>
+    <div class="btn-card" onclick="tecla('prevtrack')"><div class="icon">⏮</div><div class="label">Anterior</div></div>
+    <div class="btn-card" onclick="tecla('playpause')"><div class="icon">⏯</div><div class="label">Play/Pause</div></div>
+    <div class="btn-card" onclick="tecla('nexttrack')"><div class="icon">⏭</div><div class="label">Próxima</div></div>
   </div>
 </div>
 
 <!-- Terminal -->
-<div class="page" id="page-terminal">
-  <div class="terminal" id="terminal">
-    <div class="line sys">Terminal pronto. Digite um comando abaixo.</div>
+<div class="page" id="page-term">
+  <div class="terminal" id="term">
+    <div class="line sys">Terminal pronto.</div>
   </div>
   <div class="cmd-row">
-    <input class="cmd-input" id="cmdInput" placeholder="dir, tasklist, ipconfig..." onkeydown="if(event.key==='Enter')runCmd()" />
+    <input class="cmd-input" id="cmdIn" placeholder="dir, tasklist, ipconfig..." onkeydown="if(event.key==='Enter')runCmd()" />
     <button class="btn-sm" onclick="runCmd()">▶</button>
   </div>
   <div style="margin-top:8px">
     <div class="grid-3">
-      <div class="btn-card" onclick="fillCmd('tasklist')"><div class="icon">📋</div><div class="label">Processos</div></div>
-      <div class="btn-card" onclick="fillCmd('ipconfig')"><div class="icon">🌐</div><div class="label">IP Config</div></div>
-      <div class="btn-card" onclick="fillCmd('dir %USERPROFILE%\\Desktop')"><div class="icon">🗂</div><div class="label">Desktop</div></div>
+      <div class="btn-card" onclick="preCmd('tasklist')"><div class="icon">📋</div><div class="label">Processos</div></div>
+      <div class="btn-card" onclick="preCmd('ipconfig')"><div class="icon">🌐</div><div class="label">IP Config</div></div>
+      <div class="btn-card" onclick="preCmd('dir %USERPROFILE%\\Desktop')"><div class="icon">🗂️</div><div class="label">Desktop</div></div>
     </div>
   </div>
 </div>
 
 <!-- Mouse -->
 <div class="page" id="page-mouse">
-  <p class="section-title">Touchpad</p>
-  <div class="touchpad" id="touchpad">
-    <span class="touchpad-hint">Arraste para mover o mouse</span>
-  </div>
-  <div class="grid-3" style="margin-bottom:16px">
-    <div class="btn-card" onclick="mouseClick('left')"><div class="icon">👆</div><div class="label">Clique</div></div>
-    <div class="btn-card" onclick="mouseClick('double')"><div class="icon">👆👆</div><div class="label">Duplo</div></div>
-    <div class="btn-card" onclick="mouseClick('right')"><div class="icon">🖱️</div><div class="label">Dir.</div></div>
+  <p class="section-title">Touchpad (arraste para mover)</p>
+  <div class="touchpad" id="tp"><span style="pointer-events:none;color:#333">Arraste aqui</span></div>
+  <div class="grid-3">
+    <div class="btn-card" onclick="mouseClique('clicar')"><div class="icon">👆</div><div class="label">Clique</div></div>
+    <div class="btn-card" onclick="mouseClique('duplo_clique')"><div class="icon">✌️</div><div class="label">Duplo</div></div>
+    <div class="btn-card" onclick="mouseRolar(3)"><div class="icon">⬆️</div><div class="label">Scroll ↑</div></div>
   </div>
   <p class="section-title">Teclado</p>
   <div class="key-grid">
-    <div class="key-btn" onclick="sendKey('win')">⊞</div>
-    <div class="key-btn" onclick="sendKey('ctrl+c')">Ctrl+C</div>
-    <div class="key-btn" onclick="sendKey('ctrl+v')">Ctrl+V</div>
-    <div class="key-btn" onclick="sendKey('ctrl+z')">Ctrl+Z</div>
-    <div class="key-btn" onclick="sendKey('escape')">Esc</div>
-    <div class="key-btn" onclick="sendKey('enter')">Enter</div>
-    <div class="key-btn" onclick="sendKey('tab')">Tab</div>
-    <div class="key-btn" onclick="sendKey('backspace')">⌫</div>
-    <div class="key-btn" onclick="sendKey('up')">▲</div>
-    <div class="key-btn" onclick="sendKey('left')">◀</div>
-    <div class="key-btn" onclick="sendKey('down')">▼</div>
-    <div class="key-btn" onclick="sendKey('right')">▶</div>
+    <div class="key-btn" onclick="atalho(['win'])">⊞</div>
+    <div class="key-btn" onclick="atalho(['ctrl','c'])">Ctrl+C</div>
+    <div class="key-btn" onclick="atalho(['ctrl','v'])">Ctrl+V</div>
+    <div class="key-btn" onclick="atalho(['ctrl','z'])">Ctrl+Z</div>
+    <div class="key-btn" onclick="tecla('escape')">Esc</div>
+    <div class="key-btn" onclick="tecla('enter')">Enter</div>
+    <div class="key-btn" onclick="tecla('tab')">Tab</div>
+    <div class="key-btn" onclick="tecla('backspace')">⌫</div>
+    <div class="key-btn" onclick="tecla('up')">▲</div>
+    <div class="key-btn" onclick="tecla('left')">◀</div>
+    <div class="key-btn" onclick="tecla('down')">▼</div>
+    <div class="key-btn" onclick="tecla('right')">▶</div>
   </div>
-  <div style="margin-top:12px;display:flex;gap:8px">
-    <input id="typeInput" style="flex:1;background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:10px;color:#e0e0e0;font-size:14px" placeholder="Digitar texto no PC..." />
-    <button class="btn-sm" onclick="typeText()">▶</button>
+  <div class="type-row" style="margin-top:8px">
+    <input class="type-input" id="typeIn" placeholder="Digitar texto no PC..." onkeydown="if(event.key==='Enter')digitar()" />
+    <button class="btn-sm" onclick="digitar()">▶</button>
   </div>
 </div>
 
 <!-- Sistema -->
-<div class="page" id="page-sistema">
+<div class="page" id="page-sis">
   <p class="section-title">Energia</p>
   <div class="grid-3">
-    <div class="btn-card danger" onclick="pcAction('shutdown')"><div class="icon">⏻</div><div class="label">Desligar</div></div>
-    <div class="btn-card danger" onclick="pcAction('restart')"><div class="icon">🔄</div><div class="label">Reiniciar</div></div>
-    <div class="btn-card" onclick="pcAction('lock')"><div class="icon">🔒</div><div class="label">Bloquear</div></div>
+    <div class="btn-card danger" onclick="sistema('desligar')"><div class="icon">⏻</div><div class="label">Desligar</div></div>
+    <div class="btn-card danger" onclick="sistema('reiniciar')"><div class="icon">🔄</div><div class="label">Reiniciar</div></div>
+    <div class="btn-card" onclick="sistema('bloquear')"><div class="icon">🔒</div><div class="label">Bloquear</div></div>
   </div>
   <div class="grid-2">
-    <div class="btn-card" onclick="pcAction('sleep')"><div class="icon">😴</div><div class="label">Suspender</div></div>
-    <div class="btn-card" onclick="pcAction('screen_off')"><div class="icon">🌑</div><div class="label">Apagar tela</div></div>
+    <div class="btn-card" onclick="sistema('hibernar')"><div class="icon">😴</div><div class="label">Hibernar</div></div>
+    <div class="btn-card" onclick="sistema('cancelar_shutdown')"><div class="icon">🚫</div><div class="label">Cancelar desligamento</div></div>
   </div>
-  <p class="section-title">Screenshot</p>
+  <p class="section-title">Clipboard</p>
   <div class="grid-2">
-    <div class="btn-card" onclick="takeScreenshot()"><div class="icon">📸</div><div class="label">Capturar tela</div></div>
-    <div class="btn-card" onclick="sendKey('win+shift+s')"><div class="icon">✂️</div><div class="label">Recorte</div></div>
+    <div class="btn-card" onclick="lerClipboard()"><div class="icon">📋</div><div class="label">Ler clipboard</div></div>
+    <div class="btn-card" onclick="escreverClipboard()"><div class="icon">✏️</div><div class="label">Escrever clipboard</div></div>
   </div>
-  <div id="screenshotArea" style="margin-top:12px;display:none">
-    <img id="screenshotImg" style="width:100%;border-radius:8px;border:1px solid #3a3a5a" />
+  <div id="clipArea" style="background:#1a1a2e;border-radius:10px;padding:11px;font-size:13px;color:#aaa;min-height:36px;margin-top:4px;display:none"></div>
+  <input id="clipIn" style="width:100%;background:#1a1a2e;border:1px solid #3a3a5a;border-radius:8px;padding:9px 11px;color:#e0e0e0;font-size:13px;margin-top:8px" placeholder="Texto para copiar no PC..." />
+</div>
+
+<!-- Processos -->
+<div class="page" id="page-proc">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+    <p class="section-title" style="margin:0">Top processos por CPU</p>
+    <button class="btn-sm" onclick="loadProc()">↻ Atualizar</button>
   </div>
+  <div class="proc-list" id="procList"><div style="padding:14px;color:#555;text-align:center">Clique em Atualizar</div></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-let SERVER_URL = localStorage.getItem('pc_server_url') || '';
-let SERVER_TOKEN = localStorage.getItem('pc_server_token') || 'meu-token-secreto-123';
-let CLAUDE_KEY = '';
-let touchLastX = null, touchLastY = null;
+let URL = localStorage.getItem('pc_url') || '';
+let TOK = localStorage.getItem('pc_tok') || 'meu-token-secreto-123';
+let tpLX = null, tpLY = null;
 
-// Init
-document.getElementById('serverUrl').value = SERVER_URL;
-document.getElementById('serverToken').value = SERVER_TOKEN;
-if (SERVER_URL) checkStatus();
+document.getElementById('sUrl').value = URL;
+document.getElementById('sTok').value = TOK;
+if (URL) ping();
 
 function saveConfig() {
-  SERVER_URL = document.getElementById('serverUrl').value.trim().replace(/\/$/, '');
-  SERVER_TOKEN = document.getElementById('serverToken').value.trim();
-  localStorage.setItem('pc_server_url', SERVER_URL);
-  localStorage.setItem('pc_server_token', SERVER_TOKEN);
-  showToast('Configuração salva');
-  checkStatus();
+  URL = document.getElementById('sUrl').value.trim().replace(/\/$/,'');
+  TOK = document.getElementById('sTok').value.trim();
+  localStorage.setItem('pc_url', URL);
+  localStorage.setItem('pc_tok', TOK);
+  toast('Salvo!');
+  ping();
 }
 
-async function api(endpoint, data = null) {
-  const opts = {
-    method: data ? 'POST' : 'GET',
-    headers: { 'Content-Type': 'application/json', 'X-Token': SERVER_TOKEN }
-  };
-  if (data) opts.body = JSON.stringify(data);
-  const r = await fetch(SERVER_URL + endpoint, opts);
+async function req(path, body) {
+  const r = await fetch(URL + path, {
+    method: body ? 'POST' : 'GET',
+    headers: {'Content-Type':'application/json','X-Token':TOK},
+    body: body ? JSON.stringify(body) : undefined
+  });
   return r.json();
 }
 
-async function checkStatus() {
-  const dot = document.getElementById('statusDot');
-  const txt = document.getElementById('statusText');
+async function ping() {
   try {
-    const r = await api('/status');
-    dot.className = 'dot';
-    txt.textContent = 'online';
+    await req('/status');
+    document.getElementById('dot').className = 'dot';
+    document.getElementById('stxt').textContent = 'online';
   } catch {
-    dot.className = 'dot off';
-    txt.textContent = 'offline';
+    document.getElementById('dot').className = 'dot off';
+    document.getElementById('stxt').textContent = 'offline';
   }
 }
 
-function switchTab(name) {
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    const pages = ['ia','apps','volume','terminal','mouse','sistema'];
-    t.className = 'tab' + (pages[i] === name ? ' active' : '');
-  });
+function tab(n) {
+  const names = ['ia','apps','vol','term','mouse','sis','proc'];
+  document.querySelectorAll('.tab').forEach((t,i) => t.className = 'tab'+(names[i]===n?' active':''));
   document.querySelectorAll('.page').forEach(p => p.className = 'page');
-  document.getElementById('page-' + name).className = 'page active';
+  document.getElementById('page-'+n).className = 'page active';
+  if (n==='proc') loadProc();
 }
 
-function showToast(msg) {
+function toast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast show';
-  setTimeout(() => t.className = 'toast', 2000);
+  setTimeout(()=>t.className='toast',2000);
 }
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>') }
 
 // Apps
-async function openApp(app) {
-  try {
-    await api('/app', { app });
-    showToast('Abrindo ' + app);
-  } catch { showToast('Erro ao abrir app'); }
+async function abrirApp(a) {
+  try { await req('/abrir',{app:a}); toast('Abrindo '+a); } catch { toast('Erro'); }
 }
 
-// Volume
-function updateVolDisplay(v) {
-  document.getElementById('volDisplay').textContent = v + '%';
+// Atalhos
+async function atalho(teclas) {
+  try { await req('/tecla',{acao:'atalho',teclas}); toast(teclas.join('+')); } catch { toast('Erro'); }
 }
-async function setVolume(v) {
-  document.getElementById('volSlider').value = v;
-  updateVolDisplay(v);
-  try {
-    await api('/volume', { level: parseInt(v) });
-    showToast('Volume: ' + v + '%');
-  } catch { showToast('Erro no volume'); }
+async function tecla(t) {
+  try { await req('/tecla',{acao:'tecla',tecla:t}); toast(t); } catch { toast('Erro'); }
 }
-
-// Teclado
-async function sendKey(key) {
-  try {
-    await api('/keyboard', { key });
-    showToast(key);
-  } catch { showToast('Erro'); }
+async function digitar() {
+  const t = document.getElementById('typeIn').value;
+  if (!t) return;
+  try { await req('/tecla',{acao:'escrever',texto:t}); document.getElementById('typeIn').value=''; toast('Texto enviado'); } catch { toast('Erro'); }
 }
 
-async function typeText() {
-  const text = document.getElementById('typeInput').value;
-  if (!text) return;
+// Volume — usa pressionar volumeup/down N vezes
+function volDisplay(v) { document.getElementById('volV').textContent = Math.round(v*5)+'%'; }
+async function volSet(v) {
+  const pct = Math.round(v*5);
+  document.getElementById('volV').textContent = pct+'%';
+  // Zera e sobe até o nível desejado via PowerShell
   try {
-    await api('/keyboard', { text });
-    document.getElementById('typeInput').value = '';
-    showToast('Texto enviado');
-  } catch { showToast('Erro'); }
+    await req('/cmd',{comando:`powershell -c "[audio.AudioEndpointVolume]" 2>nul || powershell -c "$obj=New-Object -ComObject WScript.Shell;for($i=0;$i -lt 50;$i++){$obj.SendKeys([char]174)};for($i=0;$i -lt ${Math.round(v)};$i++){$obj.SendKeys([char]175)}"`});
+    toast('Volume: '+pct+'%');
+  } catch { toast('Erro no volume'); }
 }
-
-// Mouse
-async function mouseClick(button) {
-  try {
-    await api('/mouse', { action: 'click', button });
-    showToast('Clique ' + button);
-  } catch { showToast('Erro'); }
+async function volAjustar(acao, passos) {
+  try { await req('/volume',{acao,passos}); toast(acao==='aumentar'?'Volume ▲':'Volume ▼'); } catch { toast('Erro'); }
 }
-
-// Touchpad
-const tp = document.getElementById('touchpad');
-tp.addEventListener('touchstart', e => {
-  e.preventDefault();
-  touchLastX = e.touches[0].clientX;
-  touchLastY = e.touches[0].clientY;
-});
-tp.addEventListener('touchmove', e => {
-  e.preventDefault();
-  const dx = (e.touches[0].clientX - touchLastX) * 3;
-  const dy = (e.touches[0].clientY - touchLastY) * 3;
-  touchLastX = e.touches[0].clientX;
-  touchLastY = e.touches[0].clientY;
-  api('/mouse', { action: 'move', dx: Math.round(dx), dy: Math.round(dy) }).catch(() => {});
-});
+async function volMudo() {
+  try { await req('/volume',{acao:'mudo'}); toast('Mudo'); } catch { toast('Erro'); }
+}
 
 // Terminal
 async function runCmd() {
-  const input = document.getElementById('cmdInput');
-  const cmd = input.value.trim();
+  const el = document.getElementById('cmdIn');
+  const cmd = el.value.trim();
   if (!cmd) return;
-  const term = document.getElementById('terminal');
-  term.innerHTML += `<div class="line">C:\\> ${cmd}</div>`;
-  input.value = '';
+  const term = document.getElementById('term');
+  term.innerHTML += `<div class="line prompt">&gt; ${esc(cmd)}</div>`;
+  el.value = '';
   try {
-    const r = await api('/shell', { command: cmd });
-    const out = r.stdout || r.output || '';
-    const err = r.stderr || '';
-    if (out) term.innerHTML += `<div class="line out">${escHtml(out)}</div>`;
-    if (err) term.innerHTML += `<div class="line err">${escHtml(err)}</div>`;
-  } catch (e) {
-    term.innerHTML += `<div class="line err">Erro: ${e.message}</div>`;
-  }
+    const r = await req('/cmd',{comando:cmd});
+    if (r.saida) term.innerHTML += `<div class="line out">${esc(r.saida)}</div>`;
+    if (r.erro_saida) term.innerHTML += `<div class="line err">${esc(r.erro_saida)}</div>`;
+  } catch(e) { term.innerHTML += `<div class="line err">Erro: ${e.message}</div>`; }
   term.scrollTop = term.scrollHeight;
 }
-function fillCmd(cmd) {
-  document.getElementById('cmdInput').value = cmd;
+function preCmd(c){ document.getElementById('cmdIn').value=c; }
+
+// Mouse / touchpad
+async function mouseClique(acao) {
+  try { await req('/mouse',{acao}); toast(acao); } catch { toast('Erro'); }
 }
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+async function mouseRolar(q) {
+  try { await req('/mouse',{acao:'rolar',quantidade:q}); } catch {}
 }
+
+const tp = document.getElementById('tp');
+tp.addEventListener('touchstart', e => { e.preventDefault(); tpLX=e.touches[0].clientX; tpLY=e.touches[0].clientY; });
+tp.addEventListener('touchmove', async e => {
+  e.preventDefault();
+  const dx = (e.touches[0].clientX - tpLX)*4;
+  const dy = (e.touches[0].clientY - tpLY)*4;
+  tpLX=e.touches[0].clientX; tpLY=e.touches[0].clientY;
+  // Move relativo via pyautogui.moveRel
+  try { await req('/mouse',{acao:'mover_relativo',dx:Math.round(dx),dy:Math.round(dy)}); } catch {}
+});
 
 // Sistema
-async function pcAction(action) {
-  const labels = { shutdown:'Desligar?', restart:'Reiniciar?', lock:'Bloquear?', sleep:'Suspender?', screen_off:'Apagar tela?' };
-  if (['shutdown','restart'].includes(action) && !confirm(labels[action])) return;
-  try {
-    await api('/system', { action });
-    showToast(labels[action] || action);
-  } catch { showToast('Erro'); }
+async function sistema(acao) {
+  const perigoso = ['desligar','reiniciar','hibernar'];
+  if (perigoso.includes(acao) && !confirm(acao+'?')) return;
+  try { await req('/sistema',{acao,confirmar:true}); toast(acao); } catch { toast('Erro'); }
 }
 
-async function takeScreenshot() {
+// Clipboard
+async function lerClipboard() {
   try {
-    const r = await api('/screenshot');
-    if (r.image) {
-      const area = document.getElementById('screenshotArea');
-      document.getElementById('screenshotImg').src = 'data:image/png;base64,' + r.image;
-      area.style.display = 'block';
-      showToast('Screenshot capturado');
-    }
-  } catch { showToast('Erro no screenshot'); }
+    const r = await req('/clipboard');
+    const el = document.getElementById('clipArea');
+    el.style.display='block';
+    el.textContent = r.conteudo || '(vazio)';
+  } catch { toast('Erro'); }
+}
+async function escreverClipboard() {
+  const txt = document.getElementById('clipIn').value;
+  if (!txt) return;
+  try { await req('/clipboard',{texto:txt}); toast('Copiado!'); } catch { toast('Erro'); }
 }
 
-// Quick actions (aba IA)
-const quickActions = {
-  chrome: () => openApp('chrome'),
-  notepad: () => openApp('notepad'),
-  explorer: () => openApp('explorer'),
-  calc: () => openApp('calc'),
-  whatsapp: () => openApp('whatsapp'),
-  spotify: () => openApp('spotify'),
-};
-function quickCmd(name) {
-  if (quickActions[name]) quickActions[name]();
+// Processos
+async function loadProc() {
+  const el = document.getElementById('procList');
+  el.innerHTML = '<div style="padding:14px;color:#555;text-align:center">Carregando…</div>';
+  try {
+    const r = await req('/processos');
+    if (!r.processos?.length) { el.innerHTML='<div style="padding:14px;color:#555;text-align:center">Nenhum</div>'; return; }
+    el.innerHTML = r.processos.map(p=>`
+      <div class="proc-item">
+        <span class="proc-name">${esc(p.name||'')}</span>
+        <span class="proc-cpu">${(p.cpu_percent||0).toFixed(1)}%</span>
+        <span style="color:#888;font-size:11px;margin-left:8px">${(p.memory_percent||0).toFixed(1)}M</span>
+      </div>`).join('');
+  } catch { el.innerHTML='<div style="padding:14px;color:#f44336;text-align:center">Erro</div>'; }
 }
 
 // IA / Claude
 async function sendIA() {
-  const input = document.getElementById('iaInput');
-  const prompt = input.value.trim();
+  const prompt = document.getElementById('iaIn').value.trim();
   if (!prompt) return;
+  const key = document.getElementById('cKey').value.trim();
+  if (!key) { toast('Cole sua chave Claude acima'); return; }
 
-  const key = document.getElementById('claudeKey').value.trim() || CLAUDE_KEY;
-  if (!key) { showToast('Cole sua chave Claude acima'); return; }
-
-  const resp = document.getElementById('iaResponse');
+  const resp = document.getElementById('iaResp');
   resp.className = 'ia-response show ia-thinking';
   resp.textContent = '⏳ Processando…';
 
-  const systemPrompt = `Você é um assistente que controla um PC Windows remotamente via API REST.
-Você recebe comandos em linguagem natural e deve executar as ações necessárias chamando a API do servidor.
+  const sys = `Você controla um PC Windows via API REST. Recebe comandos em português e executa chamadas à API.
 
-Endpoints disponíveis (BASE_URL já configurada):
-- POST /app         body: { "app": "chrome"|"notepad"|"explorer"|"calc"|"spotify"|"firefox"|"code"|"mspaint" }
-- POST /shell       body: { "command": "comando shell windows" }
-- POST /volume      body: { "level": 0-100 }
-- POST /keyboard    body: { "key": "win+d"|"ctrl+c"|"alt+f4"|... } ou { "text": "texto a digitar" }
-- POST /mouse       body: { "action": "click"|"double"|"right"|"move", "button": "left"|"right", "dx": n, "dy": n }
-- POST /system      body: { "action": "shutdown"|"restart"|"lock"|"sleep"|"screen_off" }
-- GET  /screenshot
+Endpoints disponíveis:
+POST /abrir        {"app": "chrome"|"notepad"|"explorer"|"calc"|"spotify"|"firefox"|"edge"|"vscode"|"terminal"|"powershell"|"paint"|"word"|"excel"}
+POST /cmd          {"comando": "comando shell windows"} → {saida, erro_saida, codigo}
+POST /volume       {"acao": "aumentar"|"diminuir"|"mudo", "passos": 1-20}
+POST /tecla        {"acao": "tecla", "tecla": "volumeup"|"volumedown"|"enter"|...}
+                   {"acao": "atalho", "teclas": ["win","d"]}
+                   {"acao": "escrever", "texto": "texto"}
+POST /mouse        {"acao": "clicar"|"duplo_clique"|"rolar", "quantidade": n}
+POST /sistema      {"acao": "desligar"|"reiniciar"|"bloquear"|"hibernar", "confirmar": true}
+GET  /clipboard
+POST /clipboard    {"texto": "..."}
 
-Responda SEMPRE com um JSON no formato:
-{ "actions": [ { "endpoint": "/app", "body": {...} }, ... ], "summary": "O que foi feito em pt-BR" }
-
-Exemplo para "abre o chrome e coloca volume no máximo":
-{ "actions": [{ "endpoint": "/app", "body": {"app":"chrome"} }, { "endpoint": "/volume", "body": {"level":100} }], "summary": "Abri o Chrome e coloquei o volume em 100%" }`;
+Responda APENAS com JSON:
+{"actions": [{"endpoint": "/abrir", "body": {"app":"chrome"}}, ...], "summary": "resumo em português"}`;
 
   try {
-    const aiResp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 512,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: prompt }]
-      })
+    const ai = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:512,system:sys,messages:[{role:'user',content:prompt}]})
     });
-
-    const aiData = await aiResp.json();
-    const text = aiData.content?.[0]?.text || '';
-
+    const data = await ai.json();
+    const text = data.content?.[0]?.text || '';
     let parsed;
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      parsed = JSON.parse(jsonMatch[0]);
-    } catch {
-      resp.className = 'ia-response show';
-      resp.textContent = text;
-      return;
+    try { parsed = JSON.parse(text.match(/\{[\s\S]*\}/)[0]); } catch { resp.className='ia-response show'; resp.textContent=text; return; }
+
+    resp.textContent = '⚡ Executando '+parsed.actions.length+' ação(ões)…';
+    for (const a of parsed.actions) {
+      await req(a.endpoint, a.body||null);
+      await new Promise(r=>setTimeout(r,300));
     }
-
-    resp.className = 'ia-response show ia-thinking';
-    resp.textContent = '⚡ Executando ' + parsed.actions.length + ' ação(ões)…';
-
-    for (const action of parsed.actions) {
-      await api(action.endpoint, action.body || null);
-      await new Promise(r => setTimeout(r, 300));
-    }
-
     resp.className = 'ia-response show';
-    resp.textContent = '✅ ' + (parsed.summary || 'Concluído');
-    input.value = '';
-
-  } catch (e) {
+    resp.textContent = '✅ ' + (parsed.summary||'Concluído');
+    document.getElementById('iaIn').value = '';
+  } catch(e) {
     resp.className = 'ia-response show';
-    resp.textContent = '❌ Erro: ' + e.message;
+    resp.textContent = '❌ Erro: '+e.message;
   }
 }
 
-// Checar status a cada 30s
-setInterval(checkStatus, 30000);
+setInterval(ping, 30000);
 </script>
 </body>
 </html>
