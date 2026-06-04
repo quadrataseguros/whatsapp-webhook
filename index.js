@@ -10,6 +10,7 @@ const LANGFLOW_API_KEY = process.env.LANGFLOW_API_KEY || "";
 const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
+const INVITE_SECRET = process.env.INVITE_SECRET || "";
 
 const PORT = process.env.PORT || 3000;
 
@@ -131,6 +132,69 @@ app.post("/webhook", async (req, res) => {
     console.error("Erro ao processar mensagem:", err.message);
   }
 });
+
+// ── Arraial da Copa — envio de convites ────────────────────────────────────
+
+const ARRAIAL_TEXT =
+  `🎉 *CONVITE ESPECIAL*\n` +
+  `🎪 *ARRAIÁ DA COPA*\n\n` +
+  `📅 *14 de Junho | 20h*\n` +
+  `📍 {local}\n\n` +
+  `Com o apoio de *Quadrata Seguros* 🤝\n\n` +
+  `Contamos com sua presença! 🤠`;
+
+async function sendInviteToNumber(to, local, imageUrl) {
+  const text = ARRAIAL_TEXT.replace("{local}", local || "[A CONFIRMAR]");
+  const payload = imageUrl
+    ? { type: "image", image: { link: imageUrl, caption: text } }
+    : { type: "text", text: { body: text } };
+
+  await axios.post(
+    `https://graph.facebook.com/v19.0/${WA_PHONE_NUMBER_ID}/messages`,
+    { messaging_product: "whatsapp", to, ...payload },
+    {
+      headers: {
+        Authorization: `Bearer ${WA_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
+
+// POST /send-invite  { numbers: ["5511..."], local: "...", imageUrl: "..." }
+// Header: x-invite-secret  (deve bater com INVITE_SECRET)
+app.post("/send-invite", async (req, res) => {
+  if (INVITE_SECRET && req.headers["x-invite-secret"] !== INVITE_SECRET) {
+    return res.status(401).json({ error: "Não autorizado." });
+  }
+
+  const { numbers, local, imageUrl } = req.body;
+  if (!Array.isArray(numbers) || numbers.length === 0) {
+    return res.status(400).json({ error: "Forneça um array 'numbers' com pelo menos um número." });
+  }
+  if (!WA_PHONE_NUMBER_ID || !WA_ACCESS_TOKEN) {
+    return res.status(503).json({ error: "Credenciais WhatsApp não configuradas." });
+  }
+
+  res.json({ queued: numbers.length });
+
+  const results = { ok: [], fail: [] };
+  for (const num of numbers) {
+    try {
+      await sendInviteToNumber(String(num).replace(/\D/g, ""), local, imageUrl);
+      results.ok.push(num);
+      console.log(`Convite enviado: ${num}`);
+    } catch (err) {
+      const detail = err.response?.data?.error?.message || err.message;
+      results.fail.push({ num, detail });
+      console.error(`Falha ao enviar convite para ${num}: ${detail}`);
+    }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  console.log(`Arraiá da Copa — ${results.ok.length} enviados, ${results.fail.length} falhas.`);
+});
+
+// ───────────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () =>
   console.log(`Servidor MarIAna rodando na porta ${PORT}`)
