@@ -34,6 +34,45 @@ app.get("/health", (_req, res) => {
   });
 });
 
+// Diagnóstico do Langflow — abre no browser para ver a causa real do 500
+app.get("/langflow-status", async (_req, res) => {
+  const result = { url: LANGFLOW_URL, flow_id: LANGFLOW_FLOW_ID || "(não configurado)" };
+
+  // Testa se o servidor Langflow responde
+  try {
+    const health = await axios.get(`${LANGFLOW_URL}/health`, { timeout: 10000 });
+    result.server = "ok";
+    result.server_response = health.data;
+  } catch (err) {
+    result.server = "erro";
+    result.server_error = err.message;
+    result.server_status = err.response?.status;
+    result.server_body = err.response?.data;
+    return res.status(502).json(result);
+  }
+
+  // Testa se o flow específico existe
+  if (LANGFLOW_FLOW_ID) {
+    const headers = { "Content-Type": "application/json" };
+    if (LANGFLOW_API_KEY) headers["x-api-key"] = LANGFLOW_API_KEY;
+    try {
+      const test = await axios.post(
+        `${LANGFLOW_URL}/api/v1/run/${LANGFLOW_FLOW_ID}`,
+        { input_value: "teste", input_type: "chat", output_type: "chat", tweaks: {} },
+        { headers, timeout: 30000 }
+      );
+      result.flow = "ok";
+      result.flow_status = test.status;
+    } catch (err) {
+      result.flow = "erro";
+      result.flow_status = err.response?.status;
+      result.flow_error = err.response?.data ?? err.message;
+    }
+  }
+
+  res.json(result);
+});
+
 function extractWhatsAppMessage(body) {
   try {
     const value = body.entry?.[0]?.changes?.[0]?.value;
@@ -179,9 +218,24 @@ app.post("/webhook", async (req, res) => {
     }
   } catch (err) {
     console.error("Erro ao processar mensagem:", err.message, err.response?.data ?? "");
+    // Avisa o usuário que o sistema está com problema temporário
+    const aviso = "Desculpe, estou com uma instabilidade técnica no momento. Tente novamente em alguns instantes ou entre em contato pelo telefone. 🙏";
+    try {
+      if (msg.platform === "whatsapp") {
+        await sendWhatsAppReply(msg.from, aviso);
+      } else {
+        await sendInstagramReply(msg.from, aviso);
+      }
+    } catch {
+      // ignora erro ao enviar aviso
+    }
   }
 });
 
-app.listen(PORT, () =>
-  console.log(`Servidor MarIAna rodando na porta ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`Servidor MarIAna rodando na porta ${PORT}`);
+  console.log(`Langflow URL: ${LANGFLOW_URL}`);
+  console.log(`Langflow Flow ID: ${LANGFLOW_FLOW_ID || "(não configurado)"}`);
+  console.log(`Langflow API Key: ${LANGFLOW_API_KEY ? "configurada" : "(não configurada)"}`);
+  console.log(`Modo: ${LANGFLOW_FLOW_ID ? "langflow" : MAKE_WEBHOOK_URL ? "make" : "nenhum destino"}`);
+});
