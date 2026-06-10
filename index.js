@@ -111,16 +111,28 @@ async function runLangflow(inputText, sessionId) {
   const headers = { "Content-Type": "application/json" };
   if (LANGFLOW_API_KEY) headers["x-api-key"] = LANGFLOW_API_KEY;
 
-  const response = await axios.post(
-    `${LANGFLOW_URL}/api/v1/run/${LANGFLOW_FLOW_ID}`,
-    {
-      input_value: inputText,
-      input_type: "chat",
-      output_type: "chat",
-      session_id: sessionId,
-    },
-    { headers }
-  );
+  let response;
+  try {
+    response = await axios.post(
+      `${LANGFLOW_URL}/api/v1/run/${LANGFLOW_FLOW_ID}`,
+      {
+        input_value: inputText,
+        input_type: "chat",
+        output_type: "chat",
+        session_id: sessionId,
+        tweaks: {},
+      },
+      { headers, timeout: 60000 }
+    );
+  } catch (err) {
+    const status = err.response?.status;
+    const data = err.response?.data;
+    console.error(
+      `Langflow erro HTTP ${status || "sem resposta"}:`,
+      JSON.stringify(data ?? err.message)
+    );
+    throw err;
+  }
 
   const outputs = response.data?.outputs;
   const result =
@@ -128,6 +140,11 @@ async function runLangflow(inputText, sessionId) {
     outputs?.[0]?.outputs?.[0]?.results?.message?.data?.text ||
     outputs?.[0]?.outputs?.[0]?.messages?.[0]?.message ||
     "";
+
+  if (!result) {
+    console.warn("Langflow retornou resposta vazia. outputs:", JSON.stringify(outputs));
+  }
+
   return result;
 }
 
@@ -161,7 +178,7 @@ app.post("/webhook", async (req, res) => {
       console.log("Nenhum destino configurado (LANGFLOW_FLOW_ID ou MAKE_WEBHOOK_URL)");
     }
   } catch (err) {
-    console.error("Erro ao processar mensagem:", err.message);
+    console.error("Erro ao processar mensagem:", err.message, err.response?.data ?? "");
   }
 });
 
