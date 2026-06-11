@@ -12,8 +12,45 @@ const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
 const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.IG_ACCESS_TOKEN || WA_ACCESS_TOKEN;
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
+const TELEGRAM_CHAT_IDS = (process.env.TELEGRAM_CHAT_IDS || "").split(",").map(s => s.trim()).filter(Boolean);
 
 const PORT = process.env.PORT || 3000;
+
+// Palavras que indicam que a MarIAna acionou transbordo humano
+const TRANSBORDO_TRIGGERS = [
+  "vou te conectar agora com um dos nossos consultores",
+  "já estou enviando seu perfil",
+  "tempo estimado: menos de 5 minutos",
+];
+
+function detectaTransbordo(texto) {
+  const lower = texto.toLowerCase();
+  return TRANSBORDO_TRIGGERS.some(t => lower.includes(t.toLowerCase()));
+}
+
+async function notificarTelegram(msg, replyMariana) {
+  if (!TELEGRAM_BOT_TOKEN || TELEGRAM_CHAT_IDS.length === 0) return;
+
+  const numero = msg.from;
+  const linkWA = `https://wa.me/${numero}`;
+  const plataforma = msg.platform === "whatsapp" ? "WhatsApp 📱" : "Instagram 📸";
+
+  const texto =
+    `🔔 *CLIENTE AGUARDANDO ATENDIMENTO*\n\n` +
+    `👤 *Nome:* ${msg.name}\n` +
+    `📲 *Plataforma:* ${plataforma}\n` +
+    `📞 *Contato:* +${numero}\n\n` +
+    `💬 *Última mensagem:*\n_${msg.text}_\n\n` +
+    `👉 [Abrir conversa no WhatsApp](${linkWA})`;
+
+  for (const chatId of TELEGRAM_CHAT_IDS) {
+    await axios.post(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      { chat_id: chatId, text: texto, parse_mode: "Markdown", disable_web_page_preview: true }
+    ).catch(err => console.error("Erro Telegram:", err.message));
+  }
+}
 
 // Meta webhook verification
 app.get("/webhook", (req, res) => {
@@ -154,6 +191,10 @@ app.post("/webhook", async (req, res) => {
           await sendWhatsAppReply(msg.from, reply);
         } else {
           await sendInstagramReply(msg.from, reply);
+        }
+        if (detectaTransbordo(reply)) {
+          console.log("Transbordo detectado — notificando Telegram");
+          await notificarTelegram(msg, reply);
         }
       }
     } else if (MAKE_WEBHOOK_URL) {
