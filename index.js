@@ -93,6 +93,8 @@ function extractInstagramMessage(body) {
   try {
     const messaging = body.entry?.[0]?.messaging?.[0];
     if (!messaging?.message?.text) return null;
+    if (messaging.message?.is_echo) return null;
+    if (messaging.sender.id === IG_USER_ID) return null;
     return {
       platform: "instagram",
       from: messaging.sender.id,
