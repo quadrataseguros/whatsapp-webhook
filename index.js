@@ -11,6 +11,7 @@ const LANGFLOW_API_KEY = process.env.LANGFLOW_API_KEY || "";
 const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
 const INSTAGRAM_ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN || process.env.IG_ACCESS_TOKEN || WA_ACCESS_TOKEN;
+const IG_USER_ID = process.env.IG_USER_ID || "";
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TELEGRAM_CHAT_IDS = (process.env.TELEGRAM_CHAT_IDS || "").split(",").map(s => s.trim()).filter(Boolean);
@@ -126,9 +127,10 @@ async function sendWhatsAppReply(to, text) {
 }
 
 async function sendInstagramReply(to, text) {
-  if (!INSTAGRAM_ACCESS_TOKEN) return;
+  if (!INSTAGRAM_ACCESS_TOKEN || !IG_USER_ID) { console.log("[IG] TOKEN ou IG_USER_ID não configurado"); return; }
+  console.log("[IG] Enviando para", to, "user_id", IG_USER_ID, "token:", INSTAGRAM_ACCESS_TOKEN.substring(0,20));
   await axios.post(
-    `https://graph.facebook.com/v19.0/me/messages`,
+    `https://graph.instagram.com/v21.0/${IG_USER_ID}/messages`,
     {
       recipient: { id: to },
       message: { text },
