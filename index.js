@@ -213,6 +213,41 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
+
+// Recebe respostas do atendente via Telegram
+app.post('/telegram-webhook', async (req, res) => {
+  res.sendStatus(200);
+  const message = req.body?.message;
+  if (!message?.text || !message?.reply_to_message) return;
+
+  const replyText = message.text.trim();
+  const originalText = message.reply_to_message?.text || '';
+
+  const waMatch = originalText.match(/Contato: [+](\d+)/);
+  const platformMatch = originalText.match(/Plataforma: (WhatsApp|Instagram)/);
+
+  if (!waMatch) {
+    console.log('[Telegram] Resposta sem referência a cliente — ignorada');
+    return;
+  }
+
+  const contactId = waMatch[1];
+  const platform = platformMatch?.[1]?.toLowerCase() || 'whatsapp';
+
+  console.log('[Telegram] Atendente respondeu para ' + contactId + ' via ' + platform + ': ' + replyText);
+
+  try {
+    if (platform === 'whatsapp') {
+      await sendWhatsAppReply(contactId, replyText);
+    } else {
+      await sendInstagramReply(contactId, replyText);
+    }
+    console.log('[Telegram] Resposta enviada com sucesso');
+  } catch (err) {
+    console.error('[Telegram] Erro ao enviar resposta:', err.response?.data ?? err.message);
+  }
+});
+
 app.listen(PORT, () =>
   console.log(`Servidor MarIAna rodando na porta ${PORT}`)
 );
