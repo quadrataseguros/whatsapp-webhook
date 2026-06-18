@@ -1,8 +1,12 @@
 require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
+const apiRoutes = require("./api-routes");
 const app = express();
 app.use(express.json());
+
+// MYSeg App API routes
+app.use("/api", apiRoutes);
 
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "quadrata123";
 const LANGFLOW_URL = process.env.LANGFLOW_URL || "http://localhost:7860";
