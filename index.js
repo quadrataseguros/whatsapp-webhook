@@ -53,6 +53,17 @@ async function notificarTelegram(msg, replyMariana) {
   }
 }
 
+
+async function enviarTelegram(texto) {
+  if (!TELEGRAM_BOT_TOKEN || TELEGRAM_CHAT_IDS.length === 0) return;
+  for (const chatId of TELEGRAM_CHAT_IDS) {
+    await axios.post(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      { chat_id: chatId, text: texto, parse_mode: 'Markdown', disable_web_page_preview: true }
+    ).catch(err => console.error('Erro Telegram:', err.message));
+  }
+}
+
 // Meta webhook verification
 app.get("/webhook", (req, res) => {
   if (req.query["hub.verify_token"] === VERIFY_TOKEN) {
@@ -185,12 +196,18 @@ app.post("/webhook", async (req, res) => {
   }
 
   console.log(`[${msg.platform}] Mensagem de ${msg.name} (${msg.from}): ${msg.text}`);
+  const icone = msg.platform === 'whatsapp' ? '📱' : '📸';
+  const plataforma = msg.platform === 'whatsapp' ? 'WhatsApp' : 'Instagram';
+  await enviarTelegram(`${icone} *[${plataforma}] ${msg.name}*
+${msg.text}`);
 
   try {
     if (LANGFLOW_FLOW_ID) {
       const reply = await runLangflow(msg.text, msg.from);
       if (reply) {
         console.log(`Resposta MarIAna: ${reply}`);
+        await enviarTelegram(`🤖 *[MarIAna]*
+${reply}`);
         if (msg.platform === "whatsapp") {
           await sendWhatsAppReply(msg.from, reply);
         } else {
