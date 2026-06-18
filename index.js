@@ -140,8 +140,10 @@ async function sendInstagramReply(to, text) {
       messaging_type: "RESPONSE",
     },
     {
-      params: { access_token: IG_ACCESS_TOKEN },
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        Authorization: `Bearer ${IG_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
     }
   );
 }
