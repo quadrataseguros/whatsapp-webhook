@@ -132,7 +132,8 @@ async function sendInstagramReply(to, text) {
     console.log("Instagram: IG_ACCESS_TOKEN ou IG_USER_ID não configurado");
     return;
   }
-  await axios.post(
+  console.log('[IG] Enviando para', to, 'com user_id', IG_USER_ID, 'token inicio:', IG_ACCESS_TOKEN.substring(0,20));
+  try { await axios.post(
     `https://graph.instagram.com/v21.0/${IG_USER_ID}/messages`,
     {
       recipient: { id: to },
@@ -145,7 +146,7 @@ async function sendInstagramReply(to, text) {
         "Content-Type": "application/json",
       },
     }
-  );
+  ); } catch(igErr) { console.error('[IG] Erro detalhado:', igErr.response?.status, JSON.stringify(igErr.response?.data)); throw igErr; }
 }
 
 async function runLangflow(inputText, sessionId) {
