@@ -133,7 +133,7 @@ async function sendInstagramReply(to, text) {
     return;
   }
   await axios.post(
-    `https://graph.facebook.com/v19.0/${IG_USER_ID}/messages`,
+    `https://graph.instagram.com/v21.0/${IG_USER_ID}/messages`,
     {
       recipient: { id: to },
       message: { text },
