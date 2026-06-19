@@ -16,21 +16,29 @@ import { Colors, Spacing, FontSize, BorderRadius } from "@/constants/theme";
 
 export default function LoginScreen() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
+  const [cpf, setCpf] = useState("");
   const [senha, setSenha] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const formatCpf = (value: string) => {
+    const nums = value.replace(/\D/g, "").slice(0, 11);
+    if (nums.length <= 3) return nums;
+    if (nums.length <= 6) return `${nums.slice(0, 3)}.${nums.slice(3)}`;
+    if (nums.length <= 9) return `${nums.slice(0, 3)}.${nums.slice(3, 6)}.${nums.slice(6)}`;
+    return `${nums.slice(0, 3)}.${nums.slice(3, 6)}.${nums.slice(6, 9)}-${nums.slice(9)}`;
+  };
+
   const handleLogin = async () => {
-    if (!email.trim() || !senha.trim()) {
-      Alert.alert("Atenção", "Preencha email e senha.");
+    if (!cpf.trim() || !senha.trim()) {
+      Alert.alert("Atencao", "Preencha CPF e senha.");
       return;
     }
     setLoading(true);
     try {
-      await login(email.trim(), senha);
-      router.replace("/(tabs)/dashboard");
+      await login(cpf.replace(/\D/g, ""), senha);
+      router.replace("/(tabs)/inicio");
     } catch (err: any) {
-      Alert.alert("Erro", err.message || "Falha ao fazer login.");
+      Alert.alert("Erro", err.message || "CPF ou senha invalidos.");
     } finally {
       setLoading(false);
     }
@@ -41,25 +49,26 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <View style={styles.logoContainer}>
+      <View style={styles.topSection}>
         <View style={styles.logoCircle}>
-          <Text style={styles.logoText}>MY</Text>
+          <Text style={styles.logoQ}>Q</Text>
         </View>
-        <Text style={styles.appName}>MYSeg</Text>
-        <Text style={styles.subtitle}>Quadrata Seguros</Text>
+        <Text style={styles.appName}>Quadrata App</Text>
+        <Text style={styles.subtitle}>Seu seguro na palma da mao</Text>
       </View>
 
       <View style={styles.form}>
-        <Text style={styles.label}>Email</Text>
+        <Text style={styles.formTitle}>Acesse sua conta</Text>
+
+        <Text style={styles.label}>CPF</Text>
         <TextInput
           style={styles.input}
-          value={email}
-          onChangeText={setEmail}
-          placeholder="seu@email.com"
+          value={cpf}
+          onChangeText={(v) => setCpf(formatCpf(v))}
+          placeholder="000.000.000-00"
           placeholderTextColor={Colors.textLight}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoCorrect={false}
+          keyboardType="numeric"
+          maxLength={14}
         />
 
         <Text style={styles.label}>Senha</Text>
@@ -90,7 +99,7 @@ export default function LoginScreen() {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.version}>v1.0.0</Text>
+      <Text style={styles.footer}>Quadrata Seguros</Text>
     </KeyboardAvoidingView>
   );
 }
@@ -102,21 +111,26 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     padding: Spacing.lg,
   },
-  logoContainer: {
+  topSection: {
     alignItems: "center",
-    marginBottom: Spacing.xxl,
+    marginBottom: Spacing.xl,
   },
   logoCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: Colors.white,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: Spacing.md,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  logoText: {
-    fontSize: FontSize.title,
+  logoQ: {
+    fontSize: 44,
     fontWeight: "900",
     color: Colors.primary,
   },
@@ -124,22 +138,34 @@ const styles = StyleSheet.create({
     fontSize: FontSize.xxl,
     fontWeight: "bold",
     color: Colors.white,
-    letterSpacing: 2,
+    letterSpacing: 1,
   },
   subtitle: {
     fontSize: FontSize.sm,
-    color: Colors.accentLight,
+    color: "rgba(255,255,255,0.8)",
     marginTop: Spacing.xs,
   },
   form: {
     backgroundColor: Colors.surface,
-    borderRadius: BorderRadius.lg,
+    borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  formTitle: {
+    fontSize: FontSize.lg,
+    fontWeight: "bold",
+    color: Colors.text,
+    textAlign: "center",
+    marginBottom: Spacing.sm,
   },
   label: {
     fontSize: FontSize.sm,
     fontWeight: "600",
-    color: Colors.text,
+    color: Colors.textSecondary,
     marginBottom: Spacing.xs,
     marginTop: Spacing.md,
   },
@@ -153,7 +179,7 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   button: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.primary,
     borderRadius: BorderRadius.sm,
     padding: Spacing.md,
     alignItems: "center",
@@ -172,13 +198,13 @@ const styles = StyleSheet.create({
     marginTop: Spacing.md,
   },
   forgotText: {
-    color: Colors.textSecondary,
+    color: Colors.primaryLight,
     fontSize: FontSize.sm,
   },
-  version: {
-    color: Colors.accentLight,
+  footer: {
+    color: "rgba(255,255,255,0.6)",
     textAlign: "center",
-    marginTop: Spacing.lg,
+    marginTop: Spacing.xl,
     fontSize: FontSize.xs,
   },
 });

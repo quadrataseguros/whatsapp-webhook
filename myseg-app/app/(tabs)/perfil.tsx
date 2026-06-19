@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -29,7 +28,7 @@ function MenuItem({
 }) {
   return (
     <TouchableOpacity style={styles.menuItem} onPress={onPress} activeOpacity={0.7}>
-      <View style={[styles.menuIcon, { backgroundColor: (color || Colors.primary) + "15" }]}>
+      <View style={[styles.menuIcon, { backgroundColor: (color || Colors.primary) + "12" }]}>
         <Ionicons name={icon} size={20} color={color || Colors.primary} />
       </View>
       <View style={styles.menuContent}>
@@ -45,7 +44,7 @@ export default function PerfilScreen() {
   const { perfil, logout } = useAuth();
 
   const handleLogout = () => {
-    Alert.alert("Sair", "Deseja realmente sair do app?", [
+    Alert.alert("Sair", "Deseja sair do Quadrata App?", [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Sair",
@@ -58,8 +57,7 @@ export default function PerfilScreen() {
     ]);
   };
 
-  const nome = perfil?.nome || "Corretor Quadrata";
-  const email = perfil?.email || "corretor@quadrataseguros.com.br";
+  const nome = perfil?.nome || "Cliente";
   const initials = nome
     .split(" ")
     .slice(0, 2)
@@ -74,86 +72,39 @@ export default function PerfilScreen() {
           <Text style={styles.avatarText}>{initials}</Text>
         </View>
         <Text style={styles.nome}>{nome}</Text>
-        <Text style={styles.email}>{email}</Text>
-        {perfil?.susep && (
-          <View style={styles.susepBadge}>
-            <Ionicons name="shield-checkmark" size={14} color={Colors.primary} />
-            <Text style={styles.susepText}>SUSEP: {perfil.susep}</Text>
-          </View>
-        )}
+        <Text style={styles.cpf}>CPF: ***.***.***-00</Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Conta</Text>
+        <Text style={styles.sectionTitle}>Minha Conta</Text>
         <View style={styles.menuGroup}>
-          <MenuItem
-            icon="person"
-            label="Editar Perfil"
-            sublabel="Nome, telefone, foto"
-          />
-          <MenuItem
-            icon="lock-closed"
-            label="Alterar Senha"
-            sublabel="Atualizar credenciais"
-          />
-          <MenuItem
-            icon="notifications"
-            label="Notificacoes"
-            sublabel="Alertas de vencimento, sinistros"
-          />
+          <MenuItem icon="person" label="Dados Pessoais" sublabel="Nome, telefone, endereco" />
+          <MenuItem icon="lock-closed" label="Alterar Senha" sublabel="Atualizar sua senha" />
+          <MenuItem icon="notifications" label="Notificacoes" sublabel="Alertas de vencimento" />
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Corretora</Text>
+        <Text style={styles.sectionTitle}>Documentos</Text>
         <View style={styles.menuGroup}>
-          <MenuItem
-            icon="business"
-            label="Dados da Corretora"
-            sublabel={perfil?.corretora || "Quadrata Seguros"}
-          />
-          <MenuItem
-            icon="people"
-            label="Equipe"
-            sublabel="Gerenciar corretores"
-          />
-          <MenuItem
-            icon="document-text"
-            label="Relatorios"
-            sublabel="Producao, comissoes, renovacoes"
-          />
+          <MenuItem icon="document-text" label="Apolices" sublabel="Documentos dos seus seguros" />
+          <MenuItem icon="receipt" label="Boletos" sublabel="Segundas vias e historico" />
+          <MenuItem icon="folder" label="Comprovantes" sublabel="Comprovantes de pagamento" />
         </View>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Configuracoes</Text>
+        <Text style={styles.sectionTitle}>Ajuda</Text>
         <View style={styles.menuGroup}>
-          <MenuItem
-            icon="color-palette"
-            label="Aparencia"
-            sublabel="Tema claro/escuro"
-          />
-          <MenuItem
-            icon="help-circle"
-            label="Ajuda e Suporte"
-            sublabel="FAQ, contato"
-          />
-          <MenuItem
-            icon="information-circle"
-            label="Sobre o App"
-            sublabel="MYSeg v1.0.0"
-          />
+          <MenuItem icon="help-circle" label="Duvidas Frequentes" sublabel="Perguntas comuns" />
+          <MenuItem icon="information-circle" label="Sobre o App" sublabel="Quadrata App v1.0.0" />
+          <MenuItem icon="star" label="Avaliar o App" sublabel="Sua opiniao e importante" />
         </View>
       </View>
 
       <View style={styles.section}>
         <View style={styles.menuGroup}>
-          <MenuItem
-            icon="log-out"
-            label="Sair da Conta"
-            color={Colors.error}
-            onPress={handleLogout}
-          />
+          <MenuItem icon="log-out" label="Sair da Conta" color={Colors.error} onPress={handleLogout} />
         </View>
       </View>
 
@@ -163,10 +114,7 @@ export default function PerfilScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
+  container: { flex: 1, backgroundColor: Colors.background },
   profileHeader: {
     backgroundColor: Colors.primary,
     alignItems: "center",
@@ -184,40 +132,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: Spacing.md,
   },
-  avatarText: {
-    fontSize: FontSize.xxl,
-    fontWeight: "bold",
-    color: Colors.primary,
-  },
-  nome: {
-    fontSize: FontSize.xl,
-    fontWeight: "bold",
-    color: Colors.white,
-  },
-  email: {
-    fontSize: FontSize.sm,
-    color: Colors.accentLight,
-    marginTop: 4,
-  },
-  susepBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.full,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.xs,
-    marginTop: Spacing.sm,
-    gap: 4,
-  },
-  susepText: {
-    fontSize: FontSize.xs,
-    fontWeight: "600",
-    color: Colors.primary,
-  },
-  section: {
-    paddingHorizontal: Spacing.md,
-    marginTop: Spacing.lg,
-  },
+  avatarText: { fontSize: FontSize.xxl, fontWeight: "bold", color: Colors.primary },
+  nome: { fontSize: FontSize.xl, fontWeight: "bold", color: Colors.white },
+  cpf: { fontSize: FontSize.sm, color: "rgba(255,255,255,0.7)", marginTop: 4 },
+  section: { paddingHorizontal: Spacing.md, marginTop: Spacing.lg },
   sectionTitle: {
     fontSize: FontSize.sm,
     fontWeight: "600",
@@ -236,7 +154,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: Spacing.md,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
+    borderBottomColor: Colors.surfaceVariant,
     gap: Spacing.sm,
   },
   menuIcon: {
@@ -246,17 +164,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  menuContent: {
-    flex: 1,
-  },
-  menuLabel: {
-    fontSize: FontSize.md,
-    color: Colors.text,
-    fontWeight: "500",
-  },
-  menuSublabel: {
-    fontSize: FontSize.xs,
-    color: Colors.textSecondary,
-    marginTop: 2,
-  },
+  menuContent: { flex: 1 },
+  menuLabel: { fontSize: FontSize.md, color: Colors.text, fontWeight: "500" },
+  menuSublabel: { fontSize: FontSize.xs, color: Colors.textSecondary, marginTop: 2 },
 });

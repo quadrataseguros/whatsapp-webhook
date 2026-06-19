@@ -5,10 +5,10 @@ import { Colors } from "@/constants/theme";
 type IconName = React.ComponentProps<typeof Ionicons>["name"];
 
 const tabs: { name: string; title: string; icon: IconName }[] = [
-  { name: "dashboard", title: "Inicio", icon: "home" },
-  { name: "apolices", title: "Apolices", icon: "shield-checkmark" },
-  { name: "cotacoes", title: "Cotacoes", icon: "calculator" },
-  { name: "chat", title: "Chat", icon: "chatbubbles" },
+  { name: "inicio", title: "Inicio", icon: "home" },
+  { name: "seguros", title: "Meus Seguros", icon: "shield-checkmark" },
+  { name: "sinistros", title: "Sinistros", icon: "alert-circle" },
+  { name: "contato", title: "Contato", icon: "chatbubbles" },
   { name: "perfil", title: "Perfil", icon: "person" },
 ];
 

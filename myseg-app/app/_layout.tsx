@@ -19,12 +19,16 @@ export default function RootLayout() {
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
-          name="apolice/[id]"
-          options={{ title: "Detalhes da Apolice" }}
+          name="seguro/[id]"
+          options={{ title: "Meu Seguro" }}
         />
         <Stack.Screen
-          name="nova-cotacao"
-          options={{ title: "Nova Cotacao", presentation: "modal" }}
+          name="novo-sinistro"
+          options={{ title: "Abrir Sinistro", presentation: "modal" }}
+        />
+        <Stack.Screen
+          name="solicitar-cotacao"
+          options={{ title: "Solicitar Cotacao", presentation: "modal" }}
         />
       </Stack>
     </AuthProvider>
