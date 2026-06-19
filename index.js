@@ -1,8 +1,20 @@
 require("dotenv").config();
 const express = require("express");
+const path = require("path");
 const axios = require("axios");
+const apiRoutes = require("./api-routes");
 const app = express();
 app.use(express.json());
+
+// MYSeg App API routes
+app.use("/api", apiRoutes);
+
+// Serve MYSeg web app
+const webDistPath = path.join(__dirname, "myseg-app", "dist");
+app.use("/app", express.static(webDistPath));
+app.get("/app/*", (_req, res) => {
+  res.sendFile(path.join(webDistPath, "index.html"));
+});
 
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "quadrata123";
 const LANGFLOW_URL = process.env.LANGFLOW_URL || "http://localhost:7860";
