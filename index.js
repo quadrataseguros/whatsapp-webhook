@@ -78,7 +78,7 @@ function extractWhatsAppMessage(body) {
     const value = body.entry?.[0]?.changes?.[0]?.value;
     const message = value?.messages?.[0];
     if (!message) return null;
-    return {
+    const extracted = {
       platform: "whatsapp",
       from: message.from,
       messageId: message.id,
@@ -86,6 +86,17 @@ function extractWhatsAppMessage(body) {
       text: message.text?.body || "",
       name: value.contacts?.[0]?.profile?.name || message.from,
     };
+    if (message.type === "image") {
+      extracted.mediaId = message.image.id;
+      extracted.caption = message.image.caption || "";
+      extracted.mimeType = message.image.mime_type || "image/jpeg";
+    } else if (message.type === "document") {
+      extracted.mediaId = message.document.id;
+      extracted.caption = message.document.caption || message.document.filename || "";
+      extracted.mimeType = message.document.mime_type || "application/octet-stream";
+      extracted.filename = message.document.filename || "documento";
+    }
+    return extracted;
   } catch {
     return null;
   }
@@ -149,21 +160,53 @@ async function sendInstagramReply(to, text) {
   ); } catch(igErr) { console.error('[IG] Erro detalhado:', igErr.response?.status, JSON.stringify(igErr.response?.data)); throw igErr; }
 }
 
-async function runLangflow(inputText, sessionId) {
+async function downloadWhatsAppMedia(mediaId) {
+  const { data: info } = await axios.get(
+    `https://graph.facebook.com/v19.0/${mediaId}`,
+    { headers: { Authorization: `Bearer ${WA_ACCESS_TOKEN}` } }
+  );
+  const { data: fileData, headers: fileHeaders } = await axios.get(info.url, {
+    headers: { Authorization: `Bearer ${WA_ACCESS_TOKEN}` },
+    responseType: "arraybuffer",
+  });
+  return {
+    buffer: Buffer.from(fileData),
+    mimeType: fileHeaders["content-type"] || "image/jpeg",
+  };
+}
+
+async function uploadFileToLangflow(buffer, filename, mimeType) {
+  const formData = new FormData();
+  formData.append("file", new Blob([buffer], { type: mimeType }), filename);
+  const headers = {};
+  if (LANGFLOW_API_KEY) headers["x-api-key"] = LANGFLOW_API_KEY;
+  const res = await fetch(
+    `${LANGFLOW_URL}/api/v1/files/upload/${LANGFLOW_FLOW_ID}`,
+    { method: "POST", headers, body: formData }
+  );
+  if (!res.ok) throw new Error(`Langflow upload HTTP ${res.status}`);
+  const json = await res.json();
+  return json.file_path;
+}
+
+async function runLangflow(inputText, sessionId, files = []) {
   const headers = { "Content-Type": "application/json" };
   if (LANGFLOW_API_KEY) headers["x-api-key"] = LANGFLOW_API_KEY;
+
+  const body = {
+    input_value: inputText,
+    input_type: "chat",
+    output_type: "chat",
+    session_id: sessionId,
+    tweaks: {},
+  };
+  if (files.length > 0) body.files = files;
 
   let response;
   try {
     response = await axios.post(
       `${LANGFLOW_URL}/api/v1/run/${LANGFLOW_FLOW_ID}`,
-      {
-        input_value: inputText,
-        input_type: "chat",
-        output_type: "chat",
-        session_id: sessionId,
-        tweaks: {},
-      },
+      body,
       { headers, timeout: 60000 }
     );
   } catch (err) {
@@ -195,16 +238,31 @@ app.post("/webhook", async (req, res) => {
 
   const msg = extractWhatsAppMessage(req.body) || extractInstagramMessage(req.body);
 
-  if (!msg || msg.type !== "text" || !msg.text) {
-    console.log("Evento ignorado (não é mensagem de texto)");
+  const isText = msg?.type === "text" && msg.text;
+  const isMedia = msg?.platform === "whatsapp" && (msg.type === "image" || msg.type === "document") && msg.mediaId;
+
+  if (!msg || (!isText && !isMedia)) {
+    console.log("Evento ignorado (tipo não suportado)");
     return;
   }
 
-  console.log(`[${msg.platform}] Mensagem de ${msg.name} (${msg.from}): ${msg.text}`);
+  console.log(`[${msg.platform}] Mensagem de ${msg.name} (${msg.from}): tipo=${msg.type}`);
 
   try {
     if (LANGFLOW_FLOW_ID) {
-      const reply = await runLangflow(msg.text, msg.from);
+      let reply;
+      if (isMedia) {
+        console.log(`[WA] Baixando mídia ${msg.mediaId} (${msg.mimeType})`);
+        const { buffer, mimeType } = await downloadWhatsAppMedia(msg.mediaId);
+        const ext = mimeType.split("/")[1]?.split(";")[0] || "bin";
+        const filename = msg.filename || `midia_${msg.mediaId}.${ext}`;
+        const filePath = await uploadFileToLangflow(buffer, filename, mimeType);
+        console.log(`[WA] Arquivo enviado ao Langflow: ${filePath}`);
+        const inputText = msg.caption || (msg.type === "document" ? "Analisar documento" : "Analisar imagem");
+        reply = await runLangflow(inputText, msg.from, [filePath]);
+      } else {
+        reply = await runLangflow(msg.text, msg.from);
+      }
       if (reply) {
         console.log(`Resposta MarIAna: ${reply}`);
         if (msg.platform === "whatsapp") {
@@ -221,7 +279,6 @@ app.post("/webhook", async (req, res) => {
     }
   } catch (err) {
     console.error("Erro ao processar mensagem:", err.message, err.response?.data ?? "");
-    // Avisa o usuário que o sistema está com problema temporário
     const aviso = "Desculpe, estou com uma instabilidade técnica no momento. Tente novamente em alguns instantes ou entre em contato pelo telefone. 🙏";
     try {
       if (msg.platform === "whatsapp") {
