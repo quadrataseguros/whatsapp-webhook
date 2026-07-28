@@ -13,6 +13,9 @@ const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
 const IG_ACCESS_TOKEN = process.env.IG_ACCESS_TOKEN || "";
 const IG_USER_ID = process.env.IG_USER_ID || "";
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
+// Versão da Graph API da Meta. Versões antigas são descontinuadas ~2 anos
+// após o lançamento e passam a retornar 404; mantenha em uma versão vigente.
+const GRAPH_VERSION = process.env.GRAPH_VERSION || "v21.0";
 
 const PORT = process.env.PORT || 3000;
 
@@ -118,7 +121,7 @@ function extractInstagramMessage(body) {
 async function sendWhatsAppReply(to, text) {
   if (!WA_PHONE_NUMBER_ID || !WA_ACCESS_TOKEN) return;
   await axios.post(
-    `https://graph.facebook.com/v19.0/${WA_PHONE_NUMBER_ID}/messages`,
+    `https://graph.facebook.com/${GRAPH_VERSION}/${WA_PHONE_NUMBER_ID}/messages`,
     {
       messaging_product: "whatsapp",
       to,
@@ -162,7 +165,7 @@ async function sendWhatsAppInteractiveList(to, { header, body, footer, button, r
   if (footer) interactive.footer = { text: footer };
 
   await axios.post(
-    `https://graph.facebook.com/v19.0/${WA_PHONE_NUMBER_ID}/messages`,
+    `https://graph.facebook.com/${GRAPH_VERSION}/${WA_PHONE_NUMBER_ID}/messages`,
     { messaging_product: "whatsapp", to, type: "interactive", interactive },
     {
       headers: {
@@ -409,7 +412,14 @@ app.post("/webhook", async (req, res) => {
       console.log("Nenhum destino configurado (LANGFLOW_FLOW_ID ou MAKE_WEBHOOK_URL)");
     }
   } catch (err) {
-    console.error("Erro ao processar mensagem:", err.message, err.response?.data ?? "");
+    console.error("Erro ao processar mensagem:", err.message);
+    console.error("  URL que falhou:", err.config?.url || "(desconhecida)");
+    console.error(
+      "  Status:",
+      err.response?.status ?? "(sem resposta)",
+      "| Resposta:",
+      JSON.stringify(err.response?.data ?? "")
+    );
     // Avisa o usuário que o sistema está com problema temporário
     const aviso = "Desculpe, estou com uma instabilidade técnica no momento. Tente novamente em alguns instantes ou entre em contato pelo telefone. 🙏";
     try {
