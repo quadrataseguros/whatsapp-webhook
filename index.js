@@ -190,11 +190,22 @@ function estaAberto(d = new Date()) {
 
 // Fecho das respostas que dependem de um corretor (humano). Só menciona o
 // horário quando estamos FECHADOS — dentro do expediente o cliente não
-// precisa saber que existe um horário.
+// precisa saber que existe um horário. Varia um pouco a frase (aberto) para
+// não soar repetitivo quando o cliente recebe vários fechos seguidos.
+const FECHOS_ABERTO = [
+  "Já passo para um corretor da *Quadrata Seguros* {inf}. 😉",
+  "Um corretor da *Quadrata Seguros* assume daqui e vai {inf}. 🙌",
+  "Deixo tudo encaminhado para um corretor da *Quadrata Seguros* {inf}. 🙏",
+];
+let _fechoIdx = 0;
+
 function fechoCorretor(inf = "te retornar com as melhores opções") {
-  return estaAberto()
-    ? `\n\nUm corretor da *Quadrata Seguros* já vai ${inf}. 🙏`
-    : `\n\nAssim que abrirmos (${HORARIO}), um corretor da *Quadrata Seguros* vai ${inf}. 🙏`;
+  if (!estaAberto()) {
+    return `\n\nAssim que abrirmos (${HORARIO}), um corretor da *Quadrata Seguros* vai ${inf}. 🙏`;
+  }
+  const frase = FECHOS_ABERTO[_fechoIdx % FECHOS_ABERTO.length].replace("{inf}", inf);
+  _fechoIdx++;
+  return `\n\n${frase}`;
 }
 
 // Ids de cotação que recebem o fecho de corretor ao serem enviados.
@@ -212,8 +223,8 @@ async function sendMainMenu(to, name) {
   await sendWhatsAppInteractiveList(to, {
     header: "Quadrata Seguros",
     body:
-      `Olá${name ? ", " + name : ""}! 👋 Aqui é da *Quadrata Seguros*.\n\n` +
-      `Posso te ajudar por aqui mesmo. Toque em *"Ver opções"* e escolha o que você precisa:`,
+      `Olá${name ? ", " + name : ""}! 👋 Que bom te ver por aqui. Aqui é da *Quadrata Seguros*.\n\n` +
+      `Posso resolver bastante coisa por este chat. Toque em *"Ver opções"* e me diz o que você precisa:`,
     footer: "Atendimento automático",
     button: "Ver opções",
     rows: [
@@ -228,7 +239,9 @@ async function sendMainMenu(to, name) {
 async function sendSeguradorasMenu(to) {
   await sendWhatsAppInteractiveList(to, {
     header: "Sinistro / Assistência 24h",
-    body: "Sentimos pelo ocorrido. Para agilizar, qual é a sua seguradora?",
+    body:
+      "Sinto muito pelo ocorrido. 🙏 Fica tranquilo(a), vou te ajudar a resolver o mais rápido possível.\n\n" +
+      "Para eu te passar o contato certo, qual é a sua seguradora?",
     button: "Ver seguradoras",
     rows: [
       { id: "seg_porto_itau", title: "Porto / Itaú" },
@@ -248,7 +261,7 @@ async function sendSeguradorasMenu(to) {
 async function sendCotacaoMenu(to) {
   await sendWhatsAppInteractiveList(to, {
     header: "Cotação de seguro",
-    body: "Perfeito! Qual seguro você gostaria de contratar? Toque em *\"Tipos de seguro\"* e escolha:",
+    body: "Perfeito, vamos cuidar disso! 🙂 Qual seguro você tem em mente? Toque em *\"Tipos de seguro\"* e escolha:",
     footer: "Quadrata Seguros",
     button: "Tipos de seguro",
     rows: [
@@ -268,41 +281,42 @@ const DICA =
 
 const RESPOSTAS = {
   cot_auto:
-    "🚗 *Seguro Automóvel*\n\n" +
-    "Para agilizar sua cotação, me envie:\n" +
-    "1️⃣ Seu *CPF*\n2️⃣ Seu *CEP*\n3️⃣ A *placa* do veículo\n\n" +
-    "Se preferir adiantar, cote aqui:\n" +
+    "🚗 *Seguro Automóvel* — ótima escolha!\n\n" +
+    "Para eu já adiantar sua cotação, me manda os dados abaixo (pode ser tudo junto, do jeito que for mais fácil):\n" +
+    "• Seu *CPF*\n• Seu *CEP*\n• A *placa* do veículo\n\n" +
+    "Se preferir, dá pra cotar você mesmo por aqui:\n" +
     "http://gestao.segfy.com/Publico/Segurados/Orcamentos/SolicitarCotacao?e=N4%2BhsohRMBQkt3Y5rAUWTQ%3D%3D",
   cot_residencia:
-    "🏠 *Seguro Residencial*\n\n" +
-    "Para cotar, me envie:\n" +
-    "1️⃣ Seu *CPF*\n2️⃣ O *CEP* do imóvel\n3️⃣ Tipo (*casa* ou *apartamento*) e se é *próprio* ou *alugado*",
+    "🏠 *Seguro Residencial* — vamos proteger o seu lar!\n\n" +
+    "Para começar, me manda:\n" +
+    "• Seu *CPF*\n• O *CEP* do imóvel\n• Se é *casa* ou *apartamento*, e *próprio* ou *alugado*",
   cot_vida:
-    "❤️ *Seguro de Vida*\n\n" +
-    "Para cotar, me envie:\n" +
-    "1️⃣ Seu *nome completo*\n2️⃣ Sua *data de nascimento*\n3️⃣ Se possível, o *valor de cobertura* que deseja",
+    "❤️ *Seguro de Vida* — cuidar de quem você ama é um grande gesto.\n\n" +
+    "Para começar, me diz:\n" +
+    "• Seu *nome completo*\n• Sua *data de nascimento*\n\n" +
+    "Com isso já consigo dar o primeiro passo. 🙂",
   cot_saude:
     "🩺 *Plano de Saúde*\n\n" +
-    "Para cotar, me envie:\n" +
-    "1️⃣ *Quantas pessoas* (vidas) e as *idades*\n2️⃣ Sua *cidade*\n3️⃣ Se é *individual/familiar* ou *empresarial* (com CNPJ)",
+    "Para eu encontrar as melhores opções, me conta:\n" +
+    "• *Quantas pessoas* vão usar e as *idades*\n• Sua *cidade*\n• Se é *individual/familiar* ou *empresarial* (com CNPJ)",
   cot_consorcio:
-    "🎯 *Consórcio*\n\n" +
-    "Para cotar, me envie:\n" +
-    "1️⃣ O *bem* desejado (imóvel, automóvel, serviços…)\n2️⃣ O *valor de crédito* aproximado\n3️⃣ Seu *nome completo*",
+    "🎯 *Consórcio* — um jeito planejado de conquistar o que você quer.\n\n" +
+    "Me conta pra eu começar:\n" +
+    "• O *bem* desejado (imóvel, automóvel, serviços…)\n• O *valor* aproximado que você tem em mente",
   cot_financiamento:
     "🏦 *Financiamento*\n\n" +
-    "Para simular, me envie:\n" +
-    "1️⃣ O *bem* (imóvel ou veículo)\n2️⃣ O *valor* aproximado do bem\n3️⃣ O *valor de entrada* que pretende dar",
+    "Para eu preparar sua simulação, me diz:\n" +
+    "• O *bem* (imóvel ou veículo)\n• O *valor* aproximado do bem\n• Quanto pretende dar de *entrada*",
   cot_outros:
     "📋 *Outros seguros*\n\n" +
-    "Trabalhamos também com seguro *empresarial, viagem, pet, equipamentos* e muito mais. " +
-    "Me conte qual seguro você procura e seu *nome completo*, que um corretor prepara a melhor proposta.",
+    "Trabalhamos também com *empresarial, viagem, pet, equipamentos* e muito mais. 🙂\n" +
+    "Me conta qual seguro você procura e seu *nome completo*, que já preparo a melhor proposta pra você.",
   app:
     "📲 Baixe o app *MySeg* para acompanhar suas apólices, 2ª via de boleto e mais:\n" +
     "https://myseg.iconeseg.com.br?a=1\n\n" +
     "No cadastro, informe o *código da corretora: 1133* (Quadrata Seguros) para vincular sua conta a nós.",
   corretor:
-    "Perfeito! Sua mensagem já ficou registrada com prioridade.",
+    "Combinado! Já registrei seu recado com prioridade. 😊 Pode adiantar aqui o que você precisa, que assim o corretor já chega com a solução na mão.",
   seg_porto_itau:
     "🚗 *Assistência 24h / Sinistro*\n\n" +
     "*Porto Seguro:*\n• Capitais e RMs: 333 76786 (333 PORTO)\n• Demais regiões: 0800 727 0800\n• WhatsApp: (11) 3003-9303\n\n" +
@@ -470,19 +484,31 @@ async function sendInstagramReply(to, text) {
 
 const MARIANA_SYSTEM = `Você é a MarIAna, atendente virtual da *Quadrata Seguros*, uma corretora de seguros brasileira. Você atende clientes pelo WhatsApp.
 
+Quem você é:
+- Simpática, atenciosa e prestativa, como uma boa atendente que gosta de ajudar. Fale como uma pessoa de verdade, não como um robô ou um formulário.
+- Você conhece de seguros e transmite segurança, mas sem enrolação.
+
 Tom e estilo:
 - Escreva em português do Brasil, de forma calorosa, educada e objetiva.
-- Respostas CURTAS (é WhatsApp): normalmente de 2 a 5 linhas. Evite textos longos.
-- Use no máximo 1 ou 2 emojis, com moderação.
+- Respostas CURTAS (é WhatsApp): normalmente de 2 a 4 linhas. Evite textos longos e listas grandes.
+- Use no máximo 1 emoji por mensagem, e nem sempre — só quando somar algo.
+- Chame o cliente pelo primeiro nome quando souber, mas sem exagerar (não em toda frase).
 - Para negrito, use *asteriscos simples* (padrão do WhatsApp), nunca **duplos**.
+
+Como conduzir a conversa:
+- Uma pergunta de cada vez. Ao iniciar uma cotação, não despeje todos os dados de uma vez: peça primeiro o principal e vá conduzindo o cliente, passo a passo.
+- Sempre deixe claro qual é o próximo passo. Termine, quando fizer sentido, com uma pergunta ou um convite para o cliente continuar.
+- Reconheça o que o cliente disse antes de pedir algo novo (ex.: "Ótimo, seguro de carro então!").
+- Não repita a mesma frase pronta em toda resposta. Só mencione que "um corretor vai retornar" quando o assunto realmente depende de um humano (valores, fechamento) — e diga isso de formas variadas, não sempre igual.
 
 O que você faz:
 - Ajuda com cotação de seguros (auto, residência, vida, saúde, consórcio, financiamento e outros), orientações sobre sinistro/assistência 24h e dúvidas gerais.
-- Ao iniciar uma cotação, peça os dados essenciais (ex.: para auto: CPF, CEP e placa do veículo) e diga que um corretor dá sequência com as melhores opções.
+- Dados essenciais por tipo (peça aos poucos): auto: CPF, CEP e placa; residência: CPF e CEP do imóvel; vida: nome completo e data de nascimento.
 
 Regras importantes:
 - NUNCA invente preços, valores de apólice, coberturas específicas ou números de protocolo. Você não fecha vendas nem informa valores — quem faz isso é um corretor humano.
-- Quando o cliente pedir algo que dependa de um corretor (valores, contratação, negociação), colete as informações e avise que um corretor da Quadrata Seguros vai retornar.
+- Quando o cliente pedir algo que dependa de um corretor (valores, contratação, negociação), colete as informações e avise, de forma natural, que um corretor da Quadrata Seguros dá sequência.
+- Se for um caso de sinistro/emergência (batida, roubo, pane), acolha primeiro ("Sinto muito pelo ocorrido") e ajude com a assistência 24h.
 - Se perguntarem sobre assunto fora de seguros, redirecione gentilmente para como você pode ajudar com seguros.
 - Se o cliente quiser ver todas as opções, diga que ele pode digitar *menu*.
 
@@ -635,7 +661,7 @@ app.post("/webhook", async (req, res) => {
       JSON.stringify(err.response?.data ?? "")
     );
     // Avisa o usuário que o sistema está com problema temporário
-    const aviso = "Desculpe, estou com uma instabilidade técnica no momento. Tente novamente em alguns instantes ou entre em contato pelo telefone. 🙏";
+    const aviso = "Ops, tive uma instabilidade técnica rapidinha por aqui. 🙏 Pode me mandar sua mensagem de novo em alguns instantes? Se preferir, também pode falar com a gente por telefone.";
     try {
       if (msg.platform === "whatsapp") {
         await sendWhatsAppReply(msg.from, aviso);
