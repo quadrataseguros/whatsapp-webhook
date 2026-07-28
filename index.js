@@ -396,7 +396,16 @@ app.post("/webhook", async (req, res) => {
     }
 
     if (LANGFLOW_FLOW_ID) {
-      const reply = await runLangflow(msg.text, msg.from);
+      let reply = "";
+      try {
+        reply = await runLangflow(msg.text, msg.from);
+      } catch (aiErr) {
+        // No WhatsApp, se a IA estiver fora do ar, caímos para o menu
+        // (abaixo) em vez de deixar o cliente sem resposta. No Instagram,
+        // repassamos o erro para o aviso padrão.
+        if (msg.platform !== "whatsapp") throw aiErr;
+        console.error("  IA (Langflow) indisponível — enviando menu como alternativa");
+      }
       if (reply) {
         console.log(`Resposta MarIAna: ${reply}`);
         if (msg.platform === "whatsapp") {
@@ -404,6 +413,9 @@ app.post("/webhook", async (req, res) => {
         } else {
           await sendInstagramReply(msg.from, reply);
         }
+      } else if (msg.platform === "whatsapp") {
+        // Sem resposta da IA (fora do ar ou vazia): mostra o menu principal.
+        await sendMainMenu(msg.from, msg.name);
       }
     } else if (MAKE_WEBHOOK_URL) {
       await axios.post(MAKE_WEBHOOK_URL, req.body);
