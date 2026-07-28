@@ -89,6 +89,27 @@ ipconfig | findstr "IPv4"
 
 ---
 
+## Menu interativo (WhatsApp)
+
+Além da MarIAna (IA), o webhook envia **menus interativos** nativos do WhatsApp
+(mensagens do tipo `list`), o mesmo recurso visual de plataformas como a Digisac,
+porém direto pela Cloud API:
+
+- O cliente envia uma **saudação** (`oi`, `olá`, `bom dia`…) ou digita **`menu`**
+  → recebe o menu principal com as opções: Cotação, Sinistro/Guincho, App e Corretor.
+- Ao tocar em **Sinistro/Guincho** → abre um submenu com as seguradoras e devolve
+  os telefones de assistência 24h.
+- **Texto livre** (perguntas abertas) → continua sendo respondido pela **MarIAna (IA)**.
+
+Requisito: a conexão precisa ser **WhatsApp Cloud API oficial** (o número já usado
+pela MarIAna atende esse requisito). Menus interativos **não** funcionam em conexões
+via QR Code.
+
+Os textos, telefones e o fluxo do menu ficam centralizados em `index.js`
+(constantes `RESPOSTAS`, `sendMainMenu`, `sendSeguradorasMenu`).
+
+---
+
 ## Endpoints
 
 | Método | Rota | Descrição |
