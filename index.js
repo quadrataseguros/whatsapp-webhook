@@ -437,20 +437,26 @@ async function handleWhatsAppMenu(msg) {
     return true;
   }
 
-  // 3. Texto livre → tenta identificar o assunto e responder direto (sem
-  // repetir o menu, evitando o efeito de "looping").
+  // 3. Sinistro/emergência: mesmo com a IA ativa, mandamos direto o menu de
+  // seguradoras — ali estão os telefones da assistência 24h (urgentes e que a
+  // IA não tem na memória).
   const assunto = detectAssunto(msg.text);
   if (assunto === "sinistro") {
     await sendSeguradorasMenu(msg.from);
     return true;
   }
-  if (assunto) {
+
+  // 4. Demais textos livres → deixamos a MarIAna (IA) conduzir a conversa: ela
+  // entende pedidos com nuance (ex.: "consórcio de automóvel de 100 mil") que o
+  // atalho por palavra-chave interpretaria errado. O atalho vira PLANO B, usado
+  // só quando a IA está desativada, para ainda assim dar uma resposta útil.
+  if (!anthropic && assunto) {
     await sendWhatsAppReply(msg.from, RESPOSTAS[assunto] + fechoCorretor());
     return true;
   }
 
-  // 4. Não identificado → deixa a MarIAna (IA) tentar; se ela cair, o
-  // fallback conclusivo no handler principal cuida da resposta.
+  // 5. Sem IA e sem assunto reconhecido → o fallback conclusivo no handler
+  // principal cuida da resposta.
   return false;
 }
 
@@ -503,8 +509,9 @@ Como conduzir a conversa:
 - Não repita a mesma frase pronta em toda resposta. Só mencione que "um corretor vai retornar" quando o assunto realmente depende de um humano (valores, fechamento) — e diga isso de formas variadas, não sempre igual.
 
 O que você faz:
-- Ajuda com cotação de seguros (auto, residência, vida, saúde, consórcio, financiamento e outros), orientações sobre sinistro/assistência 24h e dúvidas gerais.
-- Dados essenciais por tipo (peça aos poucos): auto: CPF, CEP e placa; residência: CPF e CEP do imóvel; vida: nome completo e data de nascimento.
+- Ajuda com cotação de seguros (auto, residência, vida, saúde), consórcio, financiamento e outros; orientações sobre sinistro/assistência 24h; e dúvidas gerais.
+- Preste atenção ao que o cliente realmente quer. Consórcio e financiamento NÃO são seguros — são formas de conquistar um bem (imóvel, carro). Se o cliente disser "consórcio de automóvel", é consórcio, não seguro de carro. Na dúvida, pergunte com gentileza para confirmar.
+- Dados essenciais por tipo (peça aos poucos): auto: CPF, CEP e placa; residência: CPF e CEP do imóvel; vida: nome completo e data de nascimento; consórcio: qual bem e valor aproximado; financiamento: qual bem, valor do bem e entrada.
 
 Regras importantes:
 - NUNCA invente preços, valores de apólice, coberturas específicas ou números de protocolo. Você não fecha vendas nem informa valores — quem faz isso é um corretor humano.
