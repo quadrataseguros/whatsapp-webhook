@@ -1,13 +1,18 @@
 # WhatsApp Webhook — MarIAna · Quadrata Seguros
 
-Webhook Node.js que recebe mensagens do WhatsApp Business API, processa via **Langflow** e envia respostas automáticas de volta ao cliente.
+Webhook Node.js que recebe mensagens do WhatsApp Business API, responde com um
+**menu interativo** e, para texto livre, usa a **MarIAna** (IA via API da Anthropic /
+Claude) — enviando a resposta automática de volta ao cliente.
+
+> **Nota:** a IA roda direto pela API da Anthropic. Não há mais servidor Langflow
+> para manter ligado 24h — paga-se apenas por mensagem processada.
 
 ---
 
 ## Arquitetura
 
 ```
-WhatsApp  →  Meta Webhook  →  Este servidor  →  Langflow (MarIAna IA)
+WhatsApp  →  Meta Webhook  →  Este servidor  →  MarIAna (Claude, API Anthropic)
                                                       ↓
 WhatsApp  ←  WhatsApp Cloud API  ←─────────── resposta automática
 ```
@@ -23,10 +28,9 @@ Copie `.env.example` para `.env` e preencha:
 | `VERIFY_TOKEN` | Token de verificação da Meta (padrão: `quadrata123`) |
 | `WA_PHONE_NUMBER_ID` | ID do número no painel Meta |
 | `WA_ACCESS_TOKEN` | Token de acesso da Meta |
-| `LANGFLOW_URL` | URL do servidor Langflow |
-| `LANGFLOW_FLOW_ID` | ID do flow da MarIAna no Langflow |
-| `LANGFLOW_API_KEY` | API Key do Langflow (se habilitada) |
-| `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se não houver `LANGFLOW_FLOW_ID` |
+| `ANTHROPIC_API_KEY` | Chave da API da Anthropic (crie em console.anthropic.com) — ativa a MarIAna |
+| `MARIANA_MODEL` | Modelo do Claude (padrão: `claude-haiku-4-5`) |
+| `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se `ANTHROPIC_API_KEY` não estiver configurada |
 
 ---
 
@@ -45,47 +49,26 @@ Copie `.env.example` para `.env` e preencha:
 
 ---
 
-## Langflow — acesso pelo tablet
+## Configurar a MarIAna (IA)
 
-### Opção 1 — Local (mesmo WiFi)
+A IA roda direto pela API da Anthropic — nada para manter ligado, sem servidor
+Langflow. Para ativar:
 
-```bash
-pip install langflow
-langflow run --host 0.0.0.0 --port 7860
-```
+1. Acesse **console.anthropic.com** e crie uma conta.
+2. Adicione um crédito inicial (ex.: US$ 5) em *Billing*.
+3. Gere uma **API Key** em *API Keys*.
+4. Coloque a chave na variável de ambiente `ANTHROPIC_API_KEY` (no painel do
+   Render/Railway, ou no `.env` local).
 
-No tablet, acesse: `http://IP-DO-PC:7860`
+Personalização:
+- O comportamento e as informações da MarIAna ficam na constante
+  `MARIANA_SYSTEM`, em `index.js`.
+- O modelo padrão é `claude-haiku-4-5` (rápido e econômico). Para trocar, use a
+  variável `MARIANA_MODEL`.
+- A MarIAna lembra o contexto das últimas mensagens de cada cliente por 30
+  minutos de inatividade (memória em `index.js`).
 
-Para descobrir o IP do PC:
-```bash
-# Linux/Mac
-ip route get 1 | awk '{print $7}'
-
-# Windows
-ipconfig | findstr "IPv4"
-```
-
-### Opção 2 — Nuvem gratuita (acesso de qualquer lugar)
-
-**Render.com:**
-1. Crie conta em render.com
-2. New → Web Service → conecte repositório com Langflow
-3. Build: `pip install langflow`
-4. Start: `langflow run --host 0.0.0.0 --port 7860`
-5. Use a URL gerada como `LANGFLOW_URL`
-
-**Railway.app:**
-1. New Project → Deploy from GitHub
-2. Variável de ambiente: `START_COMMAND=langflow run --host 0.0.0.0 --port 7860`
-
----
-
-## Encontrar o Flow ID no Langflow
-
-1. Abra Langflow no tablet/browser
-2. Clique no flow da MarIAna
-3. A URL mostrará: `/flow/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`
-4. Copie esse UUID como `LANGFLOW_FLOW_ID`
+Diagnóstico: acesse `GET /mariana-status` para checar se a IA está respondendo.
 
 ---
 
@@ -117,6 +100,7 @@ Os textos, telefones e o fluxo do menu ficam centralizados em `index.js`
 | `GET` | `/webhook` | Verificação Meta |
 | `POST` | `/webhook` | Recebe mensagens WhatsApp |
 | `GET` | `/health` | Status do servidor e modo ativo |
+| `GET` | `/mariana-status` | Testa se a IA (Claude) está respondendo |
 
 ---
 

@@ -1,13 +1,16 @@
 require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
+const Anthropic = require("@anthropic-ai/sdk");
 const app = express();
 app.use(express.json());
 
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "quadrata123";
-const LANGFLOW_URL = process.env.LANGFLOW_URL || "http://localhost:7860";
-const LANGFLOW_FLOW_ID = process.env.LANGFLOW_FLOW_ID || "";
-const LANGFLOW_API_KEY = process.env.LANGFLOW_API_KEY || "";
+// IA da MarIAna — agora direto pela API da Anthropic (Claude), sem Langflow.
+// A chave é lida automaticamente de ANTHROPIC_API_KEY pelo SDK.
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
+const MARIANA_MODEL = process.env.MARIANA_MODEL || "claude-haiku-4-5";
+const anthropic = ANTHROPIC_API_KEY ? new Anthropic() : null;
 const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
 const IG_ACCESS_TOKEN = process.env.IG_ACCESS_TOKEN || "";
@@ -32,48 +35,33 @@ app.get("/webhook", (req, res) => {
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
-    langflow: LANGFLOW_URL,
-    mode: LANGFLOW_FLOW_ID ? "langflow" : "make",
+    mode: anthropic ? "mariana" : MAKE_WEBHOOK_URL ? "make" : "menu",
+    modelo: anthropic ? MARIANA_MODEL : null,
   });
 });
 
-// Diagnóstico do Langflow — abre no browser para ver a causa real do 500
-app.get("/langflow-status", async (_req, res) => {
-  const result = { url: LANGFLOW_URL, flow_id: LANGFLOW_FLOW_ID || "(não configurado)" };
-
-  // Testa se o servidor Langflow responde
+// Diagnóstico da IA — abre no browser para checar se a MarIAna (Claude) responde
+app.get("/mariana-status", async (_req, res) => {
+  if (!anthropic) {
+    return res
+      .status(503)
+      .json({ ia: "desativada", motivo: "ANTHROPIC_API_KEY não configurada" });
+  }
   try {
-    const health = await axios.get(`${LANGFLOW_URL}/health`, { timeout: 10000 });
-    result.server = "ok";
-    result.server_response = health.data;
+    const r = await anthropic.messages.create({
+      model: MARIANA_MODEL,
+      max_tokens: 16,
+      messages: [{ role: "user", content: "Responda apenas: ok" }],
+    });
+    const texto = r.content
+      .filter((b) => b.type === "text")
+      .map((b) => b.text)
+      .join("")
+      .trim();
+    res.json({ ia: "ok", modelo: MARIANA_MODEL, resposta: texto });
   } catch (err) {
-    result.server = "erro";
-    result.server_error = err.message;
-    result.server_status = err.response?.status;
-    result.server_body = err.response?.data;
-    return res.status(502).json(result);
+    res.status(502).json({ ia: "erro", erro: err.message, status: err.status });
   }
-
-  // Testa se o flow específico existe
-  if (LANGFLOW_FLOW_ID) {
-    const headers = { "Content-Type": "application/json" };
-    if (LANGFLOW_API_KEY) headers["x-api-key"] = LANGFLOW_API_KEY;
-    try {
-      const test = await axios.post(
-        `${LANGFLOW_URL}/api/v1/run/${LANGFLOW_FLOW_ID}`,
-        { input_value: "teste", input_type: "chat", output_type: "chat", tweaks: {} },
-        { headers, timeout: 30000 }
-      );
-      result.flow = "ok";
-      result.flow_status = test.status;
-    } catch (err) {
-      result.flow = "erro";
-      result.flow_status = err.response?.status;
-      result.flow_error = err.response?.data ?? err.message;
-    }
-  }
-
-  res.json(result);
 });
 
 function extractWhatsAppMessage(body) {
@@ -474,42 +462,96 @@ async function sendInstagramReply(to, text) {
   ); } catch(igErr) { console.error('[IG] Erro detalhado:', igErr.response?.status, JSON.stringify(igErr.response?.data)); throw igErr; }
 }
 
-async function runLangflow(inputText, sessionId) {
-  const headers = { "Content-Type": "application/json" };
-  if (LANGFLOW_API_KEY) headers["x-api-key"] = LANGFLOW_API_KEY;
+// ---------------------------------------------------------------------------
+// MarIAna — IA de atendimento via API da Anthropic (Claude).
+// Substitui o antigo servidor Langflow: sem servidor pesado ligado 24h, paga-se
+// só por mensagem processada. O menu interativo continua como primeira camada.
+// ---------------------------------------------------------------------------
 
-  let response;
-  try {
-    response = await axios.post(
-      `${LANGFLOW_URL}/api/v1/run/${LANGFLOW_FLOW_ID}`,
-      {
-        input_value: inputText,
-        input_type: "chat",
-        output_type: "chat",
-        session_id: sessionId,
-        tweaks: {},
-      },
-      { headers, timeout: 60000 }
-    );
-  } catch (err) {
-    const status = err.response?.status;
-    const data = err.response?.data;
-    console.error(
-      `Langflow erro HTTP ${status || "sem resposta"}:`,
-      JSON.stringify(data ?? err.message)
-    );
-    throw err;
+const MARIANA_SYSTEM = `Você é a MarIAna, atendente virtual da *Quadrata Seguros*, uma corretora de seguros brasileira. Você atende clientes pelo WhatsApp.
+
+Tom e estilo:
+- Escreva em português do Brasil, de forma calorosa, educada e objetiva.
+- Respostas CURTAS (é WhatsApp): normalmente de 2 a 5 linhas. Evite textos longos.
+- Use no máximo 1 ou 2 emojis, com moderação.
+- Para negrito, use *asteriscos simples* (padrão do WhatsApp), nunca **duplos**.
+
+O que você faz:
+- Ajuda com cotação de seguros (auto, residência, vida, saúde, consórcio, financiamento e outros), orientações sobre sinistro/assistência 24h e dúvidas gerais.
+- Ao iniciar uma cotação, peça os dados essenciais (ex.: para auto: CPF, CEP e placa do veículo) e diga que um corretor dá sequência com as melhores opções.
+
+Regras importantes:
+- NUNCA invente preços, valores de apólice, coberturas específicas ou números de protocolo. Você não fecha vendas nem informa valores — quem faz isso é um corretor humano.
+- Quando o cliente pedir algo que dependa de um corretor (valores, contratação, negociação), colete as informações e avise que um corretor da Quadrata Seguros vai retornar.
+- Se perguntarem sobre assunto fora de seguros, redirecione gentilmente para como você pode ajudar com seguros.
+- Se o cliente quiser ver todas as opções, diga que ele pode digitar *menu*.
+
+Informações úteis:
+- Horário de atendimento humano: segunda a sexta, das 8h30 às 17h30.
+- App do cliente: *MySeg* (2ª via de boleto, apólices). No cadastro, informar o código da corretora *1133* (Quadrata Seguros).
+- Link de cotação online (ofereça quando fizer sentido): http://gestao.segfy.com/Publico/Segurados/Orcamentos/SolicitarCotacao?e=N4%2BhsohRMBQkt3Y5rAUWTQ%3D%3D`;
+
+// Memória de conversa por cliente (em memória do processo). Mantém o contexto
+// das últimas trocas, como fazia a "session" do Langflow. Some após um período
+// de inatividade — atendimento novo recomeça do zero.
+const conversas = new Map();
+const CONVERSA_TTL_MS = 30 * 60 * 1000; // 30 min de inatividade
+const MAX_MENSAGENS = 12; // ~6 trocas (user + assistant)
+
+function getHistorico(from) {
+  const c = conversas.get(from);
+  if (!c) return [];
+  if (Date.now() - c.updated > CONVERSA_TTL_MS) {
+    conversas.delete(from);
+    return [];
+  }
+  return c.msgs;
+}
+
+function pushHistorico(from, role, content) {
+  const c = conversas.get(from) || { msgs: [] };
+  c.msgs.push({ role, content });
+  if (c.msgs.length > MAX_MENSAGENS) c.msgs = c.msgs.slice(-MAX_MENSAGENS);
+  c.updated = Date.now();
+  conversas.set(from, c);
+}
+
+// Limpeza periódica das conversas antigas (evita crescer a memória).
+setInterval(() => {
+  const agora = Date.now();
+  for (const [from, c] of conversas) {
+    if (agora - c.updated > CONVERSA_TTL_MS) conversas.delete(from);
+  }
+}, 10 * 60 * 1000).unref();
+
+async function runMarIAna(inputText, from, name) {
+  const historico = getHistorico(from);
+  const messages = [...historico, { role: "user", content: inputText }];
+
+  let system = MARIANA_SYSTEM;
+  if (name && name !== from) system += `\n\nO nome do cliente é ${name}.`;
+  if (!estaAberto()) {
+    system += `\n\nATENÇÃO: no momento estamos FORA do horário de atendimento (${HORARIO}). Ao mencionar o retorno de um corretor, deixe claro que será assim que reabrirmos.`;
   }
 
-  const outputs = response.data?.outputs;
-  const result =
-    outputs?.[0]?.outputs?.[0]?.results?.message?.text ||
-    outputs?.[0]?.outputs?.[0]?.results?.message?.data?.text ||
-    outputs?.[0]?.outputs?.[0]?.messages?.[0]?.message ||
-    "";
+  const response = await anthropic.messages.create({
+    model: MARIANA_MODEL,
+    max_tokens: 1024,
+    system,
+    messages,
+  });
 
-  if (!result) {
-    console.warn("Langflow retornou resposta vazia. outputs:", JSON.stringify(outputs));
+  const result = response.content
+    .filter((b) => b.type === "text")
+    .map((b) => b.text)
+    .join("\n")
+    .trim();
+
+  if (result) {
+    pushHistorico(from, "user", inputText);
+    pushHistorico(from, "assistant", result);
+  } else {
+    console.warn("MarIAna retornou resposta vazia. stop_reason:", response.stop_reason);
   }
 
   return result;
@@ -539,14 +581,14 @@ app.post("/webhook", async (req, res) => {
       if (handled) return;
     }
 
-    if (LANGFLOW_FLOW_ID) {
+    if (anthropic) {
       let reply = "";
       try {
-        reply = await runLangflow(msg.text, msg.from);
+        reply = await runMarIAna(msg.text, msg.from, msg.name);
       } catch (aiErr) {
         // IA fora do ar: não repassamos o erro — abaixo montamos uma
         // resposta conclusiva (direta ao assunto quando possível).
-        console.error("  IA (Langflow) indisponível — usando resposta direta");
+        console.error("  IA (MarIAna) indisponível:", aiErr.message);
       }
       if (reply) {
         console.log(`Resposta MarIAna: ${reply}`);
@@ -608,8 +650,7 @@ app.post("/webhook", async (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Servidor MarIAna rodando na porta ${PORT}`);
-  console.log(`Langflow URL: ${LANGFLOW_URL}`);
-  console.log(`Langflow Flow ID: ${LANGFLOW_FLOW_ID || "(não configurado)"}`);
-  console.log(`Langflow API Key: ${LANGFLOW_API_KEY ? "configurada" : "(não configurada)"}`);
-  console.log(`Modo: ${LANGFLOW_FLOW_ID ? "langflow" : MAKE_WEBHOOK_URL ? "make" : "nenhum destino"}`);
+  console.log(`IA (Anthropic): ${anthropic ? "ativa" : "(ANTHROPIC_API_KEY não configurada)"}`);
+  console.log(`Modelo: ${MARIANA_MODEL}`);
+  console.log(`Modo: ${anthropic ? "mariana" : MAKE_WEBHOOK_URL ? "make" : "só menu"}`);
 });
