@@ -188,7 +188,7 @@ async function sendMainMenu(to, name) {
     footer: "Atendimento automático",
     button: "Ver opções",
     rows: [
-      { id: "cotacao", title: "Cotação de seguro", description: "Simule o seu seguro" },
+      { id: "cotacao", title: "Cotação de seguro", description: "Auto, vida, saúde, residência e mais" },
       { id: "sinistro", title: "Sinistro / Guincho", description: "Assistência 24h" },
       { id: "app", title: "Baixar o app", description: "MySeg • código 1133" },
       { id: "corretor", title: "Falar com corretor", description: "Deixe o seu recado" },
@@ -215,15 +215,70 @@ async function sendSeguradorasMenu(to) {
   });
 }
 
+// Submenu de cotação — pergunta qual tipo de seguro o cliente quer contratar.
+async function sendCotacaoMenu(to) {
+  await sendWhatsAppInteractiveList(to, {
+    header: "Cotação de seguro",
+    body: "Perfeito! Qual seguro você gostaria de contratar? Toque em *\"Tipos de seguro\"* e escolha:",
+    footer: "Quadrata Seguros",
+    button: "Tipos de seguro",
+    rows: [
+      { id: "cot_auto", title: "Automóvel", description: "Carro, moto ou caminhão" },
+      { id: "cot_residencia", title: "Residência", description: "Casa ou apartamento" },
+      { id: "cot_vida", title: "Vida", description: "Proteção para você e sua família" },
+      { id: "cot_saude", title: "Plano de saúde", description: "Individual, familiar ou empresarial" },
+      { id: "cot_consorcio", title: "Consórcio", description: "Imóvel, auto ou serviços" },
+      { id: "cot_financiamento", title: "Financiamento", description: "Imóvel ou veículo" },
+      { id: "cot_outros", title: "Outros", description: "Empresarial, viagem, pet e mais" },
+    ],
+  });
+}
+
 const DICA =
   "\n\n💡 Tenha em mãos o *CPF do titular* ou a *placa*. Também registramos aqui e um corretor dá sequência assim que abrirmos.";
 
+// Fecho padrão para as respostas de cotação.
+const FECHO_COTACAO =
+  "\n\nAssim que abrirmos, um corretor da *Quadrata Seguros* calcula e te retorna com as melhores opções. 🙏";
+
 const RESPOSTAS = {
-  cotacao:
-    "Ótimo! Para agilizar sua cotação, me envie 3 informações:\n" +
-    "1️⃣ Seu *CPF*\n2️⃣ Seu *CEP*\n3️⃣ A *placa* do veículo (se for seguro auto)\n\n" +
-    "Assim que abrirmos, um corretor calcula o valor e te retorna. Se preferir adiantar, cote aqui:\n" +
-    "http://gestao.segfy.com/Publico/Segurados/Orcamentos/SolicitarCotacao?e=N4%2BhsohRMBQkt3Y5rAUWTQ%3D%3D",
+  cot_auto:
+    "🚗 *Seguro Automóvel*\n\n" +
+    "Para agilizar sua cotação, me envie:\n" +
+    "1️⃣ Seu *CPF*\n2️⃣ Seu *CEP*\n3️⃣ A *placa* do veículo\n\n" +
+    "Se preferir adiantar, cote aqui:\n" +
+    "http://gestao.segfy.com/Publico/Segurados/Orcamentos/SolicitarCotacao?e=N4%2BhsohRMBQkt3Y5rAUWTQ%3D%3D" +
+    FECHO_COTACAO,
+  cot_residencia:
+    "🏠 *Seguro Residencial*\n\n" +
+    "Para cotar, me envie:\n" +
+    "1️⃣ Seu *CPF*\n2️⃣ O *CEP* do imóvel\n3️⃣ Tipo (*casa* ou *apartamento*) e se é *próprio* ou *alugado*" +
+    FECHO_COTACAO,
+  cot_vida:
+    "❤️ *Seguro de Vida*\n\n" +
+    "Para cotar, me envie:\n" +
+    "1️⃣ Seu *nome completo*\n2️⃣ Sua *data de nascimento*\n3️⃣ Se possível, o *valor de cobertura* que deseja" +
+    FECHO_COTACAO,
+  cot_saude:
+    "🩺 *Plano de Saúde*\n\n" +
+    "Para cotar, me envie:\n" +
+    "1️⃣ *Quantas pessoas* (vidas) e as *idades*\n2️⃣ Sua *cidade*\n3️⃣ Se é *individual/familiar* ou *empresarial* (com CNPJ)" +
+    FECHO_COTACAO,
+  cot_consorcio:
+    "🎯 *Consórcio*\n\n" +
+    "Para cotar, me envie:\n" +
+    "1️⃣ O *bem* desejado (imóvel, automóvel, serviços…)\n2️⃣ O *valor de crédito* aproximado\n3️⃣ Seu *nome completo*" +
+    FECHO_COTACAO,
+  cot_financiamento:
+    "🏦 *Financiamento*\n\n" +
+    "Para simular, me envie:\n" +
+    "1️⃣ O *bem* (imóvel ou veículo)\n2️⃣ O *valor* aproximado do bem\n3️⃣ O *valor de entrada* que pretende dar" +
+    FECHO_COTACAO,
+  cot_outros:
+    "📋 *Outros seguros*\n\n" +
+    "Trabalhamos também com seguro *empresarial, viagem, pet, equipamentos* e muito mais. " +
+    "Me conte qual seguro você procura e seu *nome completo*, que um corretor prepara a melhor proposta." +
+    FECHO_COTACAO,
   app:
     "📲 Baixe o app *MySeg* para acompanhar suas apólices, 2ª via de boleto e mais:\n" +
     "https://myseg.iconeseg.com.br?a=1\n\n" +
@@ -286,6 +341,10 @@ function isMenuTrigger(text) {
 async function handleWhatsAppMenu(msg) {
   // 1. Cliente selecionou um item de lista/botão
   if (msg.interactiveId) {
+    if (msg.interactiveId === "cotacao") {
+      await sendCotacaoMenu(msg.from);
+      return true;
+    }
     if (msg.interactiveId === "sinistro") {
       await sendSeguradorasMenu(msg.from);
       return true;
