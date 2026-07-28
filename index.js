@@ -95,6 +95,9 @@ function extractWhatsAppMessage(body) {
       interactiveId:
         interactive?.list_reply?.id || interactive?.button_reply?.id || null,
       name: value.contacts?.[0]?.profile?.name || message.from,
+      // Presente quando o cliente chega por um anúncio "Click to WhatsApp"
+      // do Instagram/Facebook (contém headline, body, source_url…).
+      referral: message.referral || null,
     };
   } catch {
     return null;
@@ -178,13 +181,51 @@ async function sendWhatsAppInteractiveList(to, { header, body, footer, button, r
 
 const HORARIO = "seg a sex, 8h30 às 17h30";
 
+// Verifica se estamos dentro do horário de atendimento (fuso de São Paulo).
+function estaAberto(d = new Date()) {
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Sao_Paulo",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(d);
+    const get = (t) => parts.find((p) => p.type === t)?.value;
+    const isWeekday = ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(get("weekday"));
+    const mins = Number(get("hour")) * 60 + Number(get("minute"));
+    return isWeekday && mins >= 8 * 60 + 30 && mins < 17 * 60 + 30;
+  } catch {
+    return true; // em caso de erro, assume aberto (não menciona horário)
+  }
+}
+
+// Fecho das respostas que dependem de um corretor (humano). Só menciona o
+// horário quando estamos FECHADOS — dentro do expediente o cliente não
+// precisa saber que existe um horário.
+function fechoCorretor(inf = "te retornar com as melhores opções") {
+  return estaAberto()
+    ? `\n\nUm corretor da *Quadrata Seguros* já vai ${inf}. 🙏`
+    : `\n\nAssim que abrirmos (${HORARIO}), um corretor da *Quadrata Seguros* vai ${inf}. 🙏`;
+}
+
+// Ids de cotação que recebem o fecho de corretor ao serem enviados.
+const COTACAO_IDS = new Set([
+  "cot_auto",
+  "cot_residencia",
+  "cot_vida",
+  "cot_saude",
+  "cot_consorcio",
+  "cot_financiamento",
+  "cot_outros",
+]);
+
 async function sendMainMenu(to, name) {
   await sendWhatsAppInteractiveList(to, {
     header: "Quadrata Seguros",
     body:
       `Olá${name ? ", " + name : ""}! 👋 Aqui é da *Quadrata Seguros*.\n\n` +
-      `No momento estamos fora do horário de atendimento (${HORARIO}), ` +
-      `mas já consigo te ajudar. Toque em *"Ver opções"* e escolha:`,
+      `Posso te ajudar por aqui mesmo. Toque em *"Ver opções"* e escolha o que você precisa:`,
     footer: "Atendimento automático",
     button: "Ver opções",
     rows: [
@@ -235,11 +276,7 @@ async function sendCotacaoMenu(to) {
 }
 
 const DICA =
-  "\n\n💡 Tenha em mãos o *CPF do titular* ou a *placa*. Também registramos aqui e um corretor dá sequência assim que abrirmos.";
-
-// Fecho padrão para as respostas de cotação.
-const FECHO_COTACAO =
-  "\n\nAssim que abrirmos, um corretor da *Quadrata Seguros* calcula e te retorna com as melhores opções. 🙏";
+  "\n\n💡 Tenha em mãos o *CPF do titular* ou a *placa*. Se precisar, registramos aqui e um corretor dá sequência.";
 
 const RESPOSTAS = {
   cot_auto:
@@ -247,45 +284,37 @@ const RESPOSTAS = {
     "Para agilizar sua cotação, me envie:\n" +
     "1️⃣ Seu *CPF*\n2️⃣ Seu *CEP*\n3️⃣ A *placa* do veículo\n\n" +
     "Se preferir adiantar, cote aqui:\n" +
-    "http://gestao.segfy.com/Publico/Segurados/Orcamentos/SolicitarCotacao?e=N4%2BhsohRMBQkt3Y5rAUWTQ%3D%3D" +
-    FECHO_COTACAO,
+    "http://gestao.segfy.com/Publico/Segurados/Orcamentos/SolicitarCotacao?e=N4%2BhsohRMBQkt3Y5rAUWTQ%3D%3D",
   cot_residencia:
     "🏠 *Seguro Residencial*\n\n" +
     "Para cotar, me envie:\n" +
-    "1️⃣ Seu *CPF*\n2️⃣ O *CEP* do imóvel\n3️⃣ Tipo (*casa* ou *apartamento*) e se é *próprio* ou *alugado*" +
-    FECHO_COTACAO,
+    "1️⃣ Seu *CPF*\n2️⃣ O *CEP* do imóvel\n3️⃣ Tipo (*casa* ou *apartamento*) e se é *próprio* ou *alugado*",
   cot_vida:
     "❤️ *Seguro de Vida*\n\n" +
     "Para cotar, me envie:\n" +
-    "1️⃣ Seu *nome completo*\n2️⃣ Sua *data de nascimento*\n3️⃣ Se possível, o *valor de cobertura* que deseja" +
-    FECHO_COTACAO,
+    "1️⃣ Seu *nome completo*\n2️⃣ Sua *data de nascimento*\n3️⃣ Se possível, o *valor de cobertura* que deseja",
   cot_saude:
     "🩺 *Plano de Saúde*\n\n" +
     "Para cotar, me envie:\n" +
-    "1️⃣ *Quantas pessoas* (vidas) e as *idades*\n2️⃣ Sua *cidade*\n3️⃣ Se é *individual/familiar* ou *empresarial* (com CNPJ)" +
-    FECHO_COTACAO,
+    "1️⃣ *Quantas pessoas* (vidas) e as *idades*\n2️⃣ Sua *cidade*\n3️⃣ Se é *individual/familiar* ou *empresarial* (com CNPJ)",
   cot_consorcio:
     "🎯 *Consórcio*\n\n" +
     "Para cotar, me envie:\n" +
-    "1️⃣ O *bem* desejado (imóvel, automóvel, serviços…)\n2️⃣ O *valor de crédito* aproximado\n3️⃣ Seu *nome completo*" +
-    FECHO_COTACAO,
+    "1️⃣ O *bem* desejado (imóvel, automóvel, serviços…)\n2️⃣ O *valor de crédito* aproximado\n3️⃣ Seu *nome completo*",
   cot_financiamento:
     "🏦 *Financiamento*\n\n" +
     "Para simular, me envie:\n" +
-    "1️⃣ O *bem* (imóvel ou veículo)\n2️⃣ O *valor* aproximado do bem\n3️⃣ O *valor de entrada* que pretende dar" +
-    FECHO_COTACAO,
+    "1️⃣ O *bem* (imóvel ou veículo)\n2️⃣ O *valor* aproximado do bem\n3️⃣ O *valor de entrada* que pretende dar",
   cot_outros:
     "📋 *Outros seguros*\n\n" +
     "Trabalhamos também com seguro *empresarial, viagem, pet, equipamentos* e muito mais. " +
-    "Me conte qual seguro você procura e seu *nome completo*, que um corretor prepara a melhor proposta." +
-    FECHO_COTACAO,
+    "Me conte qual seguro você procura e seu *nome completo*, que um corretor prepara a melhor proposta.",
   app:
     "📲 Baixe o app *MySeg* para acompanhar suas apólices, 2ª via de boleto e mais:\n" +
     "https://myseg.iconeseg.com.br?a=1\n\n" +
     "No cadastro, informe o *código da corretora: 1133* (Quadrata Seguros) para vincular sua conta a nós.",
   corretor:
-    "Perfeito! Sua mensagem já ficou registrada com prioridade. Assim que abrirmos " +
-    `(${HORARIO}), um corretor da Quadrata Seguros vai te atender. Obrigado pela paciência! 🙏`,
+    "Perfeito! Sua mensagem já ficou registrada com prioridade.",
   seg_porto_itau:
     "🚗 *Assistência 24h / Sinistro*\n\n" +
     "*Porto Seguro:*\n• Capitais e RMs: 333 76786 (333 PORTO)\n• Demais regiões: 0800 727 0800\n• WhatsApp: (11) 3003-9303\n\n" +
@@ -337,6 +366,23 @@ function isMenuTrigger(text) {
   return /^(bom dia|boa tarde|boa noite)\b/.test(t);
 }
 
+// Identifica o assunto a partir do texto livre (ou do anúncio do Instagram),
+// para responder direto sem passar pelo menu. Retorna um id de RESPOSTAS,
+// "sinistro", ou null se não reconhecer.
+function detectAssunto(text) {
+  if (!text) return null;
+  const t = text.toLowerCase();
+  if (/(sinistro|guincho|bat[ei]|acidente|colid|roubo|furto|pane|assist[êe]ncia)/.test(t)) return "sinistro";
+  if (/(auto|autom[óo]vel|carro|ve[íi]culo|moto|caminh[ãa]o)/.test(t)) return "cot_auto";
+  if (/(sa[úu]de|plano de sa)/.test(t)) return "cot_saude";
+  if (/(cons[óo]rcio)/.test(t)) return "cot_consorcio";
+  if (/(financ)/.test(t)) return "cot_financiamento";
+  if (/\bvida\b/.test(t)) return "cot_vida";
+  if (/(resid|casa|apartamento|im[óo]vel|aluguel)/.test(t)) return "cot_residencia";
+  if (/(viag|pet|empresarial|equipamento|celular|n[áa]utico|barco|drone|fian[çc]a)/.test(t)) return "cot_outros";
+  return null;
+}
+
 // Retorna true se o menu tratou a mensagem (e a IA não deve ser acionada).
 async function handleWhatsAppMenu(msg) {
   // 1. Cliente selecionou um item de lista/botão
@@ -349,12 +395,38 @@ async function handleWhatsAppMenu(msg) {
       await sendSeguradorasMenu(msg.from);
       return true;
     }
+    if (msg.interactiveId === "corretor") {
+      await sendWhatsAppReply(msg.from, RESPOSTAS.corretor + fechoCorretor("te atender"));
+      return true;
+    }
     const resposta = RESPOSTAS[msg.interactiveId];
     if (resposta) {
-      await sendWhatsAppReply(msg.from, resposta);
+      const extra = COTACAO_IDS.has(msg.interactiveId) ? fechoCorretor() : "";
+      await sendWhatsAppReply(msg.from, resposta + extra);
       return true;
     }
     return false;
+  }
+
+  // 1b. Cliente veio de um anúncio/link do Instagram ou Facebook (referral):
+  // pula todo o menu e vai direto ao assunto desejado.
+  if (msg.referral) {
+    const assuntoAd = detectAssunto(
+      [msg.text, msg.referral.headline, msg.referral.body, msg.referral.source_url]
+        .filter(Boolean)
+        .join(" ")
+    );
+    const ola = "Olá! 👋 Que bom falar com você. Aqui é da *Quadrata Seguros*.\n\n";
+    if (assuntoAd === "sinistro") {
+      await sendSeguradorasMenu(msg.from);
+      return true;
+    }
+    if (assuntoAd) {
+      await sendWhatsAppReply(msg.from, ola + RESPOSTAS[assuntoAd] + fechoCorretor());
+      return true;
+    }
+    await sendCotacaoMenu(msg.from);
+    return true;
   }
 
   // 2. Saudação / palavra-chave → mostra o menu principal
@@ -363,7 +435,20 @@ async function handleWhatsAppMenu(msg) {
     return true;
   }
 
-  // 3. Texto livre → deixa a MarIAna (IA) responder
+  // 3. Texto livre → tenta identificar o assunto e responder direto (sem
+  // repetir o menu, evitando o efeito de "looping").
+  const assunto = detectAssunto(msg.text);
+  if (assunto === "sinistro") {
+    await sendSeguradorasMenu(msg.from);
+    return true;
+  }
+  if (assunto) {
+    await sendWhatsAppReply(msg.from, RESPOSTAS[assunto] + fechoCorretor());
+    return true;
+  }
+
+  // 4. Não identificado → deixa a MarIAna (IA) tentar; se ela cair, o
+  // fallback conclusivo no handler principal cuida da resposta.
   return false;
 }
 
@@ -459,11 +544,9 @@ app.post("/webhook", async (req, res) => {
       try {
         reply = await runLangflow(msg.text, msg.from);
       } catch (aiErr) {
-        // No WhatsApp, se a IA estiver fora do ar, caímos para o menu
-        // (abaixo) em vez de deixar o cliente sem resposta. No Instagram,
-        // repassamos o erro para o aviso padrão.
-        if (msg.platform !== "whatsapp") throw aiErr;
-        console.error("  IA (Langflow) indisponível — enviando menu como alternativa");
+        // IA fora do ar: não repassamos o erro — abaixo montamos uma
+        // resposta conclusiva (direta ao assunto quando possível).
+        console.error("  IA (Langflow) indisponível — usando resposta direta");
       }
       if (reply) {
         console.log(`Resposta MarIAna: ${reply}`);
@@ -472,9 +555,27 @@ app.post("/webhook", async (req, res) => {
         } else {
           await sendInstagramReply(msg.from, reply);
         }
-      } else if (msg.platform === "whatsapp") {
-        // Sem resposta da IA (fora do ar ou vazia): mostra o menu principal.
-        await sendMainMenu(msg.from, msg.name);
+      } else {
+        // Sem resposta da IA. Se conseguirmos identificar o assunto,
+        // respondemos direto; senão, uma mensagem conclusiva (sem repetir
+        // o menu, evitando o "looping").
+        const assunto = detectAssunto(msg.text);
+        let texto;
+        if (assunto && assunto !== "sinistro" && RESPOSTAS[assunto]) {
+          texto = RESPOSTAS[assunto] + fechoCorretor();
+        } else {
+          texto =
+            "✅ Recebi sua mensagem e já registrei sua solicitação." +
+            fechoCorretor() +
+            (msg.platform === "whatsapp"
+              ? "\n\nSe quiser ver todas as opções, é só digitar *menu*. 🙂"
+              : "");
+        }
+        if (msg.platform === "whatsapp") {
+          await sendWhatsAppReply(msg.from, texto);
+        } else {
+          await sendInstagramReply(msg.from, texto);
+        }
       }
     } else if (MAKE_WEBHOOK_URL) {
       await axios.post(MAKE_WEBHOOK_URL, req.body);
