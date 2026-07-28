@@ -223,9 +223,9 @@ async function sendMainMenu(to, name) {
   await sendWhatsAppInteractiveList(to, {
     header: "Quadrata Seguros",
     body:
-      `Olá${name ? ", " + name : ""}! 👋 Que bom te ver por aqui. Aqui é da *Quadrata Seguros*.\n\n` +
-      `Posso resolver bastante coisa por este chat. Toque em *"Ver opções"* e me diz o que você precisa:`,
-    footer: "Atendimento automático",
+      `Olá${name ? ", " + name : ""}! 👋 Eu sou a *MarIAna*, assistente virtual da *Quadrata Seguros*.\n\n` +
+      `Resolvo bastante coisa por aqui na hora e, quando precisar, chamo um corretor pra te atender. Toque em *"Ver opções"* e me diz o que você precisa:`,
+    footer: "MarIAna • Atendimento digital",
     button: "Ver opções",
     rows: [
       { id: "cotacao", title: "Cotação de seguro", description: "Auto, vida, saúde, residência e mais" },
@@ -418,7 +418,7 @@ async function handleWhatsAppMenu(msg) {
         .filter(Boolean)
         .join(" ")
     );
-    const ola = "Olá! 👋 Que bom falar com você. Aqui é da *Quadrata Seguros*.\n\n";
+    const ola = "Olá! 👋 Eu sou a *MarIAna*, assistente virtual da *Quadrata Seguros*. Que bom falar com você!\n\n";
     if (assuntoAd === "sinistro") {
       await sendSeguradorasMenu(msg.from);
       return true;
@@ -485,6 +485,7 @@ async function sendInstagramReply(to, text) {
 const MARIANA_SYSTEM = `Você é a MarIAna, atendente virtual da *Quadrata Seguros*, uma corretora de seguros brasileira. Você atende clientes pelo WhatsApp.
 
 Quem você é:
+- Seu nome é MarIAna. Use-o para dar um toque pessoal: no início de uma conversa nova, apresente-se brevemente ("Oi, aqui é a MarIAna, da Quadrata Seguros 🙂"). Deixe natural que você é uma assistente virtual (digital), sem esconder e sem repetir isso o tempo todo.
 - Simpática, atenciosa e prestativa, como uma boa atendente que gosta de ajudar. Fale como uma pessoa de verdade, não como um robô ou um formulário.
 - Você conhece de seguros e transmite segurança, mas sem enrolação.
 
