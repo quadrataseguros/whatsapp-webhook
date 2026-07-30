@@ -16,6 +16,11 @@ const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
 const IG_ACCESS_TOKEN = process.env.IG_ACCESS_TOKEN || "";
 const IG_USER_ID = process.env.IG_USER_ID || "";
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
+// Espelho das conversas no Telegram. O token do bot e o id do chat/grupo são
+// lidos do ambiente (Render) — nunca ficam no código. Se ambos estiverem
+// vazios, o espelho simplesmente não é enviado.
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "";
 // Versão da Graph API da Meta. Versões antigas são descontinuadas ~2 anos
 // após o lançamento e passam a retornar 404; mantenha em uma versão vigente.
 const GRAPH_VERSION = process.env.GRAPH_VERSION || "v21.0";
@@ -37,9 +42,16 @@ app.get("/health", (_req, res) => {
     status: "ok",
     mode: anthropic ? "mariana" : MAKE_WEBHOOK_URL ? "make" : "menu",
     modelo: anthropic ? MARIANA_MODEL : null,
-    // Diagnóstico do espelho no Telegram: mostra se o sistema está enxergando
-    // a URL do Make (sem expor a URL em si). Se vier false, a variável
-    // MAKE_WEBHOOK_URL não está configurada no ambiente (Render).
+    // Diagnóstico do espelho de conversas (sem expor tokens/URLs). Se vier
+    // "NAO configurado", falta definir as variáveis no ambiente (Render).
+    espelhoTelegram:
+      TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_ID
+        ? "configurado"
+        : TELEGRAM_BOT_TOKEN
+        ? "falta TELEGRAM_CHAT_ID"
+        : TELEGRAM_CHAT_ID
+        ? "falta TELEGRAM_BOT_TOKEN"
+        : "NAO configurado",
     espelhoMake: MAKE_WEBHOOK_URL ? "configurado" : "NAO configurado",
   });
 });
@@ -130,6 +142,32 @@ async function sendWhatsAppReply(to, text) {
       },
     }
   );
+  // Espelha no Telegram o que a MarIAna respondeu.
+  espelharTelegram(`🤖 MarIAna → ${to}\n${text}`);
+}
+
+// Envia uma cópia da conversa para o Telegram (monitoramento pelo time).
+// "Fire-and-forget": trata o próprio erro e nunca derruba o atendimento. Se o
+// token ou o chat não estiverem configurados, não faz nada.
+async function espelharTelegram(text) {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) return;
+  try {
+    // Sem parse_mode: enviamos texto puro para não quebrar quando a mensagem
+    // tiver caracteres especiais (*, _, etc.), comuns nas conversas reais.
+    await axios.post(
+      `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`,
+      {
+        chat_id: TELEGRAM_CHAT_ID,
+        text,
+        disable_web_page_preview: true,
+      }
+    );
+  } catch (e) {
+    console.error(
+      "Falha ao espelhar no Telegram:",
+      e.response?.data?.description || e.message
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -484,6 +522,8 @@ async function sendInstagramReply(to, text) {
       },
     }
   ); } catch(igErr) { console.error('[IG] Erro detalhado:', igErr.response?.status, JSON.stringify(igErr.response?.data)); throw igErr; }
+  // Espelha no Telegram o que a MarIAna respondeu (Instagram).
+  espelharTelegram(`🤖 MarIAna → ${to} (Instagram)\n${text}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -611,14 +651,20 @@ app.post("/webhook", async (req, res) => {
     }${msg.text}`
   );
 
-  // Espelho das conversas → Make (que replica no Telegram). Roda SEMPRE, com a
-  // IA ligada ou não, para que o time acompanhe as mensagens dos clientes.
-  // "Fire-and-forget": não travamos o atendimento nem derrubamos a requisição
-  // se o Make estiver fora do ar.
+  // Espelho das conversas → Telegram (monitoramento pelo time). Roda SEMPRE,
+  // com a IA ligada ou não. Aqui espelhamos a mensagem que CHEGOU do cliente;
+  // as respostas da MarIAna são espelhadas dentro das funções de envio.
+  espelharTelegram(
+    `📩 ${msg.name} (${msg.from}) · ${msg.platform}\n` +
+      `${msg.interactiveId ? "🔘 [menu] " : ""}${msg.text}`
+  );
+
+  // Espelho legado via Make (mantido para compatibilidade). Só envia se a
+  // MAKE_WEBHOOK_URL estiver configurada; caso contrário, não faz nada.
   if (MAKE_WEBHOOK_URL) {
     axios
       .post(MAKE_WEBHOOK_URL, req.body)
-      .then(() => console.log("Espelho enviado ao Make (Telegram)"))
+      .then(() => console.log("Espelho enviado ao Make"))
       .catch((e) => console.error("Falha ao espelhar no Make:", e.message));
   }
 
