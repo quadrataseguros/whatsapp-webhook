@@ -607,6 +607,17 @@ app.post("/webhook", async (req, res) => {
     }${msg.text}`
   );
 
+  // Espelho das conversas → Make (que replica no Telegram). Roda SEMPRE, com a
+  // IA ligada ou não, para que o time acompanhe as mensagens dos clientes.
+  // "Fire-and-forget": não travamos o atendimento nem derrubamos a requisição
+  // se o Make estiver fora do ar.
+  if (MAKE_WEBHOOK_URL) {
+    axios
+      .post(MAKE_WEBHOOK_URL, req.body)
+      .then(() => console.log("Espelho enviado ao Make (Telegram)"))
+      .catch((e) => console.error("Falha ao espelhar no Make:", e.message));
+  }
+
   try {
     // Camada de menu interativo (apenas WhatsApp). A MarIAna/IA continua
     // como fallback para mensagens de texto livre.
@@ -654,10 +665,11 @@ app.post("/webhook", async (req, res) => {
         }
       }
     } else if (MAKE_WEBHOOK_URL) {
-      await axios.post(MAKE_WEBHOOK_URL, req.body);
-      console.log("Payload encaminhado para Make");
+      // Sem IA: o próprio Make cuida da resposta. A cópia (espelho) já foi
+      // enviada lá em cima, então aqui não repassamos de novo.
+      console.log("IA desativada — resposta a cargo do Make");
     } else {
-      console.log("Nenhum destino configurado (LANGFLOW_FLOW_ID ou MAKE_WEBHOOK_URL)");
+      console.log("Nenhum destino configurado (ANTHROPIC_API_KEY ou MAKE_WEBHOOK_URL)");
     }
   } catch (err) {
     console.error("Erro ao processar mensagem:", err.message);
