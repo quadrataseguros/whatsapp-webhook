@@ -37,6 +37,10 @@ app.get("/health", (_req, res) => {
     status: "ok",
     mode: anthropic ? "mariana" : MAKE_WEBHOOK_URL ? "make" : "menu",
     modelo: anthropic ? MARIANA_MODEL : null,
+    // Diagnóstico do espelho no Telegram: mostra se o sistema está enxergando
+    // a URL do Make (sem expor a URL em si). Se vier false, a variável
+    // MAKE_WEBHOOK_URL não está configurada no ambiente (Render).
+    espelhoMake: MAKE_WEBHOOK_URL ? "configurado" : "NAO configurado",
   });
 });
 
