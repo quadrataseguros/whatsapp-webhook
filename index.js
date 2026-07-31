@@ -433,20 +433,32 @@ async function handleWhatsAppMenu(msg) {
   if (msg.interactiveId) {
     if (msg.interactiveId === "cotacao") {
       await sendCotacaoMenu(msg.from);
+      lembrarTroca(msg.from, msg.text || "Cotação de seguro",
+        "Perfeito! Te mostrei os tipos de seguro para você escolher qual quer cotar.");
       return true;
     }
     if (msg.interactiveId === "sinistro") {
       await sendSeguradorasMenu(msg.from);
+      marcarSinistroTratado(msg.from);
+      lembrarTroca(msg.from, msg.text || "Sinistro / Guincho",
+        "Sinto muito pelo ocorrido. Te mostrei a lista de seguradoras para você me dizer qual é a sua.");
       return true;
     }
     if (msg.interactiveId === "corretor") {
-      await sendWhatsAppReply(msg.from, RESPOSTAS.corretor + fechoCorretor("te atender"));
+      const t = RESPOSTAS.corretor + fechoCorretor("te atender");
+      await sendWhatsAppReply(msg.from, t);
+      lembrarTroca(msg.from, msg.text || "Falar com corretor", t);
       return true;
     }
     const resposta = RESPOSTAS[msg.interactiveId];
     if (resposta) {
       const extra = COTACAO_IDS.has(msg.interactiveId) ? fechoCorretor() : "";
-      await sendWhatsAppReply(msg.from, resposta + extra);
+      const t = resposta + extra;
+      await sendWhatsAppReply(msg.from, t);
+      // Ao escolher a seguradora, marcamos o sinistro como tratado (já demos os
+      // telefones), para o fluxo não repetir a pergunta depois.
+      if (msg.interactiveId.startsWith("seg_")) marcarSinistroTratado(msg.from);
+      lembrarTroca(msg.from, msg.text || msg.interactiveId, t);
       return true;
     }
     return false;
@@ -463,28 +475,41 @@ async function handleWhatsAppMenu(msg) {
     const ola = "Olá! 👋 Eu sou a *MarIAna*, assistente virtual da *Quadrata Seguros*. Que bom falar com você!\n\n";
     if (assuntoAd === "sinistro") {
       await sendSeguradorasMenu(msg.from);
+      marcarSinistroTratado(msg.from);
+      lembrarTroca(msg.from, msg.text || "(veio de um anúncio sobre sinistro)",
+        "Sinto muito pelo ocorrido. Te mostrei a lista de seguradoras para você me dizer qual é a sua.");
       return true;
     }
     if (assuntoAd) {
-      await sendWhatsAppReply(msg.from, ola + RESPOSTAS[assuntoAd] + fechoCorretor());
+      const t = ola + RESPOSTAS[assuntoAd] + fechoCorretor();
+      await sendWhatsAppReply(msg.from, t);
+      lembrarTroca(msg.from, msg.text || "(veio de um anúncio)", t);
       return true;
     }
     await sendCotacaoMenu(msg.from);
+    lembrarTroca(msg.from, msg.text || "(veio de um anúncio)",
+      "Te dei as boas-vindas e mostrei os tipos de seguro para você escolher qual quer cotar.");
     return true;
   }
 
   // 2. Saudação / palavra-chave → mostra o menu principal
   if (isMenuTrigger(msg.text)) {
     await sendMainMenu(msg.from, msg.name);
+    lembrarTroca(msg.from, msg.text,
+      "Oi! Sou a MarIAna, da Quadrata Seguros. Te mostrei o menu com as opções: cotação, sinistro/guincho, baixar o app e falar com corretor.");
     return true;
   }
 
-  // 3. Sinistro/emergência: mesmo com a IA ativa, mandamos direto o menu de
-  // seguradoras — ali estão os telefones da assistência 24h (urgentes e que a
-  // IA não tem na memória).
+  // 3. Sinistro/emergência (por texto livre): na PRIMEIRA vez, mandamos o menu
+  // de seguradoras — ali estão os telefones da assistência 24h (urgentes e que
+  // a IA não tem na memória). Se o sinistro já foi tratado nesta conversa, NÃO
+  // repetimos a pergunta: deixamos a MarIAna conduzir com o contexto que já tem.
   const assunto = detectAssunto(msg.text);
-  if (assunto === "sinistro") {
+  if (assunto === "sinistro" && !sinistroJaTratado(msg.from)) {
     await sendSeguradorasMenu(msg.from);
+    marcarSinistroTratado(msg.from);
+    lembrarTroca(msg.from, msg.text,
+      "Sinto muito pelo ocorrido. Te mostrei a lista de seguradoras para você me dizer qual é a sua.");
     return true;
   }
 
@@ -493,7 +518,9 @@ async function handleWhatsAppMenu(msg) {
   // atalho por palavra-chave interpretaria errado. O atalho vira PLANO B, usado
   // só quando a IA está desativada, para ainda assim dar uma resposta útil.
   if (!anthropic && assunto) {
-    await sendWhatsAppReply(msg.from, RESPOSTAS[assunto] + fechoCorretor());
+    const t = RESPOSTAS[assunto] + fechoCorretor();
+    await sendWhatsAppReply(msg.from, t);
+    lembrarTroca(msg.from, msg.text, t);
     return true;
   }
 
@@ -560,7 +587,7 @@ O que você faz:
 Regras importantes:
 - NUNCA invente preços, valores de apólice, coberturas específicas ou números de protocolo. Você não fecha vendas nem informa valores — quem faz isso é um corretor humano.
 - Quando o cliente pedir algo que dependa de um corretor (valores, contratação, negociação), colete as informações e avise, de forma natural, que um corretor da Quadrata Seguros dá sequência.
-- Se for um caso de sinistro/emergência (batida, roubo, pane), acolha primeiro ("Sinto muito pelo ocorrido") e ajude com a assistência 24h.
+- Sinistro/emergência (batida, roubo, pane): acolha primeiro ("Sinto muito pelo ocorrido"). Se o histórico da conversa já mostra que passamos o telefone da assistência 24h da seguradora, NÃO pergunte a seguradora de novo — oriente os próximos passos: acionar a seguradora por aquele telefone, ter em mãos o CPF do titular ou a placa, e registrar aqui para um corretor acompanhar. NUNCA invente números de telefone: use somente os que já apareceram na conversa.
 - Se perguntarem sobre assunto fora de seguros, redirecione gentilmente para como você pode ajudar com seguros.
 - Se o cliente quiser ver todas as opções, diga que ele pode digitar *menu*.
 
@@ -592,6 +619,29 @@ function pushHistorico(from, role, content) {
   if (c.msgs.length > MAX_MENSAGENS) c.msgs = c.msgs.slice(-MAX_MENSAGENS);
   c.updated = Date.now();
   conversas.set(from, c);
+}
+
+// Registra no histórico da IA uma troca que foi tratada pelo MENU (seleção,
+// sinistro, cotação…). Assim a MarIAna "enxerga" o que o menu respondeu e
+// mantém o fio da conversa, em vez de responder como se nada tivesse ocorrido.
+// Sempre grava o par (cliente + resposta) para o histórico continuar alternando.
+function lembrarTroca(from, userText, assistantText) {
+  pushHistorico(from, "user", userText || "(seleção no menu)");
+  pushHistorico(from, "assistant", assistantText || "(enviei uma resposta pelo menu)");
+}
+
+// Marca / consulta se o fluxo de sinistro (menu de seguradoras) já foi mostrado
+// nesta conversa, para não repetir a pergunta da seguradora a cada mensagem.
+function marcarSinistroTratado(from) {
+  const c = conversas.get(from) || { msgs: [] };
+  c.sinistroTratado = true;
+  c.updated = Date.now();
+  conversas.set(from, c);
+}
+function sinistroJaTratado(from) {
+  const c = conversas.get(from);
+  if (!c || Date.now() - c.updated > CONVERSA_TTL_MS) return false;
+  return !!c.sinistroTratado;
 }
 
 // Limpeza periódica das conversas antigas (evita crescer a memória).
