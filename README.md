@@ -93,14 +93,61 @@ Os textos, telefones e o fluxo do menu ficam centralizados em `index.js`
 
 ---
 
+## Publicar no Instagram (posts e carrosséis)
+
+Além de responder DMs, a MarIAna pode **publicar conteúdo no feed** para
+divulgar os produtos. A publicação usa a Graph API da Meta (a conta precisa ser
+**Business/Creator** e o token ter a permissão `instagram_content_publish`).
+
+Configure no `.env` (veja `.env.example`):
+
+- `ADMIN_TOKEN` — protege o endpoint de publicação (obrigatório para ativá-lo).
+- `PUBLIC_BASE_URL` — URL pública do servidor, p/ servir imagens locais de `./media`.
+- `IG_PUBLISH_USER_ID` / `IG_PUBLISH_TOKEN` — se vazios, reutiliza `IG_USER_ID` / `IG_ACCESS_TOKEN`.
+
+**Como a Meta lê as imagens:** ela só aceita **URL pública** (não upload de
+arquivo). Coloque as imagens na pasta `./media` e elas ficam acessíveis em
+`PUBLIC_BASE_URL/media/<arquivo>`. Ou passe URLs já públicas diretamente.
+
+**Pela linha de comando:**
+```bash
+# Carrossel a partir de arquivos locais (pasta ./media)
+node instagram-publish.js --local slide1.png slide2.png --caption "Sua legenda"
+
+# Post único a partir de uma URL pública
+node instagram-publish.js --image https://.../post.jpg --caption "Sua legenda"
+
+# Validar sem publicar
+node instagram-publish.js --local slide1.png --caption "teste" --dry-run
+```
+
+**Pelo endpoint HTTP** (`POST /instagram/publish`, header `x-admin-token`):
+```bash
+curl -X POST https://SEU-DOMINIO/instagram/publish \
+  -H "x-admin-token: SEU_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"local":["slide1.png","slide2.png"],"caption":"Sua legenda"}'
+```
+
+> Ideias de post e legendas prontas: veja **`CONTEUDO-INSTAGRAM.md`**.
+
+---
+
 ## Endpoints
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
+| `GET` | `/` | Sinaliza que o webhook está no ar |
 | `GET` | `/webhook` | Verificação Meta |
-| `POST` | `/webhook` | Recebe mensagens WhatsApp |
-| `GET` | `/health` | Status do servidor e modo ativo |
+| `POST` | `/webhook` | Recebe mensagens WhatsApp/Instagram |
+| `GET` | `/health` | Status do servidor, uptime e modo ativo |
 | `GET` | `/mariana-status` | Testa se a IA (Claude) está respondendo |
+| `POST` | `/instagram/publish` | Publica post/carrossel no feed (requer `ADMIN_TOKEN`) |
+| `GET` | `/media/<arquivo>` | Serve imagens da pasta `./media` como URL pública |
+
+> **Webhook fora do ar?** Se o domínio mostrar *Cloudflare Tunnel error 1033*
+> (ou a MarIAna parar de responder), veja o guia de recuperação em
+> **`TROUBLESHOOTING.md`**.
 
 ---
 

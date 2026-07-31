@@ -13,3 +13,8 @@ yarn-error.log*
 
 # Sistema operacional
 .DS_Store
+
+# Imagens de posts colocadas em ./media na hora de publicar (não versionar).
+# Mantém apenas o README para a pasta existir no repositório.
+media/*
+!media/README.txt
