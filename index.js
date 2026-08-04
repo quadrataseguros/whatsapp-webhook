@@ -271,6 +271,7 @@ async function sendMainMenu(to, name) {
     button: "Ver opções",
     rows: [
       { id: "cotacao", title: "Cotação de seguro", description: "Auto, vida, saúde, residência e mais" },
+      { id: "cartao", title: "Cartão Porto Bank", description: "Pré-aprovado • 12 meses sem anuidade" },
       { id: "sinistro", title: "Sinistro / Guincho", description: "Assistência 24h" },
       { id: "app", title: "Baixar o app", description: "MySeg • código 1133" },
       { id: "corretor", title: "Falar com corretor", description: "Deixe o seu recado" },
@@ -353,6 +354,15 @@ const RESPOSTAS = {
     "📋 *Outros seguros*\n\n" +
     "Trabalhamos também com *empresarial, viagem, pet, equipamentos* e muito mais. 🙂\n" +
     "Me conta qual seguro você procura e seu *nome completo*, que já preparo a melhor proposta pra você.",
+  cartao:
+    "💳 *Cartão Porto Bank — Pré-aprovado!*\n\n" +
+    "Um cartão com benefícios de verdade:\n" +
+    "• *12 meses de anuidade grátis*\n" +
+    "• Descontos nos seus seguros Porto: Auto até *15%*, Residencial *10% + 5% cashback*, Vida até *10%*\n" +
+    "• *IOF Zero* em compras internacionais (o IOF volta como cashback)\n" +
+    "• *Shell Box*, *ConectCar* com tags grátis, *salas VIP* e mais\n\n" +
+    "Quer garantir o seu? Me envie o seu *CPF* que eu preparo sua proposta e um corretor te manda o *link personalizado* para você assinar. 🚀\n\n" +
+    "_Oferta sujeita a análise e condições do Porto Bank._",
   app:
     "📲 Baixe o app *MySeg* para acompanhar suas apólices, 2ª via de boleto e mais:\n" +
     "https://myseg.iconeseg.com.br?a=1\n\n" +
@@ -417,6 +427,7 @@ function detectAssunto(text) {
   if (!text) return null;
   const t = text.toLowerCase();
   if (/(sinistro|guincho|bat[ei]|acidente|colid|roubo|furto|pane|assist[êe]ncia)/.test(t)) return "sinistro";
+  if (/(cart[ãa]o|porto bank)/.test(t)) return "cartao";
   if (/(auto|autom[óo]vel|carro|ve[íi]culo|moto|caminh[ãa]o)/.test(t)) return "cot_auto";
   if (/(sa[úu]de|plano de sa)/.test(t)) return "cot_saude";
   if (/(cons[óo]rcio)/.test(t)) return "cot_consorcio";
@@ -594,7 +605,14 @@ Regras importantes:
 Informações úteis:
 - Horário de atendimento humano: segunda a sexta, das 8h30 às 17h30.
 - App do cliente: *MySeg* (2ª via de boleto, apólices). No cadastro, informar o código da corretora *1133* (Quadrata Seguros).
-- Link de cotação online (ofereça quando fizer sentido): http://gestao.segfy.com/Publico/Segurados/Orcamentos/SolicitarCotacao?e=N4%2BhsohRMBQkt3Y5rAUWTQ%3D%3D`;
+- Link de cotação online (ofereça quando fizer sentido): http://gestao.segfy.com/Publico/Segurados/Orcamentos/SolicitarCotacao?e=N4%2BhsohRMBQkt3Y5rAUWTQ%3D%3D
+
+Cartão de Crédito Porto Bank (campanha atual — muitos clientes estão PRÉ-APROVADOS):
+- Benefícios: 12 meses de anuidade grátis (depois, isenção 100% por gastos: Gold/Platinum a partir de R$3.500/mês, Ultra a partir de R$10.000/mês); até 4 cartões adicionais sem anuidade; até 3,5 pontos/dólar com acesso a salas VIP; IOF Zero em compras internacionais (o IOF volta como cashback); descontos nos seguros Porto com o cartão ativo (Auto até 15%, Residencial 10% + 5% de cashback, Vida até 10%); Shell Box com até R$0,15/litro na rede Shell; ConectCar com até 4 tags grátis, sem mensalidade; controle total pelo super app.
+- Como funciona a adesão: o cliente aceita a oferta enviando o CPF. Com os dados, a Quadrata monta um LINK PERSONALIZADO para o cliente assinar a proposta, que segue para análise da Porto Bank. Você (MarIAna) NÃO gera nem envia o link — quem prepara e envia é um corretor da Quadrata.
+- Fluxo quando o cliente quiser o cartão: explique os principais benefícios de forma breve e peça o CPF (confirme o nome, se ainda não souber). Quando ele enviar o CPF, agradeça, confirme os dados e avise que um corretor vai preparar o link personalizado e enviar em seguida para ele assinar, seguindo depois para análise da Porto Bank.
+- Se o cliente enviar SÓ um CPF, sem outro contexto, provavelmente está aceitando esta oferta do cartão — confirme gentilmente ("É para garantir seu Cartão Porto Bank, certo?") antes de seguir.
+- NUNCA prometa aprovação (a análise é da Porto Bank) nem invente taxas/limites além dos listados; detalhes finais são confirmados na proposta.`;
 
 // Memória de conversa por cliente (em memória do processo). Mantém o contexto
 // das últimas trocas, como fazia a "session" do Langflow. Some após um período
