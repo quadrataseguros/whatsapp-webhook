@@ -2,8 +2,18 @@ require("dotenv").config();
 const express = require("express");
 const axios = require("axios");
 const Anthropic = require("@anthropic-ai/sdk");
+const path = require("path");
+const { publicarInstagram, InstagramPublishError } = require("./instagram-publish");
 const app = express();
 app.use(express.json());
+
+// Serve os arquivos da pasta ./media em URLs públicas (ex.:
+// https://webhook.quadratadigital.com.br/media/post.jpg). É assim que as
+// imagens locais viram URLs que a Meta consegue ler para publicar no feed.
+app.use("/media", express.static(path.join(__dirname, "media")));
+
+// Momento em que o servidor subiu — usado no /health para mostrar o uptime.
+const BOOT_TIME = Date.now();
 
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "quadrata123";
 // IA da MarIAna — agora direto pela API da Anthropic (Claude), sem Langflow.
@@ -24,6 +34,9 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "";
 // Versão da Graph API da Meta. Versões antigas são descontinuadas ~2 anos
 // após o lançamento e passam a retornar 404; mantenha em uma versão vigente.
 const GRAPH_VERSION = process.env.GRAPH_VERSION || "v21.0";
+// Token que protege o endpoint de publicação (/instagram/publish). Sem ele
+// definido, o endpoint fica DESATIVADO (evita publicação sem autorização).
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || "";
 
 const PORT = process.env.PORT || 3000;
 
@@ -36,12 +49,22 @@ app.get("/webhook", (req, res) => {
   }
 });
 
+// Rota raiz — responde OK para quem abrir o domínio direto (monitoramento,
+// health check do Cloudflare/Render). Evita um 404 confuso na raiz.
+app.get("/", (_req, res) => {
+  res.type("text/plain").send("MarIAna · Quadrata Seguros — webhook no ar. Veja /health");
+});
+
 // Health check
 app.get("/health", (_req, res) => {
+  const uptimeSeg = Math.floor((Date.now() - BOOT_TIME) / 1000);
   res.json({
     status: "ok",
     mode: anthropic ? "mariana" : MAKE_WEBHOOK_URL ? "make" : "menu",
     modelo: anthropic ? MARIANA_MODEL : null,
+    horaServidor: new Date().toISOString(),
+    uptimeSegundos: uptimeSeg,
+    publicacaoInstagram: ADMIN_TOKEN ? "ativa" : "NAO configurada (defina ADMIN_TOKEN)",
     // Diagnóstico do espelho de conversas (sem expor tokens/URLs). Se vier
     // "NAO configurado", falta definir as variáveis no ambiente (Render).
     espelhoTelegram:
@@ -77,6 +100,50 @@ app.get("/mariana-status", async (_req, res) => {
     res.json({ ia: "ok", modelo: MARIANA_MODEL, resposta: texto });
   } catch (err) {
     res.status(502).json({ ia: "erro", erro: err.message, status: err.status });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Publicação no feed do Instagram (posts e carrosséis) para divulgar produtos.
+// Protegido por ADMIN_TOKEN: envie no header "x-admin-token" ou no corpo.
+// Corpo (JSON):
+//   { "image": "https://...", "caption": "texto" }              → post único
+//   { "images": ["https://a.jpg","https://b.jpg"], "caption":"" } → carrossel
+//   { "local": ["slide1.png","slide2.png"], "caption": "" }       → arquivos ./media
+//   Acrescente "dryRun": true para validar sem publicar.
+// ---------------------------------------------------------------------------
+app.post("/instagram/publish", async (req, res) => {
+  if (!ADMIN_TOKEN) {
+    return res.status(503).json({ erro: "Publicação desativada: defina ADMIN_TOKEN no ambiente." });
+  }
+  const enviado = req.headers["x-admin-token"] || req.body?.adminToken;
+  if (enviado !== ADMIN_TOKEN) {
+    return res.status(401).json({ erro: "Token de admin inválido." });
+  }
+
+  const { image, images, local, caption = "", dryRun = false } = req.body || {};
+  // Normaliza as três formas de entrada em uma lista + flag de arquivo local.
+  let lista = [];
+  let usaLocal = false;
+  if (Array.isArray(local) && local.length) {
+    lista = local;
+    usaLocal = true;
+  } else if (Array.isArray(images) && images.length) {
+    lista = images;
+  } else if (image) {
+    lista = [image];
+  }
+  if (!lista.length) {
+    return res.status(400).json({ erro: "Informe 'image', 'images' ou 'local'." });
+  }
+
+  try {
+    const r = await publicarInstagram({ images: lista, caption, local: usaLocal, dryRun });
+    res.json({ ok: true, ...r });
+  } catch (err) {
+    const codigo = err instanceof InstagramPublishError ? 422 : 500;
+    console.error("[IG publish] erro:", err.message);
+    res.status(codigo).json({ ok: false, erro: err.message });
   }
 });
 
