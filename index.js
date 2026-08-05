@@ -315,6 +315,7 @@ async function sendCotacaoMenu(to) {
       { id: "cot_consorcio", title: "Consórcio", description: "Imóvel, auto ou serviços" },
       { id: "cot_financiamento", title: "Financiamento", description: "Imóvel ou veículo" },
       { id: "cot_outros", title: "Outros", description: "Empresarial, viagem, pet e mais" },
+      { id: "cartao", title: "Cartão Porto Bank", description: "Sem anuidade • pré-aprovado" },
     ],
   });
 }
