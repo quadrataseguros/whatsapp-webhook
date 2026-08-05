@@ -1,7 +1,8 @@
 # Stories — Consórcio de Automóvel (5 slides)
 
-> ⚠️ **PLACEHOLDER** — mesmo aviso do Post 2: valores ilustrativos até
-> recebermos a tabela oficial do consórcio de automóvel.
+> ⚠️ Valores de crédito/parcela já são reais ("Acelera Agosto", Porto Bank).
+> Falta só o rodapé legal (taxa adm base, fundo de reserva, seguro
+> prestamista) — mesmo pendência do Post 2, ver [`dados-tabela-automovel.md`](./dados-tabela-automovel.md).
 
 Formato: 1080×1920 (9:16) · mesma paleta/tipografia do Post 2.
 
@@ -18,18 +19,21 @@ Fundo: SUV/sedã ao entardecer, texto centralizado.
 ```
 O consórcio de automóvel Porto Bank
 funciona diferente do financiamento:
-sem juros, com parcela planejada.
+sem juros, com parcela reduzida em
+50% até a contemplação.
 ```
 
 ## Slide 3 — Números
 
 ```
-Alguns exemplos [SUBSTITUIR PELA TABELA REAL]:
+Alguns exemplos:
 
-Crédito de R$ 80.000  | Hatches e compactos
-Crédito de R$ 100.000 | Sedãs e SUVs compactos
-Crédito de R$ 150.000 | Categoria superior
+Crédito de R$ 60.000  → parcela reduzida de R$ 473
+Crédito de R$ 80.000  → parcela reduzida de R$ 556
+Crédito de R$ 150.000 → parcela reduzida de R$ 938
 
+Até 18/08: 5% de desconto na taxa
+administrativa (10% pra cliente Porto).
 Taxa Adm [X]% · Fundo de Reserva [X]% ·
 consulte o Regulamento.
 ```

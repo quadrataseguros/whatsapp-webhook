@@ -23,22 +23,29 @@ imperdível", "não perca tempo", etc.).
 ## Dados de base — Consórcio de Imóvel (Porto Bank)
 
 Tabela oficial, valores para Pessoa Física, grupo em formação com prazo de 200 meses,
-lance fixo 40%, lance embutido de 30% do crédito.
+lance embutido de 30% do crédito.
 
 - **Grupo até R$ 280.000** → Taxa Adm 21,85% (taxa antecipada diluída no plano)
-- **Grupo acima de R$ 280.000** (até R$ 560.000) → Taxa Adm 19,95%
+- **Grupo de R$ 280.000 a R$ 560.000** → Taxa Adm 19,95%
+- **Acima de R$ 560.000** (faixa que só aparece na campanha "Acelera Agosto") →
+  taxa a confirmar
 - Fundo de Reserva: 2%
 - Seguro Prestamista: 0,038% (pessoas físicas)
 - Parcela reduzida em 50% até a contemplação; depois o valor é compensado nas
   parcelas seguintes
 - Parcelas reajustadas no aniversário do grupo
+- Campanha vigente **"Acelera Agosto"** (até 18/08): +5% de desconto na taxa
+  administrativa (+10% para cliente Porto)
 - Tabela completa em [`dados-tabela-imovel.md`](./dados-tabela-imovel.md)
 
-## Dados de base — Consórcio de Automóvel (Porto Bank)
+## Dados de base — Consórcio de Automóvel e Pesados (Porto Bank)
 
-**Ainda não recebemos a tabela oficial.** O Post 2 usa categorias ilustrativas
-(por perfil de veículo, não por número de tabela real) — precisa ser substituído
-assim que a tabela chegar. Ver aviso no topo de [`02-post-automovel.md`](./02-post-automovel.md).
+Recebida a tabela real da campanha **"Acelera Agosto"** (válida até 18/08):
+créditos de R$ 40 mil a R$ 200 mil, parcela reduzida em 50%, mesmo esquema de
+desconto na taxa (5% geral / 10% cliente Porto) do imóvel. **Falta apenas o
+rodapé legal** (taxa adm base, fundo de reserva, seguro prestamista) — não
+apareceu na captura enviada. Ver [`dados-tabela-automovel.md`](./dados-tabela-automovel.md)
+e aviso no topo de [`02-post-automovel.md`](./02-post-automovel.md).
 
 ## Aviso legal obrigatório (rodapé de toda arte com valores)
 
@@ -55,18 +62,25 @@ Sem isso a peça configura publicidade incompleta perante o consumidor (CDC).
 
 | # | Peça | Status |
 |---|---|---|
-| 1 | Post feed — Imóvel | ✅ pronto |
-| 2 | Post feed — Automóvel | ⚠️ placeholder, aguardando tabela real |
+| 1 | Post feed — Imóvel (Acelera Agosto) | ✅ pronto (falta confirmar taxa acima de R$560 mil) |
+| 2 | Post feed — Automóvel (Acelera Agosto) | ⚠️ falta rodapé legal (taxa adm/fundo/seguro) |
 | 3 | Stories — Imóvel (5 slides) | ✅ pronto |
-| 4 | Stories — Automóvel (5 slides) | ⚠️ placeholder |
-| 5 | Post — Prova social | ✅ pronto |
+| 4 | Stories — Automóvel (5 slides) | ⚠️ falta rodapé legal |
+| 5 | Post — Prova social | ⚠️ template pronto, falta depoimento/números reais |
 | 6 | Post — Como funciona o consórcio | ✅ pronto |
 | 7 | Post — Consórcio x Financiamento | ✅ pronto |
 
 ## Pendências
 
-- [ ] Receber tabela real de crédito do consórcio de automóvel e atualizar
-      `02-post-automovel.md` e `04-stories-automovel.md`
+- [ ] Confirmar taxa administrativa do consórcio de imóvel para créditos acima
+      de R$ 560 mil (faixa nova, só aparece na campanha "Acelera Agosto")
+- [ ] Obter o rodapé legal completo do consórcio de automóvel (taxa adm base,
+      fundo de reserva, seguro prestamista) e atualizar `02-post-automovel.md`
+      e `04-stories-automovel.md`
+- [ ] Reunir insumo real para a prova social (depoimento de cliente ou
+      números da Quadrata) — ver `05-post-prova-social.md`
 - [ ] Validar textos de rodapé/legal com compliance antes de publicar
 - [ ] Gerar as artes finais (Canva/Photoshop) usando os prompts de imagem
       indicados em cada post
+- [ ] Acompanhar a validade da campanha "Acelera Agosto" (18/08) — depois
+      dessa data, revisar selos/CTAs de desconto antes de continuar publicando

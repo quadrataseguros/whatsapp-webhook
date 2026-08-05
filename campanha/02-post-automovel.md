@@ -1,12 +1,11 @@
 # Post 2 — Feed · Consórcio de Automóvel
 
-> ⚠️ **PLACEHOLDER — não publicar assim.** Ainda não recebemos a tabela oficial
-> de crédito do consórcio de automóvel Porto Bank. Os valores/categorias abaixo
-> são ilustrativos, só para fechar o layout. Assim que a tabela real chegar,
-> atualizar o bloco de valores e o rodapé (taxa adm, fundo de reserva, seguro
-> prestamista) com os números oficiais — mesmo padrão do Post 1.
+> ⚠️ **Falta um dado antes de publicar.** Os valores de crédito/parcela abaixo
+> já são reais (campanha "Acelera Agosto", Porto Bank). Só falta o rodapé legal
+> — taxa de administração base, fundo de reserva e seguro prestamista — que não
+> apareceu na captura enviada (corte de tela). Ver [`dados-tabela-automovel.md`](./dados-tabela-automovel.md).
 
-Formato: 1080×1350 (4:5)
+Formato: 1080×1350 (4:5) · Fonte de dados: [`dados-tabela-automovel.md`](./dados-tabela-automovel.md)
 
 ## Prompt de imagem (fundo)
 
@@ -30,20 +29,25 @@ O carro que você quer,
 com a parcela que faz sentido.
 
 [SUBHEADLINE]
-Consórcio de automóvel Porto Bank: planeje a troca sem
-pesar no orçamento do mês.
+Consórcio de automóvel e pesados Porto Bank: parcela
+reduzida em 50% até a contemplação.
 
-[BLOCO DE VALORES — ILUSTRATIVO, SUBSTITUIR]
-• Crédito de R$ 60.000   | Seminovos e modelos de entrada
-• Crédito de R$ 80.000   | Hatches e compactos completos
-• Crédito de R$ 100.000  | Sedãs e SUVs compactos
-• Crédito de R$ 120.000  | SUVs e veículos familiares
-• Crédito de R$ 150.000  | Categoria superior
+[SELO]
+Acelera Agosto — 5% de desconto na taxa administrativa
+até 18/08. Cliente Porto tem +10% de desconto.
 
-[RODAPÉ — obrigatório, preencher com dados reais]
+[BLOCO DE VALORES]
+• Crédito de R$ 40.000   →  parcela reduzida de R$ 315
+• Crédito de R$ 60.000   →  parcela reduzida de R$ 473
+• Crédito de R$ 80.000   →  parcela reduzida de R$ 556
+• Crédito de R$ 150.000  →  parcela reduzida de R$ 938
+• Crédito de R$ 200.000  →  parcela reduzida de R$ 1.100
+
+[RODAPÉ — obrigatório, falta preencher com dados reais]
 Taxa Adm de [X]%, diluída no plano. Fundo de Reserva [X]%. Seguro Prestamista
-[X]%. Parcela reduzida válida até a contemplação, depois compensada nas
-parcelas seguintes. Consulte o Regulamento.
+[X]%. Parcela reduzida em 50% válida até a contemplação, depois compensada
+nas parcelas seguintes. Desconto de 5% na taxa administrativa válido até
+18/08. Consulte o Regulamento.
 
 [CTA]
 Fale com a Quadrata Seguros • Solicite uma simulação
@@ -52,16 +56,18 @@ Fale com a Quadrata Seguros • Solicite uma simulação
 ## Legenda (caption)
 
 ```
-Trocar de carro não precisa ser um projeto de anos.
+Trocar de carro (ou ampliar a frota) não precisa ser um projeto de anos.
 
-Com o consórcio de automóvel Porto Bank, você planeja a troca com uma parcela
-que cabe no orçamento — sem juros de financiamento pesando na conta.
+Com o consórcio de automóvel e pesados Porto Bank, a parcela começa reduzida
+em 50% até você ser contemplado — e até 18/08 tem 5% de desconto extra na
+taxa administrativa (10% se você já é cliente Porto).
 
-Do compacto ao SUV, tem crédito pra cada momento.
+Créditos de R$ 40 mil a R$ 200 mil, lance embutido de 30% pra quem quer
+acelerar.
 
 Chama no direct pra gente simular o plano ideal pra você.
 
-#ConsórcioDeAutomóvel #QuadrataSeguros #PortoBank
+#ConsórcioDeAutomóvel #QuadrataSeguros #PortoBank #AceleraAgosto
 ```
 
 ## Guia de diagramação

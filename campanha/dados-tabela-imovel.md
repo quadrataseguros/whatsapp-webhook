@@ -51,3 +51,27 @@ enviadas pelo cliente em 05/08).
 Condições comuns às duas faixas: Fundo de Reserva 2%, Seguro Prestamista 0,038%
 (pessoa física), parcela reduzida em -50% até a contemplação (depois compensada),
 reajuste no aniversário do grupo. Consulte o Regulamento para demais condições.
+
+## Campanha "Acelera Agosto" (válida até 18/08)
+
+Mesma mecânica (parcela reduzida em 50% até a contemplação), com faixas de
+crédito ampliadas e desconto adicional na taxa administrativa. Fonte: material
+promocional Porto Bank enviado pelo cliente em 05/08.
+
+- 5% de desconto na taxa administrativa — válido até 18/08
+- Cliente Porto (já cliente do banco): +10% de desconto na taxa de administração
+- Lance embutido de 30%, lances livres/fixos/sorteios
+
+| Crédito | Parcela sem oferta | Parcela reduzida (com desconto) |
+|---|---|---|
+| R$ 70.000 | R$ 476 | R$ 253 |
+| R$ 200.000 | R$ 1.345 | R$ 713 |
+| R$ 400.000 | R$ 2.846 | R$ 1.404 |
+| R$ 700.000 | R$ 4.876 | R$ 2.429 |
+| R$ 1.000.600 | R$ 6.936 | R$ 3.471 |
+
+> O valor de R$ 200.000 bate exatamente com a tabela padrão acima — confirma
+> que é a mesma estrutura de taxas, só com faixas de crédito mais amplas para
+> a peça de agosto. A taxa administrativa exata para os créditos acima de
+> R$ 560.000 (nova faixa que só aparece nessa promoção) ainda não foi
+> confirmada — assumir como pendente até validar.

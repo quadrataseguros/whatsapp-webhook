@@ -1,5 +1,7 @@
 # Stories — Consórcio de Imóvel (5 slides)
 
+Versão "Acelera Agosto" (promoção válida até 18/08).
+
 Formato: 1080×1920 (9:16) · mesma paleta/tipografia do Post 1.
 
 ## Slide 1 — Gancho
@@ -27,13 +29,13 @@ Fundo: mesma linha visual, tom mais próximo/conversacional.
 ```
 Alguns exemplos:
 
-R$ 200.000 → parcela reduzida de R$ 713
-R$ 280.000 → parcela reduzida de R$ 998
-R$ 360.000 → parcela reduzida de R$ 1.264
+R$ 200.000   → parcela reduzida de R$ 713
+R$ 400.000   → parcela reduzida de R$ 1.404
+R$ 1.000.600 → parcela reduzida de R$ 3.471
 
-Taxa Adm 21,85% (até R$280 mil) ou 19,95%
-(acima) · Fundo de Reserva 2% · consulte
-o Regulamento.
+Até 18/08: 5% de desconto na taxa
+administrativa (10% pra cliente Porto).
+Fundo de Reserva 2% · consulte o Regulamento.
 ```
 Bloco de valores em destaque azul claro, rodapé legal em fonte menor mas legível.
 
