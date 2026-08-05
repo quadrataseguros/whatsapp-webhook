@@ -1,8 +1,9 @@
 # Stories — Consórcio de Automóvel (5 slides)
 
-> ⚠️ Valores de crédito/parcela já são reais ("Acelera Agosto", Porto Bank).
-> Falta só o rodapé legal (taxa adm base, fundo de reserva, seguro
-> prestamista) — mesmo pendência do Post 2, ver [`dados-tabela-automovel.md`](./dados-tabela-automovel.md).
+Rodapé legal completo: Taxa Adm 18%, Fundo de Reserva 2%, Seguro de Vida
+0,038% (ver [`dados-tabela-automovel.md`](./dados-tabela-automovel.md)). Único
+ponto em aberto: prazo do grupo, ainda não confirmado — evitar citar um
+número de meses específico até confirmar.
 
 Formato: 1080×1920 (9:16) · mesma paleta/tipografia do Post 2.
 
@@ -34,8 +35,8 @@ Crédito de R$ 150.000 → parcela reduzida de R$ 938
 
 Até 18/08: 5% de desconto na taxa
 administrativa (10% pra cliente Porto).
-Taxa Adm [X]% · Fundo de Reserva [X]% ·
-consulte o Regulamento.
+Taxa Adm 18% · Fundo de Reserva 2% ·
+Seguro de Vida 0,038% · consulte o Regulamento.
 ```
 
 ## Slide 4 — Reforço aspiracional

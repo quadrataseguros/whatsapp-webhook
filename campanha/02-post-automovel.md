@@ -1,9 +1,13 @@
 # Post 2 — Feed · Consórcio de Automóvel
 
-> ⚠️ **Falta um dado antes de publicar.** Os valores de crédito/parcela abaixo
-> já são reais (campanha "Acelera Agosto", Porto Bank). Só falta o rodapé legal
-> — taxa de administração base, fundo de reserva e seguro prestamista — que não
-> apareceu na captura enviada (corte de tela). Ver [`dados-tabela-automovel.md`](./dados-tabela-automovel.md).
+Rodapé legal completo: Taxa Adm 18%, Fundo de Reserva 2%, Seguro de Vida
+0,038% (fonte: consulta ao sistema Porto Bank, 05/08 — ver
+[`dados-tabela-automovel.md`](./dados-tabela-automovel.md)).
+
+> ⚠️ Único ponto em aberto: o **prazo do grupo** de automóvel não foi
+> confirmado (não usar "200 meses" — isso é do imóvel). Como o prazo não
+> entra no rodapé legal obrigatório, não bloqueia a publicação, mas evitar
+> mencionar prazo específico na arte/legenda até confirmar.
 
 Formato: 1080×1350 (4:5) · Fonte de dados: [`dados-tabela-automovel.md`](./dados-tabela-automovel.md)
 
@@ -43,11 +47,11 @@ até 18/08. Cliente Porto tem +10% de desconto.
 • Crédito de R$ 150.000  →  parcela reduzida de R$ 938
 • Crédito de R$ 200.000  →  parcela reduzida de R$ 1.100
 
-[RODAPÉ — obrigatório, falta preencher com dados reais]
-Taxa Adm de [X]%, diluída no plano. Fundo de Reserva [X]%. Seguro Prestamista
-[X]%. Parcela reduzida em 50% válida até a contemplação, depois compensada
-nas parcelas seguintes. Desconto de 5% na taxa administrativa válido até
-18/08. Consulte o Regulamento.
+[RODAPÉ — obrigatório]
+Taxa Adm 18%, diluída no plano. Fundo de Reserva 2%. Seguro de Vida 0,038%
+sobre o saldo devedor. Parcela reduzida em 50% válida até a contemplação,
+depois compensada nas parcelas seguintes. Desconto de 5% na taxa
+administrativa válido até 18/08. Consulte o Regulamento.
 
 [CTA]
 Fale com a Quadrata Seguros • Solicite uma simulação

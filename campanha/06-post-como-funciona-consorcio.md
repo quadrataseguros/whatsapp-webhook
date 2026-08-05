@@ -1,6 +1,9 @@
 # Post 4 — Feed/Carrossel · Como funciona o consórcio
 
 Formato: carrossel 1080×1350 (4:5), 5 cards. Linguagem simples, sem jargão.
+Conteúdo revisado com base no Guia do Consórcio Porto Bank (material oficial
+do administrador, edição mar/23) — mecânica confirmada, mesmo que os
+percentuais de cada plano mudem com o tempo.
 
 ## Prompt de imagem (fundo, estilo único para os 5 cards)
 
@@ -35,11 +38,14 @@ num grupo com esse objetivo.
 ## Card 3 — Passo 2
 
 ```
-2. Você paga uma parcela mensal
+2. Sua parcela tem 4 partes
 
-Sem juros — só a taxa de
-administração, diluída ao
-longo do plano.
+Fundo Comum (a poupança que vira
+seu crédito), Fundo de Reserva
+(garantia do grupo — sobrou,
+devolve no fim), Taxa
+Administrativa e Seguro de Vida.
+Sem juros.
 ```
 
 ## Card 4 — Passo 3
@@ -47,19 +53,23 @@ longo do plano.
 ```
 3. Você é contemplado por sorteio ou lance
 
-Todo mês o grupo sorteia cartas
-de crédito. Quem quer antecipar
-pode dar um lance.
+Todo mês, na assembleia, tem
+sorteio pela Loteria Federal
+entre quem está em dia. Quer
+antecipar? Pode ofertar um lance
+— fixo, livre ou embutido no
+próprio crédito.
 ```
 
 ## Card 5 — Passo 4 + CTA
 
 ```
-4. Você usa o crédito no que já
-   estava planejado
+4. O crédito é liberado em poucos dias
 
-Imóvel, carro — o valor sai na
-hora da contemplação.
+A análise começa em até 24h após
+a contemplação. Aprovado, o
+crédito é seu pra usar no que já
+estava planejado — imóvel ou carro.
 
 [CTA]
 Ficou alguma dúvida? Manda no direct.
@@ -71,11 +81,12 @@ Fale com a Quadrata Seguros.
 ```
 Consórcio não é "prêmio de sorteio" — é planejamento.
 
-Você escolhe o crédito, paga uma parcela sem juros (só taxa de administração)
-e concorre à contemplação todo mês, por sorteio ou lance.
+Você escolhe o crédito e paga uma parcela sem juros, dividida em Fundo Comum,
+Fundo de Reserva, Taxa Administrativa e Seguro de Vida. Todo mês concorre à
+contemplação por sorteio (pela Loteria Federal) ou lance.
 
-Quando contempla, o crédito é seu pra usar no que já estava no plano: casa
-ou carro novo.
+Contemplou? A análise já começa em até 24h e o crédito sai pra usar no que já
+estava no plano: casa ou carro novo.
 
 Ficou com dúvida em algum passo? Comenta aqui ou chama no direct.
 

@@ -52,6 +52,11 @@ Condições comuns às duas faixas: Fundo de Reserva 2%, Seguro Prestamista 0,03
 (pessoa física), parcela reduzida em -50% até a contemplação (depois compensada),
 reajuste no aniversário do grupo. Consulte o Regulamento para demais condições.
 
+> Resolvido: uma consulta ao sistema Porto Bank (05/08) para o grupo de
+> automóvel também retornou Seguro de Vida de 0,038% — confirma que esse é o
+> percentual vigente hoje e que os 0,031%/0,035% do Guia do Consórcio (mar/23)
+> estão desatualizados. Ver [`dados-tabela-automovel.md`](./dados-tabela-automovel.md).
+
 ## Campanha "Acelera Agosto" (válida até 18/08)
 
 Mesma mecânica (parcela reduzida em 50% até a contemplação), com faixas de
