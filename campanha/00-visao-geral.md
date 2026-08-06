@@ -44,17 +44,15 @@ Tabela real da campanha **"Acelera Agosto"** (válida até 18/08): créditos de
 R$ 40 mil a R$ 200 mil, parcela reduzida em 50%, mesmo esquema de desconto na
 taxa (5% geral / 10% cliente Porto) do imóvel.
 
-Rodapé legal completo, via consulta ao sistema Porto Bank (05/08):
+Plano confirmado por cotação real no sistema Porto Bank (código do plano
+"AUT M TX15,20% FR2% RED50%"):
 
-- Taxa de Administração: 18%
+- Taxa de Administração: **15,20%**
 - Fundo de Reserva: 2%
 - Seguro de Vida: 0,038% (sobre o saldo devedor)
+- **Prazo do grupo: 90 meses** (não é 200 meses — isso é do imóvel)
 
-**Único ponto ainda em aberto:** o prazo do grupo de automóvel não foi
-confirmado — o "200 meses" usado antes era do card de Imóveis na mesma peça,
-não pode ser assumido pro automóvel (a conta com os valores reais sugere que
-a tabela mistura mais de um plano/prazo). Ver
-[`dados-tabela-automovel.md`](./dados-tabela-automovel.md).
+Dados completos e fechados. Ver [`dados-tabela-automovel.md`](./dados-tabela-automovel.md).
 
 ## Guia do Consórcio Porto Bank (fonte para conteúdo educativo)
 
@@ -82,9 +80,9 @@ Sem isso a peça configura publicidade incompleta perante o consumidor (CDC).
 | # | Peça | Status |
 |---|---|---|
 | 1 | Post feed — Imóvel (Acelera Agosto) | ✅ pronto (falta confirmar taxa acima de R$560 mil) |
-| 2 | Post feed — Automóvel (Acelera Agosto) | ✅ pronto (falta confirmar o prazo do grupo) |
+| 2 | Post feed — Automóvel (Acelera Agosto) | ✅ pronto |
 | 3 | Stories — Imóvel (5 slides) | ✅ pronto |
-| 4 | Stories — Automóvel (5 slides) | ✅ pronto (falta confirmar o prazo do grupo) |
+| 4 | Stories — Automóvel (5 slides) | ✅ pronto |
 | 5 | Post — Prova social | ⚠️ template pronto, falta depoimento/números reais |
 | 6 | Post — Como funciona o consórcio | ✅ pronto |
 | 7 | Post — Consórcio x Financiamento | ✅ pronto |
@@ -93,8 +91,6 @@ Sem isso a peça configura publicidade incompleta perante o consumidor (CDC).
 
 - [ ] Confirmar taxa administrativa do consórcio de imóvel para créditos acima
       de R$ 560 mil (faixa nova, só aparece na campanha "Acelera Agosto")
-- [ ] Confirmar o prazo do grupo de automóvel (não usar "200 meses", que é do
-      imóvel) — a tabela parece misturar planos com prazos diferentes
 - [ ] Reunir insumo real para a prova social (depoimento de cliente ou
       números da Quadrata) — ver `05-post-prova-social.md`
 - [ ] Validar textos de rodapé/legal com compliance antes de publicar

@@ -3,13 +3,28 @@
 Fonte: material promocional "Acelera Agosto" (Porto Bank), válido até **18/08**.
 Lance embutido de 30%. Lances livres, fixos e sorteios.
 
-> ⚠️ Prazo do grupo não confirmado para automóvel. O "200 meses" usado antes
-> era o badge que aparece só do lado do card de Imóveis na mesma peça — não
-> dá pra assumir que vale também pro automóvel. Conferindo a conta com os
-> dados reais abaixo (crédito × (1 + taxa adm + fundo reserva) ÷ prazo), o
-> prazo implícito varia entre as linhas da tabela (~78 a ~109 meses), o que
-> sugere que a peça reúne mais de um plano/prazo na mesma grade. Não usar
-> "200 meses" pro automóvel até a Porto Bank confirmar o prazo por faixa.
+## Plano confirmado (fonte: cotação real no sistema Porto Bank, 05/08)
+
+Plano/Campanha selecionado: **"AUT M TX15,20% FR2% RED50%"** — o próprio
+código do plano já entrega a taxa administrativa e confere com os demais
+campos da cotação (crédito de R$ 100.000, parcela R$ 695,54):
+
+| Item | Valor |
+|---|---|
+| Produto | Automóvel |
+| Prazo do grupo | **90 meses** |
+| Tipo do grupo | Em formação |
+| Taxa de Administração | **15,20%** |
+| Taxa de Administração antecipada | 0% |
+| Redutor (parcela reduzida até a contemplação) | 50% |
+| Fundo de Reserva | 2% |
+| Seguro de Vida | 0,038% (sobre o saldo devedor) |
+| Lance embutido | 30% |
+| Lance fixo | 0% (não oferecido nesse plano) |
+
+Isso **corrige o rodapé usado antes** (que trazia Taxa de Administração de
+18%, vinda de uma consulta anterior menos específica) e **resolve o prazo do
+grupo**, que não era 200 meses (isso é do imóvel) — é **90 meses**.
 
 ## Condições da campanha "Acelera Agosto"
 
@@ -28,29 +43,26 @@ Lance embutido de 30%. Lances livres, fixos e sorteios.
 | R$ 150.000 | R$ 1.870 | R$ 938 |
 | R$ 200.000 | R$ 2.209 | R$ 1.100 |
 
-## Rodapé legal — dados reais do grupo (fonte: consulta ao sistema Porto Bank, 05/08)
+## Rodapé legal — versão final
 
-Com isso, o rodapé do Post 2 e dos Stories de automóvel está completo:
-
-| Item | Valor |
-|---|---|
-| Taxa de Administração | 18% |
-| Taxa de Adesão | 0% |
-| Fundo de Reserva | 2% |
-| Seguro de Vida | 0,038% (sobre o saldo devedor) |
-| Seguro Garantia | 0% |
-| Seguro Desemprego | 0% |
-| Participantes do grupo | 600 |
+- Taxa de Administração: **15,20%**
+- Fundo de Reserva: **2%**
+- Seguro de Vida: **0,038%** (sobre o saldo devedor)
+- Prazo do grupo: **90 meses**
+- Redutor: parcela reduzida em 50% até a contemplação
 
 Isso também resolve a divergência com o Guia do Consórcio (mar/23): o
 0,038% batendo com o valor já usado na tabela de imóvel confirma que é esse
-o percentual vigente hoje — os 0,031%/0,035% do guia de 2023 estão
-desatualizados.
+o percentual de Seguro de Vida vigente hoje — os 0,031%/0,035% do guia de
+2023 estão desatualizados.
 
-Ainda não identificado: o campo "Fundo de Aquisição: 1,147111" que veio junto
-nessa consulta — não parece ser percentual de taxa (valor não bate com nenhum
-padrão de %), possivelmente um índice interno de reajuste. Não usar no
-rodapé até confirmar o que representa.
+Atualização anual do crédito pelo IPCA (Índice Nacional de Preços ao
+Consumidor Amplo), conforme a tela de cotação.
+
+Ainda não identificado: o campo "Fundo de Aquisição: 1,147111" que veio numa
+consulta anterior — não parece ser percentual de taxa, possivelmente um
+índice interno de reajuste. Não usar no rodapé até confirmar o que representa
+(não bloqueia a publicação).
 
 ## Nota — tabela de imóveis "Acelera Agosto"
 

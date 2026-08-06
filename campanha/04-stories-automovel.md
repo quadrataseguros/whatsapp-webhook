@@ -1,9 +1,8 @@
 # Stories — Consórcio de Automóvel (5 slides)
 
-Rodapé legal completo: Taxa Adm 18%, Fundo de Reserva 2%, Seguro de Vida
-0,038% (ver [`dados-tabela-automovel.md`](./dados-tabela-automovel.md)). Único
-ponto em aberto: prazo do grupo, ainda não confirmado — evitar citar um
-número de meses específico até confirmar.
+Peça fechada. Plano confirmado: Taxa Adm 15,20%, Fundo de Reserva 2%, Seguro
+de Vida 0,038%, prazo do grupo 90 meses (ver
+[`dados-tabela-automovel.md`](./dados-tabela-automovel.md)).
 
 Formato: 1080×1920 (9:16) · mesma paleta/tipografia do Post 2.
 
@@ -21,7 +20,8 @@ Fundo: SUV/sedã ao entardecer, texto centralizado.
 O consórcio de automóvel Porto Bank
 funciona diferente do financiamento:
 sem juros, com parcela reduzida em
-50% até a contemplação.
+50% até a contemplação. Grupo de
+90 meses.
 ```
 
 ## Slide 3 — Números
@@ -35,7 +35,7 @@ Crédito de R$ 150.000 → parcela reduzida de R$ 938
 
 Até 18/08: 5% de desconto na taxa
 administrativa (10% pra cliente Porto).
-Taxa Adm 18% · Fundo de Reserva 2% ·
+Taxa Adm 15,20% · Fundo de Reserva 2% ·
 Seguro de Vida 0,038% · consulte o Regulamento.
 ```
 

@@ -1,13 +1,9 @@
 # Post 2 — Feed · Consórcio de Automóvel
 
-Rodapé legal completo: Taxa Adm 18%, Fundo de Reserva 2%, Seguro de Vida
-0,038% (fonte: consulta ao sistema Porto Bank, 05/08 — ver
-[`dados-tabela-automovel.md`](./dados-tabela-automovel.md)).
-
-> ⚠️ Único ponto em aberto: o **prazo do grupo** de automóvel não foi
-> confirmado (não usar "200 meses" — isso é do imóvel). Como o prazo não
-> entra no rodapé legal obrigatório, não bloqueia a publicação, mas evitar
-> mencionar prazo específico na arte/legenda até confirmar.
+Peça fechada. Plano confirmado por cotação real no sistema Porto Bank
+("AUT M TX15,20% FR2% RED50%"): Taxa Adm **15,20%**, Fundo de Reserva **2%**,
+Seguro de Vida **0,038%**, prazo do grupo **90 meses**. Ver
+[`dados-tabela-automovel.md`](./dados-tabela-automovel.md).
 
 Formato: 1080×1350 (4:5) · Fonte de dados: [`dados-tabela-automovel.md`](./dados-tabela-automovel.md)
 
@@ -33,8 +29,8 @@ O carro que você quer,
 com a parcela que faz sentido.
 
 [SUBHEADLINE]
-Consórcio de automóvel e pesados Porto Bank: parcela
-reduzida em 50% até a contemplação.
+Consórcio de automóvel Porto Bank: grupo de 90 meses,
+parcela reduzida em 50% até a contemplação.
 
 [SELO]
 Acelera Agosto — 5% de desconto na taxa administrativa
@@ -48,10 +44,11 @@ até 18/08. Cliente Porto tem +10% de desconto.
 • Crédito de R$ 200.000  →  parcela reduzida de R$ 1.100
 
 [RODAPÉ — obrigatório]
-Taxa Adm 18%, diluída no plano. Fundo de Reserva 2%. Seguro de Vida 0,038%
-sobre o saldo devedor. Parcela reduzida em 50% válida até a contemplação,
-depois compensada nas parcelas seguintes. Desconto de 5% na taxa
-administrativa válido até 18/08. Consulte o Regulamento.
+Taxa Adm 15,20%, diluída no plano. Fundo de Reserva 2%. Seguro de Vida
+0,038% sobre o saldo devedor. Grupo de 90 meses. Parcela reduzida em 50%
+válida até a contemplação, depois compensada nas parcelas seguintes.
+Desconto de 5% na taxa administrativa válido até 18/08. Consulte o
+Regulamento.
 
 [CTA]
 Fale com a Quadrata Seguros • Solicite uma simulação
