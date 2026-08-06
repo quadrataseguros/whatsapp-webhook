@@ -12,13 +12,16 @@ Formato: 1080×1350 (4:5)
 
 ### Prompt de imagem (fundo)
 ```
-Photorealistic editorial portrait of a happy Brazilian couple/family in front
-of their new home, golden hour lighting, candid genuine expression (not
-stock-photo smiling), warm and authentic mood, shallow depth of field,
-35mm lens, magazine-style photography, 4:5 aspect ratio, negative space at
-the bottom for a quote overlay.
+Photorealistic candid portrait of a real Brazilian couple/family in front of
+their new home, natural daytime lighting (not golden hour, not staged),
+genuine relaxed expression (not stock-photo smiling), sober and light mood,
+shallow depth of field, 4:5 aspect ratio, negative space at the bottom for
+a quote overlay.
 --ar 4:5
 ```
+
+> Melhor ainda: usar uma foto real do cliente (com autorização), em vez de
+> gerada por IA — prova social pede o rosto de alguém de verdade.
 
 ### Texto na arte
 ```

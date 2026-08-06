@@ -7,12 +7,13 @@ Formato: 1080×1350 (4:5) · Fonte de dados: [`dados-tabela-imovel.md`](./dados-
 ## Prompt de imagem (fundo)
 
 ```
-Photorealistic architectural photography of a modern luxury Brazilian house at
-dusk. Clean contemporary geometry, warm architectural ambient lighting, large
-glass windows showing a cozy illuminated interior, natural wood and concrete
-elements, manicured garden. Soft romantic atmosphere, aspirational home concept.
-Shot on 35mm lens, high resolution, editorial architectural magazine style,
-4:5 aspect ratio, clean background space at the top and bottom for text placement.
+Photorealistic candid photo of a real Brazilian couple in front of their new
+middle-class house, daytime, natural soft daylight (not golden hour, not
+staged), genuine warm smile, one of them holding house keys. Simple suburban
+house facade, small garden, everyday realistic setting — not a luxury
+mansion. Sober and light mood, editorial-lifestyle style (like a real
+photo, not a stock-photo pose), shallow depth of field, 4:5 aspect ratio,
+clean negative space at the top for text placement.
 --ar 4:5
 ```
 

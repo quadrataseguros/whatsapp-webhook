@@ -11,7 +11,7 @@ Quanto você acha que precisa
 pagar por mês pra ter
 uma casa nova?
 ```
-Fundo: foto da fachada/varanda ao entardecer, texto centralizado, sem CTA ainda.
+Fundo: foto real e sóbria de família em frente à casa, luz do dia, texto centralizado, sem CTA ainda.
 
 ## Slide 2 — Contexto
 
@@ -45,7 +45,7 @@ Bloco de valores em destaque azul claro, rodapé legal em fonte menor mas legív
 Não é sobre esperar a hora certa.
 É sobre começar do jeito certo.
 ```
-Fundo: foto de interior aconchegante (varanda/sala), texto curto e centralizado.
+Fundo: foto real de sala/varanda em luz do dia, ambiente simples e leve, texto curto e centralizado.
 
 ## Slide 5 — CTA com sticker
 

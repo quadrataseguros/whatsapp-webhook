@@ -4,10 +4,9 @@
 
 **"O bem que você quer, com a parcela que faz sentido."**
 
-Linha aspiracional, não panfleto de tabela. Visual editorial e realista (fotografia
-de arquitetura/automotiva, não ilustração cartoon), mantendo a identidade Quadrata.
-Tom de voz natural e vendedor — sem clichês de IA ("aproveite essa oportunidade
-imperdível", "não perca tempo", etc.).
+Linha aspiracional, não panfleto de tabela. Fotografia realista, mantendo a
+identidade Quadrata. Tom de voz natural e vendedor — sem clichês de IA
+("aproveite essa oportunidade imperdível", "não perca tempo", etc.).
 
 ## Identidade visual
 
@@ -19,6 +18,21 @@ imperdível", "não perca tempo", etc.).
 | Destaques / valores | Azul claro `#38BDF8` |
 | Headline | Serifada elegante (Playfair Display ou Cinzel) |
 | Corpo / tabelas | Sans-serif limpa (Inter, Montserrat ou Helvetica) |
+
+## Diretriz de fotografia (atualizada 06/08)
+
+Imagens **mais sóbrias, reais e leves** — baseado em referências que o
+cliente aprovou (famílias reais em cenas do dia a dia, luz natural do dia) e
+nas próprias peças da Porto Bank (fundo escuro limpo, foto de produto sem
+excesso de elementos). Isso substitui a direção anterior de fotografia
+editorial de luxo em "golden hour":
+
+- Pessoas reais, expressão genuína — não pose de banco de imagens
+- Luz do dia natural, não "golden hour" dramático nem cenário de luxo
+- Cenas do cotidiano (casa simples, carro de família), não mansão/SUV premium
+- Composição limpa, sem elementos de sobra — "leve"
+
+Prompts de imagem em cada post já foram atualizados nessa linha.
 
 ## Dados de base — Consórcio de Imóvel (Porto Bank)
 

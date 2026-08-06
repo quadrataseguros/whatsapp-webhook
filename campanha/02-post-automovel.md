@@ -10,12 +10,21 @@ Formato: 1080×1350 (4:5) · Fonte de dados: [`dados-tabela-automovel.md`](./dad
 ## Prompt de imagem (fundo)
 
 ```
-Photorealistic commercial photography of a modern luxury SUV parked on a clean
-suburban street or upscale driveway at twilight. Soft city ambient lighting,
-cinematic reflection on the glossy metallic finish of the car, stylish and
-aspirational mood, warm tone. Professional automotive photography style,
-editorial luxury ad visual, 4:5 aspect ratio, clear negative space at the
-bottom for typography. --ar 4:5
+Photorealistic candid photo of a real Brazilian mother and her young daughter
+inside a mid-size car, daytime, natural daylight coming through the window,
+genuine warm laughter, seatbelt on, everyday family moment — not a staged
+studio shot. Simple, realistic car interior, sober and light mood,
+editorial-lifestyle style, shallow depth of field, 4:5 aspect ratio, clean
+negative space at the bottom for typography.
+--ar 4:5
+```
+
+Alternativa (se a peça for focar em veículos pesados/frota):
+```
+Photorealistic daytime photo of mid-size trucks on a highway, soft natural
+daylight, realistic and sober industrial mood — not dramatic or moody.
+4:5 aspect ratio, clean negative space at the bottom for typography.
+--ar 4:5
 ```
 
 ## Texto na arte

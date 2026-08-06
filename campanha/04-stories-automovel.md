@@ -12,7 +12,7 @@ Formato: 1080×1920 (9:16) · mesma paleta/tipografia do Post 2.
 E se trocar de carro não
 dependesse de juros?
 ```
-Fundo: SUV/sedã ao entardecer, texto centralizado.
+Fundo: foto real de família dentro do carro, luz do dia, texto centralizado.
 
 ## Slide 2 — Contexto
 
@@ -45,7 +45,7 @@ Seguro de Vida 0,038% · consulte o Regulamento.
 O carro que você quer não precisa
 esperar o financiamento fechar.
 ```
-Fundo: detalhe do carro (reflexo, farol, interior), texto curto.
+Fundo: detalhe real e sóbrio do carro em luz do dia (interior, mãos no volante), texto curto.
 
 ## Slide 5 — CTA com sticker
 
