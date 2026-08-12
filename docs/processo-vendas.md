@@ -37,7 +37,66 @@ Prospecção → Qualificação → Cotação → Negociação/Fechamento
 
 ---
 
-## 3. Regra de transbordo (quando a demanda passa do limite)
+## 3. Estrutura e liderança
+
+> Inspirado no pilar "Time e Cultura de Alta Performance": estrutura, liderança e
+> remuneração organizadas pra que o desempenho dependa do sistema — não da cobrança
+> direta do Fabricio no dia a dia.
+
+### Organograma
+
+```
+Fabricio (dono)
+  │
+  ├── Dyovanna — líder comercial do dia a dia
+  │     ├── Ana Clara — coordenação administrativa/tarefas
+  │     └── Alana — backoffice + vendas em formação
+  │
+  ├── Pamela — vendas Saúde (autônoma) + referência de treinamento
+  │
+  └── Manuela — sinistro/assistência (autônoma)
+```
+
+### Dyovanna como líder comercial formal
+
+Ela já puxa o time informalmente; a mudança é dar clareza sobre o que ela decide
+sozinha e o que sobe pro Fabricio — tirando dele a cobrança direta do dia a dia.
+
+**Decide sozinha:**
+- Distribuir as tarefas do dia entre Ana Clara e Alana (usando a regra de transbordo da seção 4).
+- Definir prioridade de atendimento entre os clientes do dia.
+- Resolver dúvidas de produto/processo do time.
+- Pequenos ajustes de prazo com o cliente.
+
+**Escala para o Fabricio:**
+- Negociações grandes/complexas ou exceções comerciais (descontos, condições fora do padrão).
+- Problemas recorrentes de desempenho ou de faltas.
+- Decisões de remuneração/comissão.
+- Qualquer coisa que trave o funil por mais de alguns dias sem solução.
+
+### Cadência de acompanhamento
+
+- Alinhamento rápido diário (5–10 min): Dyovanna com Ana Clara e Alana, pra distribuir o dia.
+- Reunião semanal: Dyovanna + Fabricio, reportando gargalos e repassando decisões que exigem ele.
+- Reunião semanal geral do funil (ver seção 6) continua valendo pra equipe toda.
+
+### Caminho de crescimento dentro da estrutura
+
+- **Ana Clara**: de apoio em renovação pra coordenação administrativa formal — pode virar um título de "Coordenadora" se o piloto (seção 5) funcionar.
+- **Alana**: de backoffice pra vendedora plena — o piloto na loja de veículos é o primeiro passo dessa trilha.
+- **Pamela**: mantém autonomia em Saúde e ganha peso formal como referência técnica de treinamento pro time todo.
+- **Manuela**: segue autônoma em sinistro — não entra na hierarquia comercial porque a natureza do trabalho (pós-venda/suporte) é diferente.
+
+### Remuneração
+
+Como já existe uma tabela de comissão estruturada por produto/pessoa, ela não muda
+aqui. Fica pendente pra próxima rodada: revisar se a comissão da Ana Clara e da
+Alana já reflete os novos papéis (coordenação e piloto na loja), e se faz sentido
+um variável específico pra Dyovanna pela liderança do time — não só pela venda dela.
+
+---
+
+## 4. Regra de transbordo (quando a demanda passa do limite)
 
 Quando Dyovanna (ou qualquer vendedor) estiver sobrecarregada, a tarefa é redirecionada
 conforme o tipo, não fica acumulada com quem já está no limite:
@@ -50,7 +109,7 @@ Objetivo: liberar Dyovanna para focar em atendimento e fechamento, e não em tar
 
 ---
 
-## 4. Plano de ação por pessoa
+## 5. Plano de ação por pessoa
 
 **Dyovanna**
 - Treinamento curto de atendimento ao cliente e técnicas de persuasão (abordagem, contorno de objeção, follow-up).
@@ -76,16 +135,18 @@ Objetivo: liberar Dyovanna para focar em atendimento e fechamento, e não em tar
 
 ---
 
-## 5. Rotina de gestão sugerida
+## 6. Rotina de gestão sugerida
 
 - Reunião semanal curta (15–20 min): revisar funil, gargalos e redistribuir tarefas que excederam.
 - Indicadores simples de acompanhar: nº de cotações, taxa de conversão, apólices em atraso, tempo de resposta ao cliente.
 
 ---
 
-## 6. Próximos passos a validar
+## 7. Próximos passos a validar
 
 1. Definir parceria, horário e comissionamento do piloto da Alana na loja de veículos.
 2. Montar o checklist de tarefas administrativas que a Ana Clara vai assumir na coordenação.
 3. Pamela estruturar 1 treinamento por mês pra equipe (venda e persuasão).
 4. Agendar o treinamento de atendimento/persuasão da Dyovanna e revisar o que será delegado.
+5. Validar com a Dyovanna o novo papel de liderança formal (o que ela decide sozinha x o que escala pro Fabricio).
+6. Revisar a tabela de comissão pra refletir os novos papéis: coordenação da Ana Clara, piloto da Alana e liderança da Dyovanna.
