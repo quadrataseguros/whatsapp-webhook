@@ -179,13 +179,59 @@ seção 7.
 
 ---
 
-## 7. Próximos passos a validar
+## 7. Remuneração e incentivo
+
+> Framework de regras — os percentuais ficam como `[%]` (placeholder) pra vocês
+> preencherem com a tabela de comissão que já usam hoje. O que muda aqui não é o
+> valor, é formalizar quem tem direito a quê conforme os novos papéis.
+
+### Princípios
+
+- Fixo garante estabilidade; variável recompensa resultado — ninguém deve depender só de cobrança pra performar.
+- Quem fecha a venda recebe a comissão da venda; papéis de apoio (coordenação, backoffice) têm o ganho ligado ao próprio indicador (seção 6), não ao resultado alheio.
+- Mudança de papel (ex.: piloto virar posição fixa) vem sempre acompanhada de ajuste na régua de remuneração, não só de título.
+
+### Comissão por venda (papel: vendedor)
+
+| Produto | Quem vende hoje | Comissão |
+|---|---|---|
+| Auto (novo + renovação) | Dyovanna, Ana Clara (renovação), Alana (piloto loja) | `[%]` |
+| Residencial | Dyovanna | `[%]` |
+| Fiança Locatícia | Dyovanna | `[%]` |
+| Saúde | Pamela | `[%]` |
+
+*(preencher com a tabela já existente — aqui só formaliza quem tem direito a cada linha)*
+
+### Override de liderança — Dyovanna
+
+- Além da comissão pelas vendas dela, um percentual `[%]` sobre o resultado do time que ela lidera direto (Ana Clara + Alana), pago só quando bate a meta combinada da seção 6.
+- Remunera o trabalho de distribuir tarefa e resolver gargalo, sem competir com a comissão de quem vendeu.
+
+### Alana — piloto na loja de veículos
+
+- Mantém o fixo do backoffice (cadastro, parcelas, arquivo).
+- Enquanto estiver atendendo na loja, entra na régua de comissão de vendedor (linha de Auto acima) pelas vendas que fizer lá — comissão normal, não bônus fixo.
+- Se o piloto virar posição fixa, reavaliar a proporção do fixo do backoffice (ela vai ter menos tempo pra tarefa administrativa).
+
+### Ana Clara — coordenação
+
+- Mantém o fixo e a comissão de renovação que já tem hoje.
+- Coordenar tarefas do time não gera comissão (não é venda) — o reconhecimento desse trabalho já está coberto na cultura (seção 6) e no caminho pra "Coordenadora" (seção 3).
+
+### Regra de conflito (venda com mais de uma pessoa envolvida)
+
+- Quando mais de uma pessoa participa da venda (ex.: Ana Clara identifica a renovação, Dyovanna fecha o valor), a divisão da comissão segue regra combinada previamente — não é decidida caso a caso depois do fechamento, pra evitar atrito.
+
+---
+
+## 8. Próximos passos a validar
 
 1. Definir parceria, horário e comissionamento do piloto da Alana na loja de veículos.
 2. Montar o checklist de tarefas administrativas que a Ana Clara vai assumir na coordenação.
 3. Pamela estruturar 1 treinamento por mês pra equipe (venda e persuasão).
 4. Agendar o treinamento de atendimento/persuasão da Dyovanna e revisar o que será delegado.
 5. Validar com a Dyovanna o novo papel de liderança formal (o que ela decide sozinha x o que escala pro Fabricio).
-6. Revisar a tabela de comissão pra refletir os novos papéis: coordenação da Ana Clara, piloto da Alana e liderança da Dyovanna.
+6. Preencher os percentuais `[%]` da seção 7 com a tabela de comissão real, incluindo o override de liderança da Dyovanna.
 7. Levantar a linha de base de cada indicador da seção 6 (números atuais de cotação, conversão, atraso, tempo de resposta) pra depois definir meta em cima de número real.
 8. Combinar com a Alana o plano de cobertura nos dias de falta, antes de cobrar indicador dela.
+9. Definir a regra de divisão de comissão pra vendas com mais de uma pessoa envolvida (seção 7).
