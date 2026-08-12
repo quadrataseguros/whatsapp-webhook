@@ -135,10 +135,47 @@ Objetivo: liberar Dyovanna para focar em atendimento e fechamento, e não em tar
 
 ---
 
-## 6. Rotina de gestão sugerida
+## 6. Cultura e indicadores
 
-- Reunião semanal curta (15–20 min): revisar funil, gargalos e redistribuir tarefas que excederam.
-- Indicadores simples de acompanhar: nº de cotações, taxa de conversão, apólices em atraso, tempo de resposta ao cliente.
+> Objetivo: disciplina e previsibilidade sustentadas por números claros e rituais
+> fixos — não por cobrança pessoal do Fabricio no dia a dia.
+
+### Comportamentos que a equipe reforça
+
+- Falar a real com o cliente, sem empurrar produto que não serve pra ele.
+- Pedir ajuda no gargalo, em vez de deixar a tarefa acumular até virar problema.
+- Repassar a informação pra quem assume o próximo passo do funil, em vez de guardar.
+
+### Indicadores por pessoa/função
+
+| Pessoa | Indicador principal | Frequência |
+|---|---|---|
+| Dyovanna | nº de cotações e taxa de conversão (Auto, Residencial, Fiança) | semanal |
+| Ana Clara | renovações concluídas no prazo; tarefas coordenadas sem atraso | semanal |
+| Alana | apólices cadastradas em dia; parcelas em atraso resolvidas | semanal |
+| Pamela | nº de cotações e taxa de conversão (Saúde) | semanal |
+| Manuela | tempo médio de resposta em sinistro; casos resolvidos | semanal |
+| Time todo | tempo médio de resposta ao cliente | semanal |
+
+Linha de base (o quanto cada indicador vale hoje) ainda precisa ser levantada — ver
+seção 7.
+
+### Rituais
+
+- **Diário** (5–10 min): Dyovanna com Ana Clara e Alana, distribuindo o dia (seção 3).
+- **Semanal** (15–20 min): time todo revisa os indicadores acima, gargalos e redistribui tarefas que excederam.
+- **Mensal**: Fabricio + Dyovanna revisam o panorama do mês (conversão, atrasos, faltas) e ajustam prioridades do mês seguinte.
+- **Trimestral**: conversa individual de desenvolvimento — checar o avanço do plano de ação de cada um (seção 5): piloto da Alana, coordenação da Ana Clara, etc.
+
+### Reconhecimento
+
+- Simples e visível: mencionar o destaque da semana/mês na reunião (quem mais converteu, quem resolveu atraso mais rápido, etc.).
+- Avanço de papel (ex.: Ana Clara virar "Coordenadora" formalmente, Alana sair do piloto pra uma vaga fixa na loja) fica atrelado a indicador objetivo batido, não só à percepção.
+
+### Faltas e imprevistos (ex.: Alana)
+
+- Antes de cobrar indicador, a meta é combinada com a carga horária real dela (dias fixos/meio período definidos na seção 5) — não com a de quem está em tempo integral.
+- Combinar de antemão quem cobre o essencial do dia dela quando falta, pra não travar o cadastro/parcelas em atraso.
 
 ---
 
@@ -150,3 +187,5 @@ Objetivo: liberar Dyovanna para focar em atendimento e fechamento, e não em tar
 4. Agendar o treinamento de atendimento/persuasão da Dyovanna e revisar o que será delegado.
 5. Validar com a Dyovanna o novo papel de liderança formal (o que ela decide sozinha x o que escala pro Fabricio).
 6. Revisar a tabela de comissão pra refletir os novos papéis: coordenação da Ana Clara, piloto da Alana e liderança da Dyovanna.
+7. Levantar a linha de base de cada indicador da seção 6 (números atuais de cotação, conversão, atraso, tempo de resposta) pra depois definir meta em cima de número real.
+8. Combinar com a Alana o plano de cobertura nos dias de falta, antes de cobrar indicador dela.
