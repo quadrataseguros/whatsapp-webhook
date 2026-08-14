@@ -1140,7 +1140,7 @@ app.post("/api/ro-goals", requireAdmin, (req, res) => {
   `).run(
     salesperson_id, period_type,
     min_sales ?? 0,
-    min_commission ?? 16.0,
+    min_commission ?? COMISSAO_PADRAO_PCT,
     bonus_value ?? 0
   );
   res.json({ ok: true });
@@ -1156,7 +1156,7 @@ app.get("/api/ro-stats", (req, res) => {
            COALESCE(SUM(s.value), 0)                                           AS total_value,
            COALESCE(SUM(s.value * COALESCE(s.commission_pct,0) / 100), 0)     AS total_commission,
            COALESCE(rg.min_sales,      0)    AS min_sales,
-           COALESCE(rg.min_commission, 16.0) AS min_commission,
+           COALESCE(rg.min_commission, 2.0) AS min_commission,
            COALESCE(rg.bonus_value,    0)    AS bonus_value
     FROM salespeople sp
     LEFT JOIN sales s

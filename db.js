@@ -44,7 +44,7 @@ db.exec(`
     salesperson_id INTEGER NOT NULL REFERENCES salespeople(id),
     period_type    TEXT    NOT NULL CHECK(period_type IN ('weekly','monthly')),
     min_sales      INTEGER NOT NULL DEFAULT 0,
-    min_commission REAL    NOT NULL DEFAULT 16.0,
+    min_commission REAL    NOT NULL DEFAULT 2.0,
     bonus_value    REAL    NOT NULL DEFAULT 0,
     updated_at     TEXT DEFAULT (datetime('now', 'localtime')),
     UNIQUE(salesperson_id, period_type)
