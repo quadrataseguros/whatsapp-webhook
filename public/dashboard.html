@@ -220,6 +220,11 @@ tbody td{padding:10px 14px;color:var(--t2)}
 .calc-row.net span:last-child{font-size:15px;font-weight:800}
 .calc-row.comm span:last-child{color:var(--gold);font-size:16px;font-weight:800}
 .calc-row.comm span:first-child{font-weight:600;color:var(--t1)}
+.calc-aviso{font-size:11.5px;line-height:1.45;color:#92400e;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.25);border-radius:7px;padding:7px 10px;margin-top:9px}
+.calc-aviso strong{font-weight:700}
+
+/* aviso de estorno no resumo */
+.estorno-nota{font-size:11px;color:var(--t3);line-height:1.45;margin-top:6px}
 </style>
 </head>
 <body>
@@ -282,6 +287,7 @@ tbody td{padding:10px 14px;color:var(--t2)}
       <div class="sc-lbl">Comissão Total Est.</div>
       <div class="sc-val" id="sComm" style="color:var(--gold)">—</div>
       <div class="sc-sub" id="sCommSub"></div>
+      <div class="estorno-nota">Sujeita a estorno proporcional em cancelamentos antes de 8 meses.</div>
     </div>
   </div>
 
@@ -484,6 +490,7 @@ tbody td{padding:10px 14px;color:var(--t2)}
           <div class="calc-row"><span id="calcIofLbl">IOF</span><span id="calcIof">—</span></div>
           <div class="calc-row net"><span>Prêmio líquido</span><span id="calcNet">—</span></div>
           <div class="calc-row comm"><span id="calcCommLbl">Comissão</span><span id="calcComm">—</span></div>
+          <div class="calc-aviso">⚠ Sujeita a <strong>estorno proporcional</strong> se o seguro for cancelado antes de 8 meses.</div>
         </div>
 
         <div class="fg">
