@@ -832,6 +832,64 @@ app.post("/webhook", async (req, res) => {
   }
 });
 
+// ─── Regras da operação Quadrata × Piscinão Veículos ──────────────────────────
+// O vendedor digita o prêmio bruto (o que o cliente paga). O IOF é abatido
+// automaticamente para chegar ao prêmio líquido (PL), que é a base da comissão.
+
+// Alíquotas de IOF sobre seguros, por ramo (legislação federal).
+const IOF_POR_RAMO = {
+  "Vida": 0.38,
+  "Acidentes Pessoais": 0.38,
+  "Saúde": 2.38,
+};
+const IOF_PADRAO = 7.38; // demais ramos (auto, residencial, empresarial…)
+
+// Seguradoras com comissão diferenciada nesta parceria.
+const COMISSAO_MAJORADA = ["porto", "azul", "itau", "itaú"];
+const COMISSAO_MAJORADA_PCT = 4.0;
+const COMISSAO_PADRAO_PCT = 2.0;
+
+function iofDoRamo(ramo) {
+  return IOF_POR_RAMO[ramo] !== undefined ? IOF_POR_RAMO[ramo] : IOF_PADRAO;
+}
+
+function comissaoDaSeguradora(seguradora) {
+  const s = (seguradora || "").toLowerCase();
+  return COMISSAO_MAJORADA.some((p) => s.includes(p))
+    ? COMISSAO_MAJORADA_PCT
+    : COMISSAO_PADRAO_PCT;
+}
+
+// Prêmio bruto → líquido: o IOF incide sobre o líquido, então bruto = líquido × (1 + iof).
+function calcularVenda(grossValue, ramo, seguradora) {
+  const iof_pct = iofDoRamo(ramo);
+  const net = grossValue / (1 + iof_pct / 100);
+  const commission_pct = comissaoDaSeguradora(seguradora);
+  return {
+    gross_value: parseFloat(grossValue.toFixed(2)),
+    net_value: parseFloat(net.toFixed(2)),
+    iof_pct,
+    commission_pct,
+    commission_value: parseFloat((net * commission_pct / 100).toFixed(2)),
+  };
+}
+
+app.get("/api/config", (_req, res) => {
+  res.json({
+    iofPorRamo: IOF_POR_RAMO,
+    iofPadrao: IOF_PADRAO,
+    comissaoPadrao: COMISSAO_PADRAO_PCT,
+    comissaoMajorada: COMISSAO_MAJORADA_PCT,
+    seguradorasMajoradas: ["PORTO", "AZUL", "ITAÚ"],
+  });
+});
+
+app.get("/api/simular-venda", (req, res) => {
+  const gross = parseFloat(req.query.value);
+  if (!gross || gross <= 0) return res.status(400).json({ error: "Valor inválido" });
+  res.json(calcularVenda(gross, req.query.ramo || "", req.query.seguradora || ""));
+});
+
 // ─── Dashboard API ────────────────────────────────────────────────────────────
 
 function getAdminPassword() {
@@ -1015,13 +1073,19 @@ app.get("/api/sales/all", requireAdmin, (req, res) => {
 });
 
 app.post("/api/sales", (req, res) => {
-  const { salesperson_id, value, ramo, seguradora, sale_date, notes, commission_pct } = req.body;
+  const { salesperson_id, value, ramo, seguradora, sale_date, notes } = req.body;
   if (!salesperson_id || !value || !ramo || !seguradora || !sale_date)
     return res.status(400).json({ error: "Campos obrigatórios faltando" });
+
+  // `value` chega como prêmio bruto; o IOF e a comissão são calculados aqui.
+  const calc = calcularVenda(parseFloat(value), ramo, seguradora);
   const r = db.prepare(
-    "INSERT INTO sales (salesperson_id,value,ramo,seguradora,sale_date,notes,commission_pct) VALUES (?,?,?,?,?,?,?)"
-  ).run(salesperson_id, value, ramo, seguradora, sale_date, notes || null, commission_pct ?? 0);
-  res.json({ id: r.lastInsertRowid, ok: true });
+    "INSERT INTO sales (salesperson_id,value,gross_value,iof_pct,ramo,seguradora,sale_date,notes,commission_pct) VALUES (?,?,?,?,?,?,?,?,?)"
+  ).run(
+    salesperson_id, calc.net_value, calc.gross_value, calc.iof_pct,
+    ramo, seguradora, sale_date, notes || null, calc.commission_pct
+  );
+  res.json({ id: r.lastInsertRowid, ok: true, ...calc });
 });
 
 app.delete("/api/sales/:id", requireAdmin, (req, res) => {
@@ -1076,7 +1140,7 @@ app.post("/api/ro-goals", requireAdmin, (req, res) => {
   `).run(
     salesperson_id, period_type,
     min_sales ?? 0,
-    min_commission ?? 16.0,
+    min_commission ?? COMISSAO_PADRAO_PCT,
     bonus_value ?? 0
   );
   res.json({ ok: true });
@@ -1092,7 +1156,7 @@ app.get("/api/ro-stats", (req, res) => {
            COALESCE(SUM(s.value), 0)                                           AS total_value,
            COALESCE(SUM(s.value * COALESCE(s.commission_pct,0) / 100), 0)     AS total_commission,
            COALESCE(rg.min_sales,      0)    AS min_sales,
-           COALESCE(rg.min_commission, 16.0) AS min_commission,
+           COALESCE(rg.min_commission, 2.0) AS min_commission,
            COALESCE(rg.bonus_value,    0)    AS bonus_value
     FROM salespeople sp
     LEFT JOIN sales s
@@ -1132,6 +1196,8 @@ app.get("/api/ro-stats", (req, res) => {
 
 const SEGURADORAS = [
   { name: "PORTO",        patterns: ["porto"] },
+  { name: "AZUL",         patterns: ["azul"] },
+  { name: "ITAÚ",         patterns: ["itau", "itaú"] },
   { name: "ALLIANZ",      patterns: ["allianz"] },
   { name: "TOKIO MARINE", patterns: ["tokio"] },
   { name: "BRADESCO",     patterns: ["bradesco"] },

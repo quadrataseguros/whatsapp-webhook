@@ -492,7 +492,7 @@ function renderROGrid(people) {
           + ' data-pid="' + p.id + '" data-tipo="weekly" data-field="min_sales" style="padding-left:22px"></div>'
         + '<div class="gl">Comissão mínima %</div>'
         + '<div class="ginp-wrap" style="margin-bottom:6px"><em>%</em>'
-          + '<input type="number" min="0" max="100" step="0.1" placeholder="16.0" value="' + (gw.min_commission != null ? gw.min_commission : '') + '"'
+          + '<input type="number" min="0" max="100" step="0.1" placeholder="2.0" value="' + (gw.min_commission != null ? gw.min_commission : '') + '"'
           + ' data-pid="' + p.id + '" data-tipo="weekly" data-field="min_commission"></div>'
         + '<div class="gl">Prêmio (R$)</div>'
         + '<div class="ginp-wrap"><em>R$</em>'
@@ -508,7 +508,7 @@ function renderROGrid(people) {
           + ' data-pid="' + p.id + '" data-tipo="monthly" data-field="min_sales" style="padding-left:22px"></div>'
         + '<div class="gl">Comissão mínima %</div>'
         + '<div class="ginp-wrap" style="margin-bottom:6px"><em>%</em>'
-          + '<input type="number" min="0" max="100" step="0.1" placeholder="16.0" value="' + (gm.min_commission != null ? gm.min_commission : '') + '"'
+          + '<input type="number" min="0" max="100" step="0.1" placeholder="2.0" value="' + (gm.min_commission != null ? gm.min_commission : '') + '"'
           + ' data-pid="' + p.id + '" data-tipo="monthly" data-field="min_commission"></div>'
         + '<div class="gl">Prêmio (R$)</div>'
         + '<div class="ginp-wrap"><em>R$</em>'
@@ -576,7 +576,7 @@ document.getElementById('btnSaveRO').addEventListener('click', function() {
 });
 
 // ── Seguradoras ────────────────────────────────────────────────────────────
-var SEGURADORAS_LIST = ['PORTO','ALLIANZ','TOKIO MARINE','BRADESCO','YELLUM','HDI','SUHAI','ZURICH'];
+var SEGURADORAS_LIST = ['PORTO','AZUL','ITAÚ','ALLIANZ','TOKIO MARINE','BRADESCO','YELLUM','HDI','SUHAI','ZURICH'];
 var existingSeg = {};
 
 function initSegSelectors() {
