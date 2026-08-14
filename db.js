@@ -70,5 +70,13 @@ db.exec(`
 // Migrations
 try { db.exec('ALTER TABLE sales ADD COLUMN commission_pct REAL DEFAULT 0'); } catch (_) {}
 try { db.exec('ALTER TABLE salespeople ADD COLUMN pin TEXT'); } catch (_) {}
+// gross_value = prêmio bruto digitado (com IOF); value = prêmio líquido, base da comissão
+try { db.exec('ALTER TABLE sales ADD COLUMN gross_value REAL'); } catch (_) {}
+try { db.exec('ALTER TABLE sales ADD COLUMN iof_pct REAL DEFAULT 0'); } catch (_) {}
+
+// Equipe da operação Quadrata × Piscinão Veículos
+const EQUIPE = ['Abraão', 'Marcelo', 'Léo', 'André', 'Fernanda', 'Wallace'];
+const insertPerson = db.prepare('INSERT OR IGNORE INTO salespeople (name) VALUES (?)');
+EQUIPE.forEach((nome) => insertPerson.run(nome));
 
 module.exports = db;

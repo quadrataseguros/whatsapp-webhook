@@ -207,6 +207,19 @@ tbody td{padding:10px 14px;color:var(--t2)}
 
 /* card clickable */
 .vc{cursor:pointer}
+
+/* co-branding da parceria */
+.cobrand-x{color:var(--t3);font-weight:700;margin:0 2px}
+.logo-sub{white-space:nowrap}
+
+/* calculadora de comissão no formulário */
+.calc-box{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+.calc-row{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--t2);padding:3px 0}
+.calc-row span:last-child{font-variant-numeric:tabular-nums;font-weight:600;color:var(--t1)}
+.calc-row.net{border-top:1px solid var(--border);margin-top:5px;padding-top:7px}
+.calc-row.net span:last-child{font-size:15px;font-weight:800}
+.calc-row.comm span:last-child{color:var(--gold);font-size:16px;font-weight:800}
+.calc-row.comm span:first-child{font-weight:600;color:var(--t1)}
 </style>
 </head>
 <body>
@@ -216,13 +229,14 @@ tbody td{padding:10px 14px;color:var(--t2)}
 <header>
   <div class="hrow">
     <div class="logo">
-      <svg width="38" height="38" viewBox="0 0 40 40" style="flex-shrink:0">
-        <rect width="40" height="40" rx="10" fill="#3b82f6"/>
-        <text x="20" y="28" font-size="22" font-weight="900" fill="white" text-anchor="middle" font-family="Inter,sans-serif">Q</text>
+      <svg width="40" height="40" viewBox="0 0 40 40" style="flex-shrink:0" role="img" aria-label="Quadrata Seguros">
+        <path d="M9 3h22a7 7 0 0 1 7 7v13.5c0 .9-1.1 1.3-1.7.7L28 16.5V31a7 7 0 0 1-7 7H9a7 7 0 0 1-7-7V10a7 7 0 0 1 7-7z" fill="#2f89f5"/>
+        <circle cx="20" cy="18" r="11.4" fill="#fff"/>
+        <text x="20" y="26" font-size="20" font-weight="900" fill="#122c56" text-anchor="middle" font-family="-apple-system,Segoe UI,Roboto,sans-serif">Q</text>
       </svg>
       <div>
         <h1>Painel de Metas</h1>
-        <div class="logo-sub">Quadrata Seguros</div>
+        <div class="logo-sub">Quadrata Seguros <span class="cobrand-x">×</span> Piscinão Veículos</div>
       </div>
     </div>
     <div class="tog-wrap">
@@ -341,7 +355,7 @@ tbody td{padding:10px 14px;color:var(--t2)}
       <table>
         <thead>
           <tr>
-            <th>Data</th><th>Vendedor</th><th>Valor</th>
+            <th>Data</th><th>Vendedor</th><th>Prêmio líquido</th>
             <th>Comissão</th><th>Ramo</th><th>Seguradora</th><th>Obs.</th>
           </tr>
         </thead>
@@ -421,22 +435,12 @@ tbody td{padding:10px 14px;color:var(--t2)}
         </div>
         <div class="fg-row">
           <div class="fg">
-            <label>Valor (R$) *</label>
+            <label>Prêmio bruto (R$) *</label>
             <input type="number" id="fValor" step="0.01" min="0.01" required placeholder="0,00">
           </div>
           <div class="fg">
             <label>Data *</label>
             <input type="date" id="fData" required>
-          </div>
-        </div>
-        <div class="fg-row">
-          <div class="fg">
-            <label>Comissão (%)</label>
-            <input type="number" id="fComissao" step="0.1" min="0" max="100" placeholder="Ex: 3,5">
-          </div>
-          <div class="fg">
-            <label>&nbsp;</label>
-            <div class="comm-preview" id="commPreview"></div>
           </div>
         </div>
         <div class="fg-row">
@@ -458,14 +462,30 @@ tbody td{padding:10px 14px;color:var(--t2)}
           </div>
           <div class="fg">
             <label>Seguradora *</label>
-            <input type="text" id="fSeguradora" required placeholder="Ex: PORTO" list="segList">
-            <datalist id="segList">
-              <option value="PORTO"><option value="ALLIANZ"><option value="TOKIO MARINE">
-              <option value="BRADESCO"><option value="YELLUM"><option value="HDI">
-              <option value="SUHAI"><option value="ZURICH">
-            </datalist>
+            <select id="fSeguradora" required>
+              <option value="">Selecione…</option>
+              <option value="PORTO">Porto (4%)</option>
+              <option value="AZUL">Azul (4%)</option>
+              <option value="ITAÚ">Itaú (4%)</option>
+              <option value="ALLIANZ">Allianz</option>
+              <option value="TOKIO MARINE">Tokio Marine</option>
+              <option value="BRADESCO">Bradesco</option>
+              <option value="YELLUM">Yellum</option>
+              <option value="HDI">HDI</option>
+              <option value="SUHAI">Suhai</option>
+              <option value="ZURICH">Zurich</option>
+              <option value="OUTRA">Outra</option>
+            </select>
           </div>
         </div>
+
+        <div class="calc-box" id="calcBox">
+          <div class="calc-row"><span>Prêmio bruto</span><span id="calcBruto">—</span></div>
+          <div class="calc-row"><span id="calcIofLbl">IOF</span><span id="calcIof">—</span></div>
+          <div class="calc-row net"><span>Prêmio líquido</span><span id="calcNet">—</span></div>
+          <div class="calc-row comm"><span id="calcCommLbl">Comissão</span><span id="calcComm">—</span></div>
+        </div>
+
         <div class="fg">
           <label>Observações</label>
           <textarea id="fObs" placeholder="Opcional…"></textarea>
@@ -722,9 +742,11 @@ function renderTable(sales) {
       ? '<span class="td-comm">' + fmtR(s.value * s.commission_pct / 100) + '</span>'
         + '<div class="td-pct">' + s.commission_pct + '%</div>'
       : '<span style="color:var(--t3)">—</span>';
+    var valCell = '<span class="td-val">' + fmtR(s.value) + '</span>'
+      + (s.gross_value ? '<div class="td-pct">bruto ' + fmtR(s.gross_value) + '</div>' : '');
     html += '<tr><td>' + fmtD(s.sale_date) + '</td>'
       + '<td>' + s.salesperson_name + '</td>'
-      + '<td class="td-val">' + fmtR(s.value) + '</td>'
+      + '<td>' + valCell + '</td>'
       + '<td>' + comm + '</td>'
       + '<td>' + s.ramo + '</td>'
       + '<td>' + s.seguradora + '</td>'
@@ -862,7 +884,7 @@ function abrirModal() {
     sel.innerHTML = opts;
     document.getElementById('saleForm').reset();
     document.getElementById('fData').value = new Date().toISOString().split('T')[0];
-    document.getElementById('commPreview').textContent = '';
+    atualizarPreview();
     if (identifiedPerson) sel.value = identifiedPerson.id;
     document.getElementById('overlay').classList.add('open');
   }).catch(function() { toast('Erro ao carregar vendedores', 'err'); });
@@ -872,12 +894,46 @@ function fecharModal() {
   document.getElementById('overlay').classList.remove('open');
 }
 
+// Regras da operação (IOF por ramo + comissão por seguradora), carregadas do servidor.
+var CONFIG = { iofPorRamo: {}, iofPadrao: 7.38, comissaoPadrao: 2, comissaoMajorada: 4, seguradorasMajoradas: ['PORTO','AZUL','ITAÚ'] };
+fetch('/api/config').then(function(r) { return r.json(); }).then(function(c) { CONFIG = c; atualizarPreview(); }).catch(function() {});
+
+function iofDoRamo(ramo) {
+  return CONFIG.iofPorRamo[ramo] !== undefined ? CONFIG.iofPorRamo[ramo] : CONFIG.iofPadrao;
+}
+function comissaoDaSeguradora(seg) {
+  var s = (seg || '').toLowerCase();
+  var maj = ['porto','azul','itau','itaú'];
+  for (var i = 0; i < maj.length; i++) if (s.indexOf(maj[i]) >= 0) return CONFIG.comissaoMajorada;
+  return CONFIG.comissaoPadrao;
+}
+
 document.getElementById('fValor').addEventListener('input', atualizarPreview);
-document.getElementById('fComissao').addEventListener('input', atualizarPreview);
+document.getElementById('fRamo').addEventListener('change', atualizarPreview);
+document.getElementById('fSeguradora').addEventListener('change', atualizarPreview);
+
 function atualizarPreview() {
-  var v = parseFloat(document.getElementById('fValor').value) || 0;
-  var p = parseFloat(document.getElementById('fComissao').value) || 0;
-  document.getElementById('commPreview').textContent = (v > 0 && p > 0) ? '= ' + fmtR(v * p / 100) : '';
+  var bruto = parseFloat(document.getElementById('fValor').value) || 0;
+  var ramo  = document.getElementById('fRamo').value;
+  var seg   = document.getElementById('fSeguradora').value;
+  var iof   = iofDoRamo(ramo);
+  var comm  = comissaoDaSeguradora(seg);
+
+  document.getElementById('calcIofLbl').textContent  = 'IOF (' + iof.toString().replace('.', ',') + '%)';
+  document.getElementById('calcCommLbl').textContent = 'Comissão (' + comm + '% do PL)';
+
+  if (bruto <= 0) {
+    document.getElementById('calcBruto').textContent = '—';
+    document.getElementById('calcIof').textContent   = '—';
+    document.getElementById('calcNet').textContent   = '—';
+    document.getElementById('calcComm').textContent  = '—';
+    return;
+  }
+  var net = bruto / (1 + iof / 100);
+  document.getElementById('calcBruto').textContent = fmtR(bruto);
+  document.getElementById('calcIof').textContent   = '− ' + fmtR(bruto - net);
+  document.getElementById('calcNet').textContent   = fmtR(net);
+  document.getElementById('calcComm').textContent  = fmtR(net * comm / 100);
 }
 
 document.getElementById('saleForm').addEventListener('submit', function(e) {
@@ -888,9 +944,8 @@ document.getElementById('saleForm').addEventListener('submit', function(e) {
   var data = {
     salesperson_id: parseInt(document.getElementById('fPerson').value),
     value: parseFloat(document.getElementById('fValor').value),
-    commission_pct: parseFloat(document.getElementById('fComissao').value) || 0,
     ramo: document.getElementById('fRamo').value,
-    seguradora: document.getElementById('fSeguradora').value.trim(),
+    seguradora: document.getElementById('fSeguradora').value,
     sale_date: document.getElementById('fData').value,
     notes: document.getElementById('fObs').value.trim() || null
   };
