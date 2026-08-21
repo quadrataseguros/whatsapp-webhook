@@ -1,0 +1,37 @@
+{
+  "pixCnpj": "23.199.530/0001-06",
+  "diaVencimento": 25,
+  "meses": [
+    {
+      "mes": "Junho/2026",
+      "arquivo": "junho-2026",
+      "vencimento": "25/06/2026",
+      "itens": [
+        { "veiculo": "Troller", "parcela": "1/12", "valor": 625.54 },
+        { "veiculo": "S10", "parcela": "1/12", "valor": 474.43 },
+        { "veiculo": "Hilux", "parcela": "Última", "valor": 2660.25 },
+        { "veiculo": "SW4 (substituição)", "parcela": "1/3", "valor": 446.32 }
+      ]
+    },
+    {
+      "mes": "Julho/2026",
+      "arquivo": "julho-2026",
+      "vencimento": "25/07/2026",
+      "itens": [
+        { "veiculo": "Troller", "parcela": "2/12", "valor": 625.54 },
+        { "veiculo": "S10", "parcela": "2/12", "valor": 474.43 },
+        { "veiculo": "SW4 (substituição)", "parcela": "2/3", "valor": 446.32 }
+      ]
+    },
+    {
+      "mes": "Agosto/2026",
+      "arquivo": "agosto-2026",
+      "vencimento": "25/08/2026",
+      "itens": [
+        { "veiculo": "Troller", "parcela": "3/12", "valor": 625.54 },
+        { "veiculo": "S10", "parcela": "3/12", "valor": 474.43 },
+        { "veiculo": "SW4 (substituição)", "parcela": "Última", "valor": 446.32 }
+      ]
+    }
+  ]
+}

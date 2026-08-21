@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Parcelas Agosto/2026</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #f2f2f2;
+    font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+    color: #333;
+  }
+  .card {
+    width: 680px;
+    background: #fff;
+    padding: 20px;
+  }
+  .titulo {
+    background: #2f5496;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    text-align: center;
+    padding: 16px 12px;
+    border-radius: 4px;
+    letter-spacing: .2px;
+  }
+  table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+  th {
+    background: #d9e2f3;
+    color: #2f5496;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 12px 0;
+  }
+  th.veiculo, td.veiculo { text-align: left; padding-left: 18px; width: 45%; }
+  th.parcela, td.parcela { text-align: center; width: 25%; }
+  th.valor, td.valor { text-align: left; padding-left: 45px; width: 30%; }
+  td { font-size: 14px; padding: 14px 0; }
+  tbody tr:nth-child(odd) { background: #eff3fa; }
+  tbody tr:nth-child(even) { background: #fff; }
+  tr.total { background: #2f5496 !important; color: #fff; }
+  tr.total td { font-size: 15px; font-weight: 700; padding: 15px 0; }
+  tr.total td.rotulo { text-align: left; padding-left: 18px; }
+  tr.total td.soma { text-align: center; }
+  .rodape {
+    margin-top: 14px;
+    background: #e7f0e4;
+    color: #2f5496;
+    font-size: 12.5px;
+    font-weight: 700;
+    text-align: center;
+    padding: 12px;
+    border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+    <div class="card">
+      <div class="titulo">QUADRATA SEGUROS — Parcelas Agosto/2026</div>
+      <table>
+        <thead>
+          <tr>
+            <th class="veiculo">Veículo</th>
+            <th class="parcela">Parcela</th>
+            <th class="valor">Valor</th>
+          </tr>
+        </thead>
+        <tbody>
+        <tr>
+          <td class="veiculo">Troller</td>
+          <td class="parcela">3/12</td>
+          <td class="valor">R$ 625,54</td>
+        </tr>
+        <tr>
+          <td class="veiculo">S10</td>
+          <td class="parcela">3/12</td>
+          <td class="valor">R$ 474,43</td>
+        </tr>
+        <tr>
+          <td class="veiculo">SW4 (substituição)</td>
+          <td class="parcela">Última</td>
+          <td class="valor">R$ 446,32</td>
+        </tr>
+          <tr class="total">
+            <td class="rotulo">TOTAL</td>
+            <td class="soma" colspan="2">R$ 1.546,29</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="rodape">PIX&nbsp; CNPJ: 23.199.530/0001-06&nbsp; |&nbsp; Vencimento: 25/08/2026</div>
+    </div>
+</body>
+</html>
