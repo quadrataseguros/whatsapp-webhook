@@ -2,7 +2,7 @@
   "artboards": [
     {
       "file": "Main.dc.html",
-      "title": "Auto Flex · R$ 25.000",
+      "title": "R$ 300 mil",
       "x": 0,
       "y": 0,
       "w": 1080,
@@ -11,7 +11,7 @@
     },
     {
       "file": "CreditoMedio.dc.html",
-      "title": "Crédito Médio · R$ 60.000",
+      "title": "R$ 600 mil",
       "x": 1180,
       "y": 0,
       "w": 1080,
@@ -20,7 +20,7 @@
     },
     {
       "file": "CreditoAlto.dc.html",
-      "title": "Crédito Alto · R$ 200.000",
+      "title": "R$ 1 milhão",
       "x": 2360,
       "y": 0,
       "w": 1080,
@@ -34,7 +34,7 @@
       "x": 0,
       "y": -300,
       "w": 900,
-      "text": "Base: tabela Porto Seguro 24/04/2025, pessoa física, grupos em formação.\nParcela reduzida = crédito × (1 + taxa adm + fundo reserva 2%) ÷ prazo × 0,80.\nA redução real destes planos é de 20% (não 50% como na peça de referência, que é de consórcio de imóvel).\nATENÇÃO: a tabela é de abr/2025 — conferir valores em tabela atual antes de publicar.\nFalta preencher: [SEU WHATSAPP] nas 3 peças."
+      "text": "Campanha Quadrata — válida até 28/08. Contato (11) 98678-0000.\nTabela do redutor de 50% (créditos de R$ 300 mil a R$ 1 milhão), confirmada\npelo cliente como correta e atualizada. Redução real de 49,6% em todas as linhas.\nPeças = crédito mais baixo (300 mil), médio (600 mil) e mais alto (1 milhão).\nA tabela não traz taxa de administração nem prazo, então nada disso é afirmado\nnas peças — o rodapé remete a 'consulte condições'."
     }
   ],
   "launch": {
