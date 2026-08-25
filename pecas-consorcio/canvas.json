@@ -1,0 +1,17 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html",         "title": "Entrada · R$ 25.000",  "x": 0,    "y": 0, "w": 1080, "h": 1350, "print": "fixed" },
+    { "file": "CreditoMedio.dc.html", "title": "Médio · R$ 60.000",    "x": 1180, "y": 0, "w": 1080, "h": 1350, "print": "fixed" },
+    { "file": "CreditoAlto.dc.html",  "title": "Alto · R$ 200.000",    "x": 2360, "y": 0, "w": 1080, "h": 1350, "print": "fixed" }
+  ],
+  "annotations": [
+    {
+      "id": "origem-dos-numeros",
+      "x": 0,
+      "y": -300,
+      "w": 900,
+      "text": "Base: tabela Porto Seguro 24/04/2025, pessoa física, grupos em formação.\nParcela reduzida = crédito × (1 + taxa adm + fundo reserva 2%) ÷ prazo × 0,80.\nA redução real destes planos é de 20% (não 50% como na peça de referência, que é de consórcio de imóvel).\nFalta preencher: [SEU WHATSAPP] nas 3 peças."
+    }
+  ],
+  "launch": { "view": "canvas" }
+}

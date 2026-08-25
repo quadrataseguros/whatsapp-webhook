@@ -18,3 +18,6 @@ yarn-error.log*
 *.db
 *.db-shm
 *.db-wal
+
+# Canvas gerado das peças de consórcio (bundle de ~2,5 MB, regerável via _gerar.py)
+pecas-consorcio/consorcio-auto-porto-seguro.html
