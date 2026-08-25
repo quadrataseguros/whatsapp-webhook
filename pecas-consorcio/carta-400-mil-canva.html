@@ -1,0 +1,523 @@
+<title>Carta 400 Mil no Canva</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F4F7FB;
+    --surface: #FFFFFF;
+    --ink: #0C1F38;
+    --ink-2: #4A6079;
+    --ink-3: #7389A3;
+    --line: #DBE3EF;
+    --accent: #1B6FE0;
+    --accent-soft: #E9F1FE;
+    --warn: #8A5100;
+    --warn-soft: #FCF0DC;
+    --warn-line: #EBCF9E;
+    --paste-bg: #0F2440;
+    --paste-ink: #E7EFFA;
+    --paste-line: #23446E;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #071527;
+      --surface: #0D2138;
+      --ink: #E9F1FA;
+      --ink-2: #9DB2CA;
+      --ink-3: #7A93AF;
+      --line: #1D3A5B;
+      --accent: #61A9FF;
+      --accent-soft: #10304F;
+      --warn: #EDB258;
+      --warn-soft: #2C2210;
+      --warn-line: #4E3D18;
+      --paste-bg: #04101F;
+      --paste-ink: #DCE8F6;
+      --paste-line: #1C3A5E;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #071527;
+    --surface: #0D2138;
+    --ink: #E9F1FA;
+    --ink-2: #9DB2CA;
+    --ink-3: #7A93AF;
+    --line: #1D3A5B;
+    --accent: #61A9FF;
+    --accent-soft: #10304F;
+    --warn: #EDB258;
+    --warn-soft: #2C2210;
+    --warn-line: #4E3D18;
+    --paste-bg: #04101F;
+    --paste-ink: #DCE8F6;
+    --paste-line: #1C3A5E;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: 'IBM Plex Sans', 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 48px 24px 96px; }
+
+  /* ---------- cabeçalho ---------- */
+  .topo { display: flex; flex-direction: column; gap: 14px; padding-bottom: 28px; border-bottom: 1px solid var(--line); }
+  .eyebrow {
+    font-family: 'Archivo', Helvetica, Arial, sans-serif;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  h1 {
+    font-family: 'Archivo', Helvetica, Arial, sans-serif;
+    font-size: clamp(30px, 4.4vw, 46px); font-weight: 800; letter-spacing: -0.025em;
+    line-height: 1.08; margin: 0; text-wrap: balance;
+  }
+  .subtitulo { margin: 0; max-width: 62ch; color: var(--ink-2); font-size: 17px; }
+
+  .numeros { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+  .num {
+    display: flex; flex-direction: column; gap: 2px;
+    padding: 12px 18px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--line);
+  }
+  .num dt { font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); }
+  .num dd {
+    margin: 0; font-family: 'Archivo', Helvetica, Arial, sans-serif;
+    font-size: 22px; font-weight: 700; letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .num dd.destaque { color: var(--accent); }
+  .num dd.riscado { color: var(--ink-3); text-decoration: line-through; text-decoration-thickness: 2px; }
+
+  /* ---------- estrutura de duas colunas ---------- */
+  .colunas { display: grid; grid-template-columns: 1fr; gap: 40px; margin-top: 44px; align-items: start; }
+  @media (min-width: 1000px) { .colunas { grid-template-columns: 330px 1fr; gap: 52px; } .mapa-col { position: sticky; top: 32px; } }
+
+  .mapa-col h2, section h2 {
+    font-family: 'Archivo', Helvetica, Arial, sans-serif;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3); margin: 0 0 14px;
+  }
+  .mapa-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .mapa-card svg { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .mapa-legenda { margin: 14px 0 0; font-size: 13px; color: var(--ink-2); line-height: 1.45; }
+
+  /* ---------- blocos de campo ---------- */
+  .campos { display: flex; flex-direction: column; gap: 26px; }
+  .campo { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .campo-topo { display: flex; align-items: flex-start; gap: 14px; padding: 18px 20px 14px; }
+  .marcador {
+    flex-shrink: 0; display: grid; place-items: center;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--accent); color: #FFFFFF;
+    font-family: 'Archivo', Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 700;
+  }
+  .marcador.opcional { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent); }
+  .campo-titulo { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .campo-titulo h3 {
+    margin: 0; font-family: 'Archivo', Helvetica, Arial, sans-serif;
+    font-size: 19px; font-weight: 700; letter-spacing: -0.012em; line-height: 1.25;
+  }
+  .campo-onde { font-size: 13px; color: var(--ink-3); }
+  .campo-onde code {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px;
+    padding: 1px 5px; border-radius: 4px; background: var(--accent-soft); color: var(--accent);
+  }
+
+  .colar { position: relative; margin: 0 20px 18px; }
+  pre.texto {
+    margin: 0; padding: 16px 96px 16px 18px;
+    background: var(--paste-bg); color: var(--paste-ink);
+    border: 1px solid var(--paste-line); border-radius: 10px;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace;
+    font-size: 14.5px; line-height: 1.6;
+    white-space: pre-wrap; word-break: break-word; overflow-x: auto;
+  }
+  .btn-copiar {
+    position: absolute; top: 10px; right: 10px;
+    padding: 6px 12px; border-radius: 7px; cursor: pointer;
+    background: rgba(255, 255, 255, 0.1); color: var(--paste-ink);
+    border: 1px solid var(--paste-line);
+    font-family: 'IBM Plex Sans', Helvetica, Arial, sans-serif;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+    transition: background 120ms ease;
+  }
+  .btn-copiar:hover { background: rgba(255, 255, 255, 0.2); }
+  .btn-copiar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-copiar.ok { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+
+  .nota { margin: 0 20px 18px; font-size: 14px; color: var(--ink-2); line-height: 1.5; }
+  .nota strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- seções finais ---------- */
+  section { margin-top: 56px; }
+  section > h2 { border-bottom: 1px solid var(--line); padding-bottom: 10px; }
+
+  .opcoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+  .opcao {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .opcao .linhas {
+    font-family: 'Archivo', Helvetica, Arial, sans-serif;
+    font-size: 20px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.16;
+    text-transform: uppercase; white-space: pre-line;
+  }
+  .opcao .tom { font-size: 13px; color: var(--ink-3); }
+
+  ul.regras { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+  ul.regras li {
+    background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0; padding: 13px 18px; font-size: 15.5px;
+  }
+  ul.regras li b { font-weight: 600; }
+  mark {
+    background: var(--warn-soft); color: var(--warn);
+    padding: 1px 6px; border-radius: 4px; font-weight: 600;
+    font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13.5px;
+  }
+
+  .aviso {
+    background: var(--warn-soft); border: 1px solid var(--warn-line);
+    border-radius: 12px; padding: 18px 22px; color: var(--ink);
+  }
+  .aviso h2 { color: var(--warn); border: 0; padding: 0; margin-bottom: 10px; }
+  .aviso ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; font-size: 15px; }
+
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <header class="topo">
+    <span class="eyebrow">Roteiro de texto · Post 4:5 · 1080 × 1350</span>
+    <h1>Carta de crédito de R$ 400 mil</h1>
+    <p class="subtitulo">Cada bloco abaixo corresponde a uma caixa de texto do template <em>Navy and White Modern House for Sale</em>. Clique em copiar e cole na caixa de número igual no mapa ao lado.</p>
+    <dl class="numeros">
+      <div class="num"><dt>Crédito</dt><dd>R$ 400.000</dd></div>
+      <div class="num"><dt>Parcela tradicional</dt><dd class="riscado">R$ 2.420,00</dd></div>
+      <div class="num"><dt>Com 50% de redutor</dt><dd class="destaque">R$ 1.219,00</dd></div>
+      <div class="num"><dt>Diferença por mês</dt><dd>R$ 1.201,00</dd></div>
+      <div class="num"><dt>Redução real</dt><dd>49,6%</dd></div>
+    </dl>
+  </header>
+
+  <div class="colunas">
+
+    <div class="mapa-col">
+      <h2>Mapa do template</h2>
+      <div class="mapa-card">
+        <svg viewBox="0 0 216 270" role="img" aria-label="Esquema do template do Canva com as oito áreas de texto numeradas">
+          <defs>
+            <linearGradient id="foto" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#8FA6BE"></stop>
+              <stop offset="55%" stop-color="#6B8199"></stop>
+              <stop offset="100%" stop-color="#1B2C41"></stop>
+            </linearGradient>
+          </defs>
+          <rect x="0" y="0" width="216" height="270" fill="url(#foto)"></rect>
+          <rect x="0" y="150" width="216" height="120" fill="#0D1D33" opacity="0.82"></rect>
+
+          <rect x="60" y="14" width="96" height="16" rx="8" fill="#4FE3F0" opacity="0.9"></rect>
+          <circle cx="52" cy="22" r="8" fill="#1B6FE0"></circle>
+          <text x="52" y="25.5" text-anchor="middle" font-family="Archivo, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#FFFFFF">1</text>
+
+          <rect x="16" y="168" width="74" height="9" rx="2" fill="#FFFFFF" opacity="0.92"></rect>
+          <rect x="16" y="180" width="82" height="9" rx="2" fill="#FFFFFF" opacity="0.92"></rect>
+          <rect x="16" y="192" width="70" height="9" rx="2" fill="#FFFFFF" opacity="0.92"></rect>
+          <circle cx="8" cy="180" r="8" fill="#1B6FE0"></circle>
+          <text x="8" y="183.5" text-anchor="middle" font-family="Archivo, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#FFFFFF">2</text>
+
+          <rect x="122" y="163" width="74" height="11" rx="5.5" fill="#FFFFFF" opacity="0.92"></rect>
+          <circle cx="112" cy="168.5" r="8" fill="#1B6FE0"></circle>
+          <text x="112" y="172" text-anchor="middle" font-family="Archivo, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#FFFFFF">3</text>
+
+          <rect x="118" y="178" width="78" height="22" rx="3" fill="#16273D" stroke="#FFFFFF" stroke-width="0.8"></rect>
+          <rect x="126" y="185" width="62" height="9" rx="2" fill="#FFFFFF" opacity="0.92"></rect>
+          <circle cx="108" cy="189" r="8" fill="#1B6FE0"></circle>
+          <text x="108" y="192.5" text-anchor="middle" font-family="Archivo, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#FFFFFF">4</text>
+
+          <rect x="128" y="204" width="68" height="6" rx="2" fill="#FFFFFF" opacity="0.72"></rect>
+          <circle cx="118" cy="207" r="8" fill="#1B6FE0"></circle>
+          <text x="118" y="210.5" text-anchor="middle" font-family="Archivo, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#FFFFFF">5</text>
+
+          <rect x="16" y="218" width="180" height="16" rx="3" fill="#16273D" stroke="#FFFFFF" stroke-width="0.8"></rect>
+          <rect x="26" y="223" width="42" height="6" rx="2" fill="#FFFFFF" opacity="0.8"></rect>
+          <rect x="88" y="223" width="42" height="6" rx="2" fill="#FFFFFF" opacity="0.8"></rect>
+          <rect x="146" y="223" width="42" height="6" rx="2" fill="#FFFFFF" opacity="0.8"></rect>
+          <circle cx="8" cy="226" r="8" fill="#1B6FE0"></circle>
+          <text x="8" y="229.5" text-anchor="middle" font-family="Archivo, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#FFFFFF">6</text>
+
+          <rect x="16" y="240" width="60" height="14" rx="3" fill="#FFFFFF" opacity="0.92"></rect>
+          <circle cx="8" cy="247" r="8" fill="#1B6FE0"></circle>
+          <text x="8" y="250.5" text-anchor="middle" font-family="Archivo, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#FFFFFF">7</text>
+
+          <rect x="84" y="240" width="112" height="14" rx="3" fill="#16273D" stroke="#FFFFFF" stroke-width="0.8"></rect>
+          <rect x="94" y="245" width="40" height="5" rx="2" fill="#FFFFFF" opacity="0.75"></rect>
+          <rect x="144" y="245" width="44" height="5" rx="2" fill="#FFFFFF" opacity="0.75"></rect>
+          <circle cx="206" cy="234" r="8" fill="#1B6FE0"></circle>
+          <text x="206" y="237.5" text-anchor="middle" font-family="Archivo, Helvetica, sans-serif" font-size="9" font-weight="700" fill="#FFFFFF">8</text>
+        </svg>
+        <p class="mapa-legenda">O bloco <strong>1</strong> não existe no template — é uma tarja que você adiciona no espaço vazio do topo. Os outros oito já estão lá, é só substituir o texto.</p>
+      </div>
+    </div>
+
+    <div class="campos">
+
+      <article class="campo">
+        <div class="campo-topo">
+          <span class="marcador opcional">1</span>
+          <div class="campo-titulo">
+            <h3>Tarja de urgência</h3>
+            <span class="campo-onde">Adicionar no topo — retângulo arredondado, fundo ciano, texto escuro</span>
+          </div>
+        </div>
+        <div class="colar">
+          <pre class="texto" id="t1">VÁLIDO ATÉ 28/08</pre>
+          <button class="btn-copiar" type="button" data-alvo="t1">Copiar</button>
+        </div>
+        <p class="nota">O template deixa quase metade da foto livre no topo. Uma tarja curta ali é o que faz a pessoa parar de rolar.</p>
+      </article>
+
+      <article class="campo">
+        <div class="campo-topo">
+          <span class="marcador">2</span>
+          <div class="campo-titulo">
+            <h3>Título principal</h3>
+            <span class="campo-onde">Substitui <code>MODERN HOUSE FOR SALE</code> — três linhas</span>
+          </div>
+        </div>
+        <div class="colar">
+          <pre class="texto" id="t2">CARTA DE
+CRÉDITO DE
+R$ 400 MIL</pre>
+          <button class="btn-copiar" type="button" data-alvo="t2">Copiar</button>
+        </div>
+        <p class="nota">Mantenha as três linhas — o template foi desenhado para esse ritmo. Outras opções na seção <strong>Chamadas alternativas</strong>.</p>
+      </article>
+
+      <article class="campo">
+        <div class="campo-topo">
+          <span class="marcador">3</span>
+          <div class="campo-titulo">
+            <h3>Selo acima do preço</h3>
+            <span class="campo-onde">Substitui <code>PRICE STARTED AT</code></span>
+          </div>
+        </div>
+        <div class="colar">
+          <pre class="texto" id="t3">PARCELA COM 50% DE REDUTOR</pre>
+          <button class="btn-copiar" type="button" data-alvo="t3">Copiar</button>
+        </div>
+        <p class="nota">Se ficar apertado na pílula, use <strong>PARCELA A PARTIR DE</strong> ou <strong>COM 50% DE REDUTOR</strong>.</p>
+      </article>
+
+      <article class="campo">
+        <div class="campo-topo">
+          <span class="marcador">4</span>
+          <div class="campo-titulo">
+            <h3>Valor em destaque</h3>
+            <span class="campo-onde">Substitui <code>$850,000</code> — a caixa escura</span>
+          </div>
+        </div>
+        <div class="colar">
+          <pre class="texto" id="t4">R$ 1.219</pre>
+          <button class="btn-copiar" type="button" data-alvo="t4">Copiar</button>
+        </div>
+        <p class="nota">Aqui vai a <strong>parcela</strong>, não o crédito — é o número que vende. O crédito já está no título. Se couber, acrescente <strong>/mês</strong> num corpo menor logo depois.</p>
+      </article>
+
+      <article class="campo">
+        <div class="campo-topo">
+          <span class="marcador">5</span>
+          <div class="campo-titulo">
+            <h3>Linha sob o preço</h3>
+            <span class="campo-onde">Substitui <code>123 Anywhere St., Any City</code></span>
+          </div>
+        </div>
+        <div class="colar">
+          <pre class="texto" id="t5">em vez de R$ 2.420,00 por mês</pre>
+          <button class="btn-copiar" type="button" data-alvo="t5">Copiar</button>
+        </div>
+        <p class="nota">Se der para riscar o R$ 2.420,00 no Canva, risque — o contraste entre os dois valores é o argumento inteiro da peça.</p>
+      </article>
+
+      <article class="campo">
+        <div class="campo-topo">
+          <span class="marcador">6</span>
+          <div class="campo-titulo">
+            <h3>Barra de três atributos</h3>
+            <span class="campo-onde">Substitui <code>1,248 SQFT</code> · <code>4 Bedrooms</code> · <code>2 Bathrooms</code></span>
+          </div>
+        </div>
+        <div class="colar">
+          <pre class="texto" id="t6">Sem entrada
+Sem juros
+R$ 1.201 a menos por mês</pre>
+          <button class="btn-copiar" type="button" data-alvo="t6">Copiar</button>
+        </div>
+        <p class="nota">Cole um por caixa, na ordem. Troque os ícones de casa por outros três em <strong>Elementos</strong> — sugestão: cadeado aberto, símbolo de percentual e seta para baixo.</p>
+      </article>
+
+      <article class="campo">
+        <div class="campo-topo">
+          <span class="marcador">7</span>
+          <div class="campo-titulo">
+            <h3>Botão</h3>
+            <span class="campo-onde">Substitui <code>SCHEDULE A CALL</code></span>
+          </div>
+        </div>
+        <div class="colar">
+          <pre class="texto" id="t7">QUERO SIMULAR</pre>
+          <button class="btn-copiar" type="button" data-alvo="t7">Copiar</button>
+        </div>
+        <p class="nota">Alternativas do mesmo tamanho: <strong>FALE AGORA</strong>, <strong>SIMULE GRÁTIS</strong>, <strong>CHAME NO ZAP</strong>.</p>
+      </article>
+
+      <article class="campo">
+        <div class="campo-topo">
+          <span class="marcador">8</span>
+          <div class="campo-titulo">
+            <h3>Contato</h3>
+            <span class="campo-onde">Substitui <code>123-456-7890</code> e <code>reallygreatsite.com</code></span>
+          </div>
+        </div>
+        <div class="colar">
+          <pre class="texto" id="t8">(11) 98678-0000
+[SEU SITE OU @INSTAGRAM]</pre>
+          <button class="btn-copiar" type="button" data-alvo="t8">Copiar</button>
+        </div>
+        <p class="nota">Não tenho o site nem o perfil da Quadrata — me passa que eu ajusto, ou preencha direto no Canva.</p>
+      </article>
+
+    </div>
+  </div>
+
+  <section>
+    <h2>Chamadas alternativas para o título</h2>
+    <div class="opcoes">
+      <div class="opcao">
+        <span class="linhas">CARTA DE
+CRÉDITO DE
+R$ 400 MIL</span>
+        <span class="tom">Direta. Funciona para quem já sabe o que é consórcio.</span>
+      </div>
+      <div class="opcao">
+        <span class="linhas">R$ 400 MIL
+COM PARCELA
+DE R$ 1.219</span>
+        <span class="tom">Põe os dois números na frente. A mais forte para tráfego pago.</span>
+      </div>
+      <div class="opcao">
+        <span class="linhas">PARCELA
+PELA METADE
+ATÉ CONTEMPLAR</span>
+        <span class="tom">Vende o benefício antes do valor. Boa para público frio.</span>
+      </div>
+      <div class="opcao">
+        <span class="linhas">SEM JUROS
+SEM ENTRADA
+R$ 400 MIL</span>
+        <span class="tom">Ataca a comparação com financiamento.</span>
+      </div>
+      <div class="opcao">
+        <span class="linhas">R$ 1.201
+A MENOS
+TODO MÊS</span>
+        <span class="tom">A economia como manchete. Exige o crédito visível logo abaixo.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Regras para a legenda ou um segundo slide</h2>
+    <ul class="regras">
+      <li><b>Consórcio não é financiamento.</b> Não há juros — você paga taxa de administração e fundo de reserva.</li>
+      <li><b>Não tem entrada.</b> Você começa a pagar a parcela mensal desde o primeiro mês.</li>
+      <li><b>A contemplação é por sorteio ou por lance.</b> Não existe prazo garantido para receber a carta de crédito.</li>
+      <li><b>O redutor vale até a contemplação.</b> Depois disso a parcela volta ao valor cheio de R$ 2.420,00.</li>
+      <li><b>Você pode ofertar lance</b> para antecipar a contemplação.</li>
+      <li><b>A carta serve para comprar</b> <mark>[IMÓVEL OU VEÍCULO — confirmar]</mark>.</li>
+      <li><b>Prazo do grupo:</b> <mark>[X] meses</mark>. <b>Taxa de administração:</b> <mark>[X]%</mark>. <b>Fundo de reserva:</b> <mark>[X]%</mark>.</li>
+      <li><b>Crédito e parcela são corrigidos</b> pelo índice previsto em contrato <mark>[INCC OU IPCA]</mark>.</li>
+      <li><b>Administradora:</b> Porto Seguro. Grupo em formação.</li>
+      <li><b>Em caso de desistência,</b> os valores pagos são devolvidos conforme as regras do contrato, após contemplação ou encerramento do grupo.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Legenda pronta para o post</h2>
+    <div class="campo">
+      <div class="colar" style="margin-top: 18px;">
+        <pre class="texto" id="t9">Carta de crédito de R$ 400 mil com a parcela pela metade até a contemplação.
+
+Em vez de R$ 2.420,00 por mês, você paga R$ 1.219,00. São R$ 1.201,00 a menos no seu orçamento, todo mês, até ser contemplado.
+
+Sem entrada e sem juros — consórcio não é financiamento. Você paga taxa de administração e fundo de reserva, e a contemplação acontece por sorteio ou por lance.
+
+Condição válida até 28/08.
+Chame no WhatsApp: (11) 98678-0000
+
+#consorcio #cartadecredito #portoseguro #quadrataseguros</pre>
+        <button class="btn-copiar" type="button" data-alvo="t9">Copiar</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="aviso">
+      <h2>Preencher antes de publicar</h2>
+      <ul>
+        <li>Site ou @ do Instagram da Quadrata (bloco 8).</li>
+        <li>Se a carta é de <strong>imóvel</strong> ou de <strong>veículo</strong> — muda a foto do template e a regra correspondente.</li>
+        <li>Prazo do grupo, taxa de administração e fundo de reserva. Sua tabela não traz esses campos, e eu não os afirmo sem fonte.</li>
+        <li>Índice de correção do contrato (INCC para imóvel, IPCA costuma ser o de veículo).</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  function marcar(btn, texto) {
+    var original = 'Copiar';
+    btn.textContent = texto;
+    btn.classList.add('ok');
+    setTimeout(function () {
+      btn.textContent = original;
+      btn.classList.remove('ok');
+    }, 1800);
+  }
+
+  document.querySelectorAll('.btn-copiar').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var alvo = document.getElementById(btn.dataset.alvo);
+      if (!alvo) { return; }
+      var texto = alvo.textContent;
+      var selecionar = function () {
+        try {
+          var range = document.createRange();
+          range.selectNodeContents(alvo);
+          var sel = window.getSelection();
+          sel.removeAllRanges();
+          sel.addRange(range);
+          marcar(btn, 'Selecionado — Ctrl+C');
+        } catch (e) {
+          marcar(btn, 'Selecione à mão');
+        }
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(function () {
+          marcar(btn, 'Copiado');
+        }, selecionar);
+      } else {
+        selecionar();
+      }
+    });
+  });
+</script>
