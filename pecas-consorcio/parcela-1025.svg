@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
      width="1080" height="1350" viewBox="0 0 1080 1350" font-family="Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif">
-  <title>Consórcio — carta de crédito de R$ 400 MIL</title>
+  <title>Consórcio — parcela de R$ 1.025,00 ao mês</title>
   <defs>
     <style type="text/css">
       @font-face {
@@ -49,49 +49,41 @@
     <text x="834" y="113" text-anchor="middle" font-size="26" font-weight="800" letter-spacing="2.3" fill="#06284A">VÁLIDO ATÉ 28/08</text>
   </g>
 
-  <g id="titulo" font-size="72" font-weight="800" letter-spacing="-2.2" fill="#FFFFFF">
-    <text x="72" y="690">CARTA DE</text>
-    <text x="72" y="768">CRÉDITO</text>
-    <text x="72" y="846">R$ 400 MIL</text>
-  </g>
-
-  <g id="parcela">
-    <rect x="638" y="640" width="370" height="42" rx="21" fill="#FFFFFF"/>
-    <text x="823" y="668" text-anchor="middle" font-size="20" font-weight="700" letter-spacing="1.1" fill="#092649">PARCELA COM 50% DE REDUTOR</text>
-    <rect x="596" y="700" width="412" height="104" rx="6" fill="#071426" stroke="#FFFFFF" stroke-width="2"/>
-    <text x="802" y="770" text-anchor="middle" font-size="60" font-weight="800" letter-spacing="-1.8" fill="#FFFFFF">R$ 1.219<tspan dx="12" font-size="26" font-weight="600" letter-spacing="0" fill="#A9C6EE">/mês</tspan></text>
-    <text x="1008" y="854" text-anchor="end" font-size="24" font-weight="500" fill="#A9C6EE">em vez de R$ 2.420,00 por mês</text>
+  <g id="destaque">
+    <text x="540" y="686" text-anchor="middle" font-size="40" font-weight="700" letter-spacing="6" fill="#A9C6EE">PARCELA DE</text>
+    <text x="540" y="836" text-anchor="middle" font-size="140" font-weight="800" letter-spacing="-4" fill="#FFFFFF">R$ 1.025<tspan dy="-42" font-size="56" letter-spacing="-1">,00</tspan><tspan dy="42" dx="16" font-size="34" font-weight="600" letter-spacing="0" fill="#A9C6EE">ao mês</tspan></text>
+    <text x="540" y="890" text-anchor="middle" font-size="28" font-weight="500" fill="#A9C6EE">em vez de R$ 2.050,00 por mês</text>
   </g>
 
   <g id="atributos">
-    <rect x="72" y="900" width="936" height="104" rx="16" fill="#FFFFFF" fill-opacity="0.07" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1"/>
-    <line x1="384" y1="928" x2="384" y2="976" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1"/>
-    <line x1="696" y1="928" x2="696" y2="976" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1"/>
+    <rect x="72" y="930" width="936" height="104" rx="16" fill="#FFFFFF" fill-opacity="0.07" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1"/>
+    <line x1="384" y1="958" x2="384" y2="1006" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1"/>
+    <line x1="696" y1="958" x2="696" y2="1006" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="1"/>
     <g text-anchor="middle" font-size="20" font-weight="600" letter-spacing="2" fill="#8FB2DC">
-      <text x="228" y="946">ENTRADA</text>
-      <text x="540" y="946">JUROS</text>
-      <text x="852" y="946">ECONOMIA POR MÊS</text>
+      <text x="228" y="976">ENTRADA</text>
+      <text x="540" y="976">JUROS</text>
+      <text x="852" y="976">REDUTOR</text>
     </g>
     <g text-anchor="middle" font-size="34" font-weight="800" letter-spacing="-0.8" fill="#FFFFFF">
-      <text x="228" y="986">Não tem</text>
-      <text x="540" y="986">Zero</text>
-      <text x="852" y="986">R$ 1.201</text>
+      <text x="228" y="1016">Sem</text>
+      <text x="540" y="1016">Zero</text>
+      <text x="852" y="1016">50%</text>
     </g>
   </g>
 
   <g id="contato">
-    <rect x="72" y="1044" width="348" height="84" rx="42" fill="#FFFFFF"/>
-    <text x="246" y="1098" text-anchor="middle" font-size="32" font-weight="800" letter-spacing="0.5" fill="#092649">QUERO SIMULAR</text>
-    <rect x="448" y="1044" width="560" height="84" rx="42" fill="none" stroke="#FFFFFF" stroke-opacity="0.38" stroke-width="2"/>
-    <g transform="translate(486,1062) scale(1.25)" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="72" y="1064" width="348" height="84" rx="42" fill="#FFFFFF"/>
+    <text x="246" y="1118" text-anchor="middle" font-size="32" font-weight="800" letter-spacing="0.5" fill="#092649">QUERO SIMULAR</text>
+    <rect x="448" y="1064" width="560" height="84" rx="42" fill="none" stroke="#FFFFFF" stroke-opacity="0.38" stroke-width="2"/>
+    <g transform="translate(486,1082) scale(1.25)" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
       <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.4-.7L3 21l1.9-5.1A8.2 8.2 0 0 1 4 11.5a8.4 8.4 0 0 1 9-8.4 8.4 8.4 0 0 1 8 8.4z"/>
     </g>
-    <text x="536" y="1098" font-size="24" font-weight="600" fill="#A9C6EE">WhatsApp<tspan dx="14" font-size="34" font-weight="800" letter-spacing="-0.6" fill="#FFFFFF">(11) 98678-0000</tspan></text>
+    <text x="536" y="1118" font-size="24" font-weight="600" fill="#A9C6EE">WhatsApp<tspan dx="14" font-size="34" font-weight="800" letter-spacing="-0.6" fill="#FFFFFF">(11) 98678-0000</tspan></text>
   </g>
 
   <g id="letra-miuda" font-size="18" font-weight="400" fill="#8FAAC9">
-    <text x="72" y="1190">Consórcio não é financiamento: não há juros, apenas taxa de administração e fundo de reserva.</text>
-    <text x="72" y="1217">Parcela reduzida em 50% até a contemplação; depois disso volta ao valor cheio de R$ 2.420,00.</text>
-    <text x="72" y="1244">Contemplação por sorteio ou lance. Valores sujeitos a alteração. Consulte condições.</text>
+    <text x="72" y="1206">Consórcio não é financiamento: não há juros, apenas taxa de administração e fundo de reserva.</text>
+    <text x="72" y="1233">Parcela reduzida em 50% até a contemplação; depois disso volta ao valor cheio de R$ 2.050,00.</text>
+    <text x="72" y="1260">Contemplação por sorteio ou lance. Valores sujeitos a alteração. Consulte condições.</text>
   </g>
 </svg>
