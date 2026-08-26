@@ -27,16 +27,7 @@
     </linearGradient>
   </defs>
 
-  <g id="fundo">
-    <rect x="0" y="0" width="1080" height="1350" fill="url(#gradFundo)"/>
-    <rect x="0" y="0" width="1080" height="1350" fill="url(#brilho)"/>
-    <g stroke="#4FE3F0" fill="none" opacity="0.17">
-      <circle cx="990" cy="205" r="172" stroke-width="3"/>
-      <circle cx="990" cy="205" r="132" stroke-width="1.5"/>
-    </g>
-    <text x="990" y="252" text-anchor="middle" font-size="140" font-weight="800" fill="#4FE3F0" opacity="0.15">%</text>
-  </g>
-
+  <!-- sem fundo: coloque a foto atrás desta camada -->
 
   <rect id="degrade-inferior" x="0" y="400" width="1080" height="950" fill="url(#gradPainel)"/>
 
