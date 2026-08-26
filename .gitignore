@@ -21,3 +21,5 @@ yarn-error.log*
 
 # Canvas gerado das peças de consórcio (bundle de ~2,5 MB, regerável via _gerar.py)
 pecas-consorcio/consorcio-auto-porto-seguro.html
+pecas-consorcio/_carta400.render.html
+pecas-consorcio/archivo.css
