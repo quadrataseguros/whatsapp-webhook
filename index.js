@@ -101,34 +101,20 @@ app.get("/mariana-status", async (_req, res) => {
 
 // ─── Página pública "Fale com a MarIAna" ─────────────────────────────────────
 // É o link da bio do Instagram (/fale). Leva o cliente direto para a conversa
-// no WhatsApp, onde a MarIAna atende. O número não fica fixo no código: usamos
-// WHATSAPP_NUMERO se estiver definido ou, na falta dele, perguntamos à Meta
-// qual número está ligado ao WA_PHONE_NUMBER_ID (resposta guardada por 6h).
-const WHATSAPP_NUMERO = (process.env.WHATSAPP_NUMERO || "").replace(/\D/g, "");
-let numeroCache = { valor: "", expiraEm: 0 };
+// no WhatsApp, onde a MarIAna atende. O número é o (11) 98678-0000; para
+// trocar sem mexer no código, basta definir WHATSAPP_NUMERO no ambiente.
+const NUMERO_PADRAO = "5511986780000";
 
-async function getWhatsAppNumero() {
-  if (WHATSAPP_NUMERO) return WHATSAPP_NUMERO;
-  if (numeroCache.valor && Date.now() < numeroCache.expiraEm) return numeroCache.valor;
-  if (!WA_PHONE_NUMBER_ID || !WA_ACCESS_TOKEN) return "";
-  try {
-    const r = await axios.get(
-      `https://graph.facebook.com/${GRAPH_VERSION}/${WA_PHONE_NUMBER_ID}`,
-      {
-        params: { fields: "display_phone_number" },
-        headers: { Authorization: `Bearer ${WA_ACCESS_TOKEN}` },
-        timeout: 8000,
-      }
-    );
-    const digitos = String(r.data?.display_phone_number || "").replace(/\D/g, "");
-    if (!digitos) return "";
-    numeroCache = { valor: digitos, expiraEm: Date.now() + 6 * 60 * 60 * 1000 };
-    return digitos;
-  } catch (err) {
-    console.error("Não consegui descobrir o número do WhatsApp:", err.message);
-    return "";
-  }
+// Aceita o número escrito de qualquer jeito — (11) 98678-0000, 11986780000,
+// +55 11 98678-0000 — e devolve só os dígitos com o DDI 55 na frente.
+function normalizarNumero(valor) {
+  const d = String(valor || "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.length <= 11) return `55${d}`;
+  return d;
 }
+
+const WHATSAPP_NUMERO = normalizarNumero(process.env.WHATSAPP_NUMERO) || NUMERO_PADRAO;
 
 // Mensagem já digitada ao abrir o WhatsApp. "Oi" (padrão) abre o menu
 // principal; com ?assunto=auto etc. a MarIAna já responde sobre o tema.
@@ -144,33 +130,12 @@ const FALE_ASSUNTOS = {
   sinistro: "Oi! Preciso de ajuda com um sinistro/guincho.",
 };
 
-function paginaFaleIndisponivel() {
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Quadrata Seguros — fale com a gente</title>
-<style>
-  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
-       background:#0b1f3a;color:#fff;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:24px}
-  .card{max-width:420px;text-align:center}
-  h1{font-size:1.4rem;margin:0 0 12px}
-  p{opacity:.85;line-height:1.5;margin:0 0 8px}
-  a{color:#7fb2ff}
-</style></head><body><div class="card">
-<h1>Estamos com uma instabilidade no atendimento automático</h1>
-<p>Nosso WhatsApp está temporariamente indisponível por aqui.</p>
-<p>Chame a gente pelo direct do Instagram
-<a href="https://instagram.com/marianaquadrata">@marianaquadrata</a> que respondemos assim que possível.</p>
-</div></body></html>`;
-}
-
 // GET /fale → abre a conversa no WhatsApp com a MarIAna
-app.get(["/fale", "/fale.html", "/contato"], async (req, res) => {
-  const numero = await getWhatsAppNumero();
-  res.setHeader("Cache-Control", "no-store");
-  if (!numero) return res.status(503).type("html").send(paginaFaleIndisponivel());
+app.get(["/fale", "/fale.html", "/contato"], (req, res) => {
   const assunto = String(req.query.assunto || "").toLowerCase();
   const texto = FALE_ASSUNTOS[assunto] || "Oi";
-  res.redirect(302, `https://wa.me/${numero}?text=${encodeURIComponent(texto)}`);
+  res.setHeader("Cache-Control", "no-store");
+  res.redirect(302, `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(texto)}`);
 });
 
 function extractWhatsAppMessage(body) {

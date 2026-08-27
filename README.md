@@ -31,7 +31,7 @@ Copie `.env.example` para `.env` e preencha:
 | `ANTHROPIC_API_KEY` | Chave da API da Anthropic (crie em console.anthropic.com) — ativa a MarIAna |
 | `MARIANA_MODEL` | Modelo do Claude (padrão: `claude-haiku-4-5`) |
 | `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se `ANTHROPIC_API_KEY` não estiver configurada |
-| `WHATSAPP_NUMERO` | Número do WhatsApp para onde o `/fale` manda o cliente (só dígitos, ex.: `5511999998888`). Se ficar vazio, o servidor pergunta o número à Meta usando `WA_PHONE_NUMBER_ID` |
+| `WHATSAPP_NUMERO` | Opcional. Troca o número para onde o `/fale` manda o cliente. Padrão: `(11) 98678-0000` |
 
 ---
 
@@ -135,6 +135,10 @@ MarIAna, já com a mensagem digitada:
 | `/fale?assunto=saude` | plano de saúde |
 | `/fale?assunto=odonto` | plano odontológico |
 | `/fale?assunto=vida` · `residencia` · `consorcio` · `financiamento` · `cartao` · `sinistro` | o tema correspondente |
+
+O número de destino é o **(11) 98678-0000**. Para trocar sem mexer no código,
+defina `WHATSAPP_NUMERO` no ambiente (pode escrever com máscara — `(11) 98678-0000`
+— que o servidor normaliza e acrescenta o DDI 55).
 
 > **Atenção:** esse link só responde enquanto o servidor estiver no ar e
 > acessível pelo domínio. Se o domínio estiver servido por um **Cloudflare
