@@ -35,7 +35,14 @@ Copie `.env.example` para `.env` e preencha:
 
 ---
 
-## Deploy no Render
+## Deploy
+
+Para colocar (ou manter) o servidor na nuvem, siga o
+**[DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md)** — é o caminho recomendado: o volume
+do banco, as variáveis obrigatórias (`DB_PATH`, `TZ`) e a troca do DNS na
+Cloudflare estão detalhados lá.
+
+### Alternativa: Render
 
 1. Suba este repositório no GitHub.
 2. No Render, crie um **Web Service** conectado ao repositório.
