@@ -99,6 +99,45 @@ app.get("/mariana-status", async (_req, res) => {
   }
 });
 
+// ─── Página pública "Fale com a MarIAna" ─────────────────────────────────────
+// É o link da bio do Instagram (/fale). Leva o cliente direto para a conversa
+// no WhatsApp, onde a MarIAna atende. O número é o (11) 98678-0000; para
+// trocar sem mexer no código, basta definir WHATSAPP_NUMERO no ambiente.
+const NUMERO_PADRAO = "5511986780000";
+
+// Aceita o número escrito de qualquer jeito — (11) 98678-0000, 11986780000,
+// +55 11 98678-0000 — e devolve só os dígitos com o DDI 55 na frente.
+function normalizarNumero(valor) {
+  const d = String(valor || "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.length <= 11) return `55${d}`;
+  return d;
+}
+
+const WHATSAPP_NUMERO = normalizarNumero(process.env.WHATSAPP_NUMERO) || NUMERO_PADRAO;
+
+// Mensagem já digitada ao abrir o WhatsApp. "Oi" (padrão) abre o menu
+// principal; com ?assunto=auto etc. a MarIAna já responde sobre o tema.
+const FALE_ASSUNTOS = {
+  auto: "Oi! Vim pelo Instagram e quero cotar um seguro de automóvel.",
+  saude: "Oi! Vim pelo Instagram e quero cotar um plano de saúde.",
+  odonto: "Oi! Vim pelo Instagram e quero saber do plano odontológico.",
+  vida: "Oi! Vim pelo Instagram e quero cotar um seguro de vida.",
+  residencia: "Oi! Vim pelo Instagram e quero cotar um seguro residencial.",
+  consorcio: "Oi! Vim pelo Instagram e quero saber sobre consórcio.",
+  financiamento: "Oi! Vim pelo Instagram e quero saber sobre financiamento.",
+  cartao: "Oi! Vim pelo Instagram e quero saber do Cartão Porto Bank.",
+  sinistro: "Oi! Preciso de ajuda com um sinistro/guincho.",
+};
+
+// GET /fale → abre a conversa no WhatsApp com a MarIAna
+app.get(["/fale", "/fale.html", "/contato"], (req, res) => {
+  const assunto = String(req.query.assunto || "").toLowerCase();
+  const texto = FALE_ASSUNTOS[assunto] || "Oi";
+  res.setHeader("Cache-Control", "no-store");
+  res.redirect(302, `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(texto)}`);
+});
+
 function extractWhatsAppMessage(body) {
   try {
     const value = body.entry?.[0]?.changes?.[0]?.value;

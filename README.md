@@ -31,10 +31,18 @@ Copie `.env.example` para `.env` e preencha:
 | `ANTHROPIC_API_KEY` | Chave da API da Anthropic (crie em console.anthropic.com) — ativa a MarIAna |
 | `MARIANA_MODEL` | Modelo do Claude (padrão: `claude-haiku-4-5`) |
 | `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se `ANTHROPIC_API_KEY` não estiver configurada |
+| `WHATSAPP_NUMERO` | Opcional. Troca o número para onde o `/fale` manda o cliente. Padrão: `(11) 98678-0000` |
 
 ---
 
-## Deploy no Render
+## Deploy
+
+Para colocar (ou manter) o servidor na nuvem, siga o
+**[DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md)** — é o caminho recomendado: o volume
+do banco, as variáveis obrigatórias (`DB_PATH`, `TZ`) e a troca do DNS na
+Cloudflare estão detalhados lá.
+
+### Alternativa: Render
 
 1. Suba este repositório no GitHub.
 2. No Render, crie um **Web Service** conectado ao repositório.
@@ -101,6 +109,7 @@ Os textos, telefones e o fluxo do menu ficam centralizados em `index.js`
 | `POST` | `/webhook` | Recebe mensagens WhatsApp |
 | `GET` | `/health` | Status do servidor e modo ativo |
 | `GET` | `/mariana-status` | Testa se a IA (Claude) está respondendo |
+| `GET` | `/fale` | Link da bio do Instagram — redireciona para a conversa no WhatsApp |
 
 ---
 
@@ -117,3 +126,30 @@ Verificar saúde:
 ```bash
 curl http://localhost:3000/health
 ```
+
+---
+
+## Link da bio do Instagram (`/fale`)
+
+A bio do `@marianaquadrata` aponta para `https://webhook.quadratadigital.com.br/fale`.
+Essa rota apenas redireciona o visitante para a conversa no WhatsApp com a
+MarIAna, já com a mensagem digitada:
+
+| Link | Mensagem que abre |
+|------|-------------------|
+| `/fale` | `Oi` (abre o menu principal) |
+| `/fale?assunto=auto` | cotação de seguro auto |
+| `/fale?assunto=saude` | plano de saúde |
+| `/fale?assunto=odonto` | plano odontológico |
+| `/fale?assunto=vida` · `residencia` · `consorcio` · `financiamento` · `cartao` · `sinistro` | o tema correspondente |
+
+O número de destino é o **(11) 98678-0000**. Para trocar sem mexer no código,
+defina `WHATSAPP_NUMERO` no ambiente (pode escrever com máscara — `(11) 98678-0000`
+— que o servidor normaliza e acrescenta o DDI 55).
+
+> **Atenção:** esse link só responde enquanto o servidor estiver no ar e
+> acessível pelo domínio. Se o domínio estiver servido por um **Cloudflare
+> Tunnel** apontando para um PC local, o link cai (erro **1033**) sempre que o
+> PC for desligado ou o `cloudflared` parar. Para o link nunca cair, hospede o
+> servidor na nuvem (Railway/Render) ou, se preferir não depender do servidor,
+> coloque o `https://wa.me/<numero>` direto na bio.

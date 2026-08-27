@@ -150,7 +150,9 @@ Acesso: `http://localhost:3000/dashboard.html`
 
 ## Deploy na nuvem — Railway (PENDENTE)
 
-O código está pronto para deploy. Falta executar no Railway:
+> Passo a passo completo e atualizado: **[DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md)**
+> (inclui `TZ=America/Sao_Paulo`, a troca do DNS na Cloudflare e o desligamento
+> do Cloudflare Tunnel). O resumo abaixo continua válido:
 
 1. Entrar em **railway.app** com GitHub (`quadrataseguros`)
 2. **New Project** → Deploy from GitHub repo
