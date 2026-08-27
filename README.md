@@ -137,7 +137,7 @@ MarIAna, já com a mensagem digitada:
 
 | Link | Mensagem que abre |
 |------|-------------------|
-| `/fale` | `Oi` (abre o menu principal) |
+| `/fale` | `Oi 👋 vim pelo Instagram e quero fazer uma simulação gratuita` (abre o menu principal) |
 | `/fale?assunto=auto` | cotação de seguro auto |
 | `/fale?assunto=saude` | plano de saúde |
 | `/fale?assunto=odonto` | plano odontológico |

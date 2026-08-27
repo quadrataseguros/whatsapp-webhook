@@ -116,8 +116,17 @@ function normalizarNumero(valor) {
 
 const WHATSAPP_NUMERO = normalizarNumero(process.env.WHATSAPP_NUMERO) || NUMERO_PADRAO;
 
-// Mensagem já digitada ao abrir o WhatsApp. "Oi" (padrão) abre o menu
-// principal; com ?assunto=auto etc. a MarIAna já responde sobre o tema.
+// Mensagem já digitada ao abrir o WhatsApp.
+//
+// ATENÇÃO ao mexer no texto padrão: ele precisa começar com "Oi " (ou outra
+// saudação de MENU_TRIGGERS seguida de espaço) para a MarIAna abrir o menu
+// principal. Um "Oi!" ou "Oi," com pontuação colada NÃO dispara o menu — cai
+// na IA, que responde bem, mas demora mais e não mostra as opções.
+const FALE_PADRAO =
+  "Oi 👋 vim pelo Instagram e quero fazer uma simulação gratuita";
+
+// Com ?assunto=auto etc. o texto vai direto ao tema e quem responde é a
+// MarIAna (IA), que já entra no assunto em vez de mostrar o menu.
 const FALE_ASSUNTOS = {
   auto: "Oi! Vim pelo Instagram e quero cotar um seguro de automóvel.",
   saude: "Oi! Vim pelo Instagram e quero cotar um plano de saúde.",
@@ -133,7 +142,7 @@ const FALE_ASSUNTOS = {
 // GET /fale → abre a conversa no WhatsApp com a MarIAna
 app.get(["/fale", "/fale.html", "/contato"], (req, res) => {
   const assunto = String(req.query.assunto || "").toLowerCase();
-  const texto = FALE_ASSUNTOS[assunto] || "Oi";
+  const texto = FALE_ASSUNTOS[assunto] || FALE_PADRAO;
   res.setHeader("Cache-Control", "no-store");
   res.redirect(302, `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(texto)}`);
 });
