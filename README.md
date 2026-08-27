@@ -31,6 +31,7 @@ Copie `.env.example` para `.env` e preencha:
 | `ANTHROPIC_API_KEY` | Chave da API da Anthropic (crie em console.anthropic.com) — ativa a MarIAna |
 | `MARIANA_MODEL` | Modelo do Claude (padrão: `claude-haiku-4-5`) |
 | `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se `ANTHROPIC_API_KEY` não estiver configurada |
+| `WHATSAPP_NUMERO` | Número do WhatsApp para onde o `/fale` manda o cliente (só dígitos, ex.: `5511999998888`). Se ficar vazio, o servidor pergunta o número à Meta usando `WA_PHONE_NUMBER_ID` |
 
 ---
 
@@ -101,6 +102,7 @@ Os textos, telefones e o fluxo do menu ficam centralizados em `index.js`
 | `POST` | `/webhook` | Recebe mensagens WhatsApp |
 | `GET` | `/health` | Status do servidor e modo ativo |
 | `GET` | `/mariana-status` | Testa se a IA (Claude) está respondendo |
+| `GET` | `/fale` | Link da bio do Instagram — redireciona para a conversa no WhatsApp |
 
 ---
 
@@ -117,3 +119,26 @@ Verificar saúde:
 ```bash
 curl http://localhost:3000/health
 ```
+
+---
+
+## Link da bio do Instagram (`/fale`)
+
+A bio do `@marianaquadrata` aponta para `https://webhook.quadratadigital.com.br/fale`.
+Essa rota apenas redireciona o visitante para a conversa no WhatsApp com a
+MarIAna, já com a mensagem digitada:
+
+| Link | Mensagem que abre |
+|------|-------------------|
+| `/fale` | `Oi` (abre o menu principal) |
+| `/fale?assunto=auto` | cotação de seguro auto |
+| `/fale?assunto=saude` | plano de saúde |
+| `/fale?assunto=odonto` | plano odontológico |
+| `/fale?assunto=vida` · `residencia` · `consorcio` · `financiamento` · `cartao` · `sinistro` | o tema correspondente |
+
+> **Atenção:** esse link só responde enquanto o servidor estiver no ar e
+> acessível pelo domínio. Se o domínio estiver servido por um **Cloudflare
+> Tunnel** apontando para um PC local, o link cai (erro **1033**) sempre que o
+> PC for desligado ou o `cloudflared` parar. Para o link nunca cair, hospede o
+> servidor na nuvem (Railway/Render) ou, se preferir não depender do servidor,
+> coloque o `https://wa.me/<numero>` direto na bio.
