@@ -153,3 +153,31 @@ defina `WHATSAPP_NUMERO` no ambiente (pode escrever com máscara — `(11) 98678
 > PC for desligado ou o `cloudflared` parar. Para o link nunca cair, hospede o
 > servidor na nuvem (Railway/Render) ou, se preferir não depender do servidor,
 > coloque o `https://wa.me/<numero>` direto na bio.
+
+---
+
+## Campanha de consórcio (valores e validade)
+
+A MarIAna conhece a tabela da campanha **Consórcio Porto Bank — 50% de desconto
+na taxa** (parcela reduzida pela metade até a contemplação). Tudo fica em
+`index.js`, em duas constantes:
+
+| Constante | O que é |
+|---|---|
+| `CONSORCIO_VALIDADE` | Último dia da oferta (`AAAA-MM-DD`). Comparado pelo dia em São Paulo |
+| `CONSORCIO_PLANOS` | Os planos e as faixas `[crédito, parcela sem oferta, parcela com redução]` |
+
+Como a campanha aparece para o cliente:
+
+- **No menu** (opção *Consórcio*): uma chamada curta com os valores de entrada
+  de auto e imóvel, e o convite para informar o crédito desejado.
+- **Na conversa com a IA**: a tabela inteira entra no prompt **apenas quando a
+  palavra "consórcio" aparece na conversa** — não em todo atendimento. Junto
+  vão as regras: pode citar os valores da tabela, mas nunca interpolar faixas,
+  e sempre explicar que a redução vale até a contemplação e depois é
+  compensada nas parcelas seguintes.
+
+**Quando a campanha vencer**, o código para de oferecê-la sozinho: o menu volta
+a pedir bem e valor, e a IA passa a dizer que um corretor confirma as condições
+vigentes. Para renovar, atualize `CONSORCIO_VALIDADE` e, se os valores mudarem,
+`CONSORCIO_PLANOS`.
