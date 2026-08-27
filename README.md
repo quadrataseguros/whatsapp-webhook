@@ -177,6 +177,13 @@ Como a campanha aparece para o cliente:
   e sempre explicar que a redução vale até a contemplação e depois é
   compensada nas parcelas seguintes.
 
+Junto da campanha vai sempre o bloco `CONSORCIO_LANCES`, com as regras de
+lance da Porto: os **tipos** (livre, do valor de uma parcela até 100%; e fixo,
+o percentual único do grupo) e as **formas de pagar** (embutido, até 30% da
+própria carta; ou recursos próprios/FGTS). Esse bloco existe porque a tabela
+promocional cita só o lance embutido — lido sozinho, dá a impressão errada de
+que o lance máximo é 30% do crédito. Ele entra com ou sem campanha ativa.
+
 **Quando a campanha vencer**, o código para de oferecê-la sozinho: o menu volta
 a pedir bem e valor, e a IA passa a dizer que um corretor confirma as condições
 vigentes. Para renovar, atualize `CONSORCIO_VALIDADE` e, se os valores mudarem,
