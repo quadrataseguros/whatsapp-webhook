@@ -118,25 +118,25 @@ const WHATSAPP_NUMERO = normalizarNumero(process.env.WHATSAPP_NUMERO) || NUMERO_
 
 // Mensagem já digitada ao abrir o WhatsApp.
 //
-// ATENÇÃO ao mexer no texto padrão: ele precisa começar com "Oi " (ou outra
-// saudação de MENU_TRIGGERS seguida de espaço) para a MarIAna abrir o menu
-// principal. Um "Oi!" ou "Oi," com pontuação colada NÃO dispara o menu — cai
-// na IA, que responde bem, mas demora mais e não mostra as opções.
-const FALE_PADRAO =
-  "Oi 👋 vim pelo Instagram e quero fazer uma simulação gratuita";
+// ATENÇÃO ao mexer no texto padrão: ele precisa começar com uma saudação de
+// MENU_TRIGGERS ("Oi", "Olá", "Menu"...) para a MarIAna abrir o menu principal
+// em vez de acionar a IA. Pontuação colada ("Oi,") pode — isMenuTrigger trata.
+const FALE_PADRAO = "Oi, quero mais informações.";
 
 // Com ?assunto=auto etc. o texto vai direto ao tema e quem responde é a
-// MarIAna (IA), que já entra no assunto em vez de mostrar o menu.
+// MarIAna (IA), que já entra no assunto em vez de mostrar o menu. Por isso
+// estes NÃO começam com saudação: um "Oi" na frente abriria o menu geral e
+// jogaria fora a informação de que o cliente já disse o que queria.
 const FALE_ASSUNTOS = {
-  auto: "Oi! Vim pelo Instagram e quero cotar um seguro de automóvel.",
-  saude: "Oi! Vim pelo Instagram e quero cotar um plano de saúde.",
-  odonto: "Oi! Vim pelo Instagram e quero saber do plano odontológico.",
-  vida: "Oi! Vim pelo Instagram e quero cotar um seguro de vida.",
-  residencia: "Oi! Vim pelo Instagram e quero cotar um seguro residencial.",
-  consorcio: "Oi! Vim pelo Instagram e quero saber sobre consórcio.",
-  financiamento: "Oi! Vim pelo Instagram e quero saber sobre financiamento.",
-  cartao: "Oi! Vim pelo Instagram e quero saber do Cartão Porto Bank.",
-  sinistro: "Oi! Preciso de ajuda com um sinistro/guincho.",
+  auto: "Vim pelo Instagram e quero cotar um seguro de automóvel.",
+  saude: "Vim pelo Instagram e quero cotar um plano de saúde.",
+  odonto: "Vim pelo Instagram e quero saber do plano odontológico.",
+  vida: "Vim pelo Instagram e quero cotar um seguro de vida.",
+  residencia: "Vim pelo Instagram e quero cotar um seguro residencial.",
+  consorcio: "Vim pelo Instagram e quero saber sobre consórcio.",
+  financiamento: "Vim pelo Instagram e quero saber sobre financiamento.",
+  cartao: "Vim pelo Instagram e quero saber do Cartão Porto Bank.",
+  sinistro: "Preciso de ajuda com um sinistro/guincho.",
 };
 
 // GET /fale → abre a conversa no WhatsApp com a MarIAna
@@ -484,8 +484,13 @@ const MENU_TRIGGERS = [
 function isMenuTrigger(text) {
   if (!text) return false;
   const t = text.trim().toLowerCase();
-  if (MENU_TRIGGERS.some((w) => t === w || t.startsWith(w + " "))) return true;
-  return /^(bom dia|boa tarde|boa noite)\b/.test(t);
+  // O cliente quase sempre escreve "Oi," ou "Olá!" com pontuação colada. Para
+  // o menu abrir do mesmo jeito, trocamos essa pontuação por um espaço antes
+  // de comparar: "oi, quero informações" vira "oi quero informações".
+  const limpo = t.replace(/^([^\s,!.?;:]+)\s*[,!.?;:]+\s*/, "$1 ").trim();
+  const casa = (x) => MENU_TRIGGERS.some((w) => x === w || x.startsWith(w + " "));
+  if (casa(t) || casa(limpo)) return true;
+  return /^(bom dia|boa tarde|boa noite)\b/.test(limpo);
 }
 
 // Identifica o assunto a partir do texto livre (ou do anúncio do Instagram),
@@ -571,24 +576,26 @@ async function handleWhatsAppMenu(msg) {
     return true;
   }
 
-  // 2. Saudação / palavra-chave → mostra o menu principal
-  if (isMenuTrigger(msg.text)) {
-    await sendMainMenu(msg.from, msg.name);
-    lembrarTroca(msg.from, msg.text,
-      "Oi! Sou a MarIAna, da Quadrata Seguros. Te mostrei o menu com as opções: cotação, sinistro/guincho, baixar o app e falar com corretor.");
-    return true;
-  }
-
-  // 3. Sinistro/emergência (por texto livre): na PRIMEIRA vez, mandamos o menu
-  // de seguradoras — ali estão os telefones da assistência 24h (urgentes e que
-  // a IA não tem na memória). Se o sinistro já foi tratado nesta conversa, NÃO
-  // repetimos a pergunta: deixamos a MarIAna conduzir com o contexto que já tem.
+  // 2. Sinistro/emergência (por texto livre) vem ANTES da saudação: quem
+  // escreve "Oi, bati o carro" precisa do telefone da assistência 24h, não do
+  // menu geral. Na PRIMEIRA vez mandamos o menu de seguradoras — ali estão os
+  // telefones urgentes, que a IA não tem na memória. Se o sinistro já foi
+  // tratado nesta conversa, NÃO repetimos a pergunta: deixamos a MarIAna
+  // conduzir com o contexto que já tem.
   const assunto = detectAssunto(msg.text);
   if (assunto === "sinistro" && !sinistroJaTratado(msg.from)) {
     await sendSeguradorasMenu(msg.from);
     marcarSinistroTratado(msg.from);
     lembrarTroca(msg.from, msg.text,
       "Sinto muito pelo ocorrido. Te mostrei a lista de seguradoras para você me dizer qual é a sua.");
+    return true;
+  }
+
+  // 3. Saudação / palavra-chave → mostra o menu principal
+  if (isMenuTrigger(msg.text)) {
+    await sendMainMenu(msg.from, msg.name);
+    lembrarTroca(msg.from, msg.text,
+      "Oi! Sou a MarIAna, da Quadrata Seguros. Te mostrei o menu com as opções: cotação, sinistro/guincho, baixar o app e falar com corretor.");
     return true;
   }
 
