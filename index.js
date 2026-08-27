@@ -116,24 +116,33 @@ function normalizarNumero(valor) {
 
 const WHATSAPP_NUMERO = normalizarNumero(process.env.WHATSAPP_NUMERO) || NUMERO_PADRAO;
 
-// Mensagem já digitada ao abrir o WhatsApp. "Oi" (padrão) abre o menu
-// principal; com ?assunto=auto etc. a MarIAna já responde sobre o tema.
+// Mensagem já digitada ao abrir o WhatsApp.
+//
+// ATENÇÃO ao mexer no texto padrão: ele precisa começar com uma saudação de
+// MENU_TRIGGERS ("Oi", "Olá", "Menu"...) para a MarIAna abrir o menu principal
+// em vez de acionar a IA. Pontuação colada ("Oi,") pode — isMenuTrigger trata.
+const FALE_PADRAO = "Oi, quero mais informações.";
+
+// Com ?assunto=auto etc. o texto vai direto ao tema e quem responde é a
+// MarIAna (IA), que já entra no assunto em vez de mostrar o menu. Por isso
+// estes NÃO começam com saudação: um "Oi" na frente abriria o menu geral e
+// jogaria fora a informação de que o cliente já disse o que queria.
 const FALE_ASSUNTOS = {
-  auto: "Oi! Vim pelo Instagram e quero cotar um seguro de automóvel.",
-  saude: "Oi! Vim pelo Instagram e quero cotar um plano de saúde.",
-  odonto: "Oi! Vim pelo Instagram e quero saber do plano odontológico.",
-  vida: "Oi! Vim pelo Instagram e quero cotar um seguro de vida.",
-  residencia: "Oi! Vim pelo Instagram e quero cotar um seguro residencial.",
-  consorcio: "Oi! Vim pelo Instagram e quero saber sobre consórcio.",
-  financiamento: "Oi! Vim pelo Instagram e quero saber sobre financiamento.",
-  cartao: "Oi! Vim pelo Instagram e quero saber do Cartão Porto Bank.",
-  sinistro: "Oi! Preciso de ajuda com um sinistro/guincho.",
+  auto: "Vim pelo Instagram e quero cotar um seguro de automóvel.",
+  saude: "Vim pelo Instagram e quero cotar um plano de saúde.",
+  odonto: "Vim pelo Instagram e quero saber do plano odontológico.",
+  vida: "Vim pelo Instagram e quero cotar um seguro de vida.",
+  residencia: "Vim pelo Instagram e quero cotar um seguro residencial.",
+  consorcio: "Vim pelo Instagram e quero saber sobre consórcio.",
+  financiamento: "Vim pelo Instagram e quero saber sobre financiamento.",
+  cartao: "Vim pelo Instagram e quero saber do Cartão Porto Bank.",
+  sinistro: "Preciso de ajuda com um sinistro/guincho.",
 };
 
 // GET /fale → abre a conversa no WhatsApp com a MarIAna
 app.get(["/fale", "/fale.html", "/contato"], (req, res) => {
   const assunto = String(req.query.assunto || "").toLowerCase();
-  const texto = FALE_ASSUNTOS[assunto] || "Oi";
+  const texto = FALE_ASSUNTOS[assunto] || FALE_PADRAO;
   res.setHeader("Cache-Control", "no-store");
   res.redirect(302, `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(texto)}`);
 });
@@ -288,6 +297,15 @@ function estaAberto(d = new Date()) {
   }
 }
 
+// Resposta pronta do menu, já com a campanha de consórcio quando ela estiver
+// valendo. Passa por aqui todo lugar que responde a partir de um id — assim a
+// oferta aparece igual, venha o cliente do menu, de um anúncio ou do texto.
+function respostaDe(id) {
+  const base = RESPOSTAS[id];
+  if (!base) return base;
+  return id === "cot_consorcio" ? base + consorcioResumo() : base;
+}
+
 // Fecho das respostas que dependem de um corretor (humano). Só menciona o
 // horário quando estamos FECHADOS — dentro do expediente o cliente não
 // precisa saber que existe um horário. Varia um pouco a frase (aberto) para
@@ -401,10 +419,11 @@ const RESPOSTAS = {
     "🩺 *Plano de Saúde*\n\n" +
     "Para eu encontrar as melhores opções, me conta:\n" +
     "• *Quantas pessoas* vão usar e as *idades*\n• Sua *cidade*\n• Se é *individual/familiar* ou *empresarial* (com CNPJ)",
+  // A continuação vem de consorcioResumo(): a campanha, enquanto ela valer, ou
+  // o pedido de bem/valor depois que ela acabar.
   cot_consorcio:
-    "🎯 *Consórcio* — um jeito planejado de conquistar o que você quer.\n\n" +
-    "Me conta pra eu começar:\n" +
-    "• O *bem* desejado (imóvel, automóvel, serviços…)\n• O *valor* aproximado que você tem em mente",
+    "🎯 *Consórcio* — um jeito planejado de conquistar o que você quer, sem juros: " +
+    "você paga taxa de administração e recebe o bem por sorteio ou lance.",
   cot_financiamento:
     "🏦 *Financiamento*\n\n" +
     "Para eu preparar sua simulação, me diz:\n" +
@@ -475,8 +494,13 @@ const MENU_TRIGGERS = [
 function isMenuTrigger(text) {
   if (!text) return false;
   const t = text.trim().toLowerCase();
-  if (MENU_TRIGGERS.some((w) => t === w || t.startsWith(w + " "))) return true;
-  return /^(bom dia|boa tarde|boa noite)\b/.test(t);
+  // O cliente quase sempre escreve "Oi," ou "Olá!" com pontuação colada. Para
+  // o menu abrir do mesmo jeito, trocamos essa pontuação por um espaço antes
+  // de comparar: "oi, quero informações" vira "oi quero informações".
+  const limpo = t.replace(/^([^\s,!.?;:]+)\s*[,!.?;:]+\s*/, "$1 ").trim();
+  const casa = (x) => MENU_TRIGGERS.some((w) => x === w || x.startsWith(w + " "));
+  if (casa(t) || casa(limpo)) return true;
+  return /^(bom dia|boa tarde|boa noite)\b/.test(limpo);
 }
 
 // Identifica o assunto a partir do texto livre (ou do anúncio do Instagram),
@@ -520,7 +544,7 @@ async function handleWhatsAppMenu(msg) {
       lembrarTroca(msg.from, msg.text || "Falar com corretor", t);
       return true;
     }
-    const resposta = RESPOSTAS[msg.interactiveId];
+    const resposta = respostaDe(msg.interactiveId);
     if (resposta) {
       const extra = COTACAO_IDS.has(msg.interactiveId) ? fechoCorretor() : "";
       const t = resposta + extra;
@@ -551,7 +575,7 @@ async function handleWhatsAppMenu(msg) {
       return true;
     }
     if (assuntoAd) {
-      const t = ola + RESPOSTAS[assuntoAd] + fechoCorretor();
+      const t = ola + respostaDe(assuntoAd) + fechoCorretor();
       await sendWhatsAppReply(msg.from, t);
       lembrarTroca(msg.from, msg.text || "(veio de um anúncio)", t);
       return true;
@@ -562,18 +586,12 @@ async function handleWhatsAppMenu(msg) {
     return true;
   }
 
-  // 2. Saudação / palavra-chave → mostra o menu principal
-  if (isMenuTrigger(msg.text)) {
-    await sendMainMenu(msg.from, msg.name);
-    lembrarTroca(msg.from, msg.text,
-      "Oi! Sou a MarIAna, da Quadrata Seguros. Te mostrei o menu com as opções: cotação, sinistro/guincho, baixar o app e falar com corretor.");
-    return true;
-  }
-
-  // 3. Sinistro/emergência (por texto livre): na PRIMEIRA vez, mandamos o menu
-  // de seguradoras — ali estão os telefones da assistência 24h (urgentes e que
-  // a IA não tem na memória). Se o sinistro já foi tratado nesta conversa, NÃO
-  // repetimos a pergunta: deixamos a MarIAna conduzir com o contexto que já tem.
+  // 2. Sinistro/emergência (por texto livre) vem ANTES da saudação: quem
+  // escreve "Oi, bati o carro" precisa do telefone da assistência 24h, não do
+  // menu geral. Na PRIMEIRA vez mandamos o menu de seguradoras — ali estão os
+  // telefones urgentes, que a IA não tem na memória. Se o sinistro já foi
+  // tratado nesta conversa, NÃO repetimos a pergunta: deixamos a MarIAna
+  // conduzir com o contexto que já tem.
   const assunto = detectAssunto(msg.text);
   if (assunto === "sinistro" && !sinistroJaTratado(msg.from)) {
     await sendSeguradorasMenu(msg.from);
@@ -583,12 +601,20 @@ async function handleWhatsAppMenu(msg) {
     return true;
   }
 
+  // 3. Saudação / palavra-chave → mostra o menu principal
+  if (isMenuTrigger(msg.text)) {
+    await sendMainMenu(msg.from, msg.name);
+    lembrarTroca(msg.from, msg.text,
+      "Oi! Sou a MarIAna, da Quadrata Seguros. Te mostrei o menu com as opções: cotação, sinistro/guincho, baixar o app e falar com corretor.");
+    return true;
+  }
+
   // 4. Demais textos livres → deixamos a MarIAna (IA) conduzir a conversa: ela
   // entende pedidos com nuance (ex.: "consórcio de automóvel de 100 mil") que o
   // atalho por palavra-chave interpretaria errado. O atalho vira PLANO B, usado
   // só quando a IA está desativada, para ainda assim dar uma resposta útil.
   if (!anthropic && assunto) {
-    const t = RESPOSTAS[assunto] + fechoCorretor();
+    const t = respostaDe(assunto) + fechoCorretor();
     await sendWhatsAppReply(msg.from, t);
     lembrarTroca(msg.from, msg.text, t);
     return true;
@@ -628,6 +654,137 @@ async function sendInstagramReply(to, text) {
 // Substitui o antigo servidor Langflow: sem servidor pesado ligado 24h, paga-se
 // só por mensagem processada. O menu interativo continua como primeira camada.
 // ---------------------------------------------------------------------------
+
+// ─── Campanha Consórcio Porto Bank ──────────────────────────────────────────
+// "50% de desconto na taxa" — parcela reduzida em 50% até a contemplação.
+// Valores da tabela oficial para PESSOA FÍSICA. Depois da validade a campanha
+// para de ser oferecida sozinha: nada de prometer preço vencido ao cliente.
+const CONSORCIO_VALIDADE = "2026-08-31"; // último dia da oferta
+
+function consorcioNaValidade(d = new Date()) {
+  try {
+    // Compara pelo dia corrente em São Paulo, não em UTC.
+    const hoje = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+    return hoje <= CONSORCIO_VALIDADE;
+  } catch {
+    return false; // na dúvida, não oferece
+  }
+}
+
+// [crédito, parcela sem oferta, parcela com redução]
+const CONSORCIO_PLANOS = [
+  {
+    bem: "Automóvel",
+    prazo: "100 meses",
+    condicoes:
+      "Taxa adm 0,08% ao mês (7,5% no total), Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de até 30% do crédito, conforme disponibilidade do grupo.",
+    faixas: [
+      [150000, 1704, 883], [160000, 1818, 942], [170000, 1932, 1001],
+      [180000, 2045, 1060], [190000, 2159, 1119], [200000, 2273, 1178],
+      [210000, 2386, 1237], [220000, 2500, 1296], [230000, 2614, 1354],
+      [240000, 2727, 1413], [250000, 2841, 1472],
+    ],
+  },
+  {
+    bem: "Automóvel",
+    prazo: "90 meses",
+    condicoes:
+      "Taxa adm 0,09% ao mês (8% no total), Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de até 30% do crédito, conforme disponibilidade do grupo.",
+    faixas: [
+      [80000, 1011, 522], [85000, 1074, 554], [90000, 1137, 587],
+      [95000, 1200, 620], [100000, 1264, 652], [105000, 1327, 685],
+      [110000, 1390, 718], [115000, 1453, 750], [120000, 1516, 783],
+      [125000, 1580, 816], [130000, 1643, 848], [135000, 1706, 881],
+      [140000, 1769, 914],
+    ],
+  },
+  {
+    bem: "Imóvel",
+    prazo: "200 meses",
+    condicoes:
+      "Taxa adm 11,5% (antecipada, diluída no plano) — 0,06% ao mês, Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de 30% do crédito e lance fixo de 40%.",
+    // Aqui a 3ª coluna é a parcela reduzida JÁ COM a entrada diluída no prazo.
+    reduzidaLabel: "parcela reduzida + entrada diluída no prazo do grupo",
+    faixas: [
+      [140000, 941, 457], [150000, 1008, 490], [160000, 1076, 523],
+      [170000, 1143, 555], [180000, 1210, 588], [190000, 1277, 621],
+      [200000, 1345, 653], [210000, 1412, 686], [220000, 1479, 719],
+      [230000, 1546, 751], [240000, 1614, 784], [250000, 1681, 817],
+      [260000, 1748, 849], [270000, 1815, 882], [280000, 1883, 915],
+    ],
+  },
+];
+
+const brl = (n) => n.toLocaleString("pt-BR");
+
+// Menor parcela reduzida de cada plano — serve de chamada ("a partir de").
+function consorcioEntradas() {
+  return CONSORCIO_PLANOS.map((p) => {
+    const [credito, , reduzida] = p.faixas[0];
+    return { bem: p.bem, prazo: p.prazo, credito, reduzida };
+  });
+}
+
+// Resumo curto para o WhatsApp (menu). Tabela cheia fica só para a IA.
+function consorcioResumo() {
+  if (!consorcioNaValidade()) {
+    return (
+      "\n\nMe conta pra eu começar:\n" +
+      "• O *bem* desejado (imóvel, automóvel, serviços…)\n" +
+      "• O *valor* aproximado que você tem em mente"
+    );
+  }
+  const [auto90] = consorcioEntradas().filter((e) => e.prazo === "90 meses");
+  const imovel = consorcioEntradas().find((e) => e.bem === "Imóvel");
+  return (
+    "\n\n🔥 *Reta final da campanha Porto Bank* (até 31/08): *50% de desconto na taxa* — você paga *metade da parcela* até ser contemplado.\n\n" +
+    `• *Automóvel*: crédito de R$ ${brl(auto90.credito)} por R$ ${brl(auto90.reduzida)}/mês\n` +
+    `• *Imóvel*: crédito de R$ ${brl(imovel.credito)} por R$ ${brl(imovel.reduzida)}/mês\n\n` +
+    "Me diga o *bem* (imóvel ou automóvel) e o *valor do crédito* que você quer, " +
+    "que eu te mostro a parcela exata. 😉"
+  );
+}
+
+// Bloco injetado no prompt da IA só quando a conversa é sobre consórcio.
+function consorcioParaIA() {
+  if (!consorcioNaValidade()) {
+    return (
+      "\n\nCONSÓRCIO: a campanha de 50% de desconto na taxa (parcela reduzida) ENCERROU. " +
+      "Não ofereça nem cite aqueles valores. Colete o bem desejado e o valor do crédito e diga que um corretor confirma as condições vigentes."
+    );
+  }
+  const tabelas = CONSORCIO_PLANOS.map((p) => {
+    const linhas = p.faixas
+      .map(([c, sem, red]) => `  crédito R$ ${brl(c)} — sem oferta R$ ${brl(sem)} — com redução R$ ${brl(red)}`)
+      .join("\n");
+    const obs = p.reduzidaLabel ? ` (a coluna com redução é a ${p.reduzidaLabel})` : "";
+    return `${p.bem} — grupo de ${p.prazo}${obs}\n  ${p.condicoes}\n${linhas}`;
+  }).join("\n\n");
+
+  return `
+
+CAMPANHA CONSÓRCIO PORTO BANK — válida até 31/08/2026 (estamos na reta final):
+"50% de desconto na taxa": a parcela fica reduzida em 50% até a contemplação.
+
+EXCEÇÃO à regra de não informar valores: estes números são de tabela oficial
+publicada e VOCÊ PODE informá-los ao cliente, desde que copiados exatamente
+como estão abaixo. Valores para PESSOA FÍSICA.
+
+${tabelas}
+
+Ao falar desta campanha:
+- SEMPRE explique, junto do valor reduzido, que a redução vale ATÉ A CONTEMPLAÇÃO e que depois a diferença é compensada nas parcelas seguintes. Nunca cite a parcela reduzida sozinha, como se fosse o valor definitivo do plano.
+- NUNCA invente, calcule, interpole ou arredonde faixas: se o cliente pedir um crédito que não está na tabela, mostre as faixas vizinhas que existem e diga que um corretor monta o valor exato.
+- Diga que as parcelas são reajustadas no aniversário do grupo e que as demais condições estão no Regulamento.
+- Consórcio NÃO é financiamento: não tem juros, tem taxa de administração, e o bem sai por sorteio ou lance.
+- A oferta acaba em 31/08/2026 — pode usar isso como um convite gentil para não deixar passar, sem pressionar.
+- Para seguir, peça o valor do crédito desejado e avise que um corretor da Quadrata finaliza a simulação e a adesão.`;
+}
 
 const MARIANA_SYSTEM = `Você é a MarIAna, atendente virtual da *Quadrata Seguros*, uma corretora de seguros brasileira. Você atende clientes pelo WhatsApp.
 
@@ -734,6 +891,12 @@ async function runMarIAna(inputText, from, name) {
   const messages = [...historico, { role: "user", content: inputText }];
 
   let system = MARIANA_SYSTEM;
+  // A tabela do consórcio só entra quando o assunto aparece na conversa (na
+  // mensagem atual ou no que já foi dito). Evita carregar dezenas de faixas de
+  // preço em todo atendimento — e diminui a chance de a IA citar valor fora
+  // de contexto.
+  const conversaToda = [...historico.map((m) => m.content), inputText].join(" ");
+  if (/cons[óo]rcio/i.test(conversaToda)) system += consorcioParaIA();
   if (name && name !== from) system += `\n\nO nome do cliente é ${name}.`;
   if (!estaAberto()) {
     system += `\n\nATENÇÃO: no momento estamos FORA do horário de atendimento (${HORARIO}). Ao mencionar o retorno de um corretor, deixe claro que será assim que reabrirmos.`;
@@ -826,7 +989,7 @@ app.post("/webhook", async (req, res) => {
         const assunto = detectAssunto(msg.text);
         let texto;
         if (assunto && assunto !== "sinistro" && RESPOSTAS[assunto]) {
-          texto = RESPOSTAS[assunto] + fechoCorretor();
+          texto = respostaDe(assunto) + fechoCorretor();
         } else {
           texto =
             "✅ Recebi sua mensagem e já registrei sua solicitação." +
