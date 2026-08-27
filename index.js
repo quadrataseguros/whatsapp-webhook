@@ -682,7 +682,7 @@ const CONSORCIO_PLANOS = [
     bem: "Automóvel",
     prazo: "100 meses",
     condicoes:
-      "Taxa adm 0,08% ao mês (7,5% no total), Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de até 30% do crédito, conforme disponibilidade do grupo.",
+      "Taxa adm 0,08% ao mês (7,5% no total), Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de até 30% do crédito (modalidade de pagamento), conforme disponibilidade do grupo.",
     faixas: [
       [150000, 1704, 883], [160000, 1818, 942], [170000, 1932, 1001],
       [180000, 2045, 1060], [190000, 2159, 1119], [200000, 2273, 1178],
@@ -694,7 +694,7 @@ const CONSORCIO_PLANOS = [
     bem: "Automóvel",
     prazo: "90 meses",
     condicoes:
-      "Taxa adm 0,09% ao mês (8% no total), Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de até 30% do crédito, conforme disponibilidade do grupo.",
+      "Taxa adm 0,09% ao mês (8% no total), Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de até 30% do crédito (modalidade de pagamento), conforme disponibilidade do grupo.",
     faixas: [
       [80000, 1011, 522], [85000, 1074, 554], [90000, 1137, 587],
       [95000, 1200, 620], [100000, 1264, 652], [105000, 1327, 685],
@@ -707,7 +707,7 @@ const CONSORCIO_PLANOS = [
     bem: "Imóvel",
     prazo: "200 meses",
     condicoes:
-      "Taxa adm 11,5% (antecipada, diluída no plano) — 0,06% ao mês, Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de 30% do crédito e lance fixo de 40%.",
+      "Taxa adm 11,5% (antecipada, diluída no plano) — 0,06% ao mês, Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de 30% do crédito (modalidade de pagamento) e lance fixo de 40% (tipo de lance deste grupo).",
     // Aqui a 3ª coluna é a parcela reduzida JÁ COM a entrada diluída no prazo.
     reduzidaLabel: "parcela reduzida + entrada diluída no prazo do grupo",
     faixas: [
@@ -751,9 +751,30 @@ function consorcioResumo() {
 }
 
 // Bloco injetado no prompt da IA só quando a conversa é sobre consórcio.
+// Regras de lance. Valem sempre, com ou sem campanha: a tabela promocional cita
+// só o lance embutido, e ler aquilo sozinho dá a impressão errada de que o lance
+// máximo é 30% do crédito. São coisas diferentes — o TIPO de lance (quanto se
+// oferece) e a FORMA de pagar (de onde sai o dinheiro).
+const CONSORCIO_LANCES = `
+
+LANCES NO CONSÓRCIO (regra geral da Porto — vale mesmo fora da campanha):
+
+Tipos de lance — quanto o cliente oferece:
+- Lance livre: o cliente escolhe o percentual, do valor de uma parcela até a quitação total (100% do crédito). Na assembleia, leva quem ofertar o maior percentual.
+- Lance fixo: o grupo define um percentual único e pré-estabelecido (25%, 30%, 40% — varia conforme o grupo). Se mais de um cliente ofertar esse valor, a Porto aplica um critério de desempate (Loteria Federal ou proximidade com a pedra-chave).
+
+Formas de pagar o lance — de onde sai o dinheiro:
+- Lance embutido: o cliente usa até 30% da PRÓPRIA carta de crédito para pagar o lance, sem tirar do bolso. Se for contemplado, esse valor é descontado do crédito que ele recebe. A disponibilidade varia por bem e por grupo (imóvel e pesados, por exemplo).
+- Recursos próprios: dinheiro do cliente ou, no caso de imóvel, o saldo do FGTS.
+
+CUIDADO AO EXPLICAR: os 30% do lance embutido são o limite do que dá para tirar da própria carta — NÃO são o teto do lance. Com recursos próprios o cliente pode ofertar mais, inclusive quitar 100% no lance livre. Nunca dê a entender que só existe lance de 30%, nem que o embutido é a única opção.
+
+Percentuais e disponibilidade mudam de grupo para grupo: informe o que estiver na tabela do plano e, para o resto, diga que um corretor confirma as regras do grupo específico. A contemplação sai por sorteio ou por lance.`;
+
 function consorcioParaIA() {
   if (!consorcioNaValidade()) {
     return (
+      CONSORCIO_LANCES +
       "\n\nCONSÓRCIO: a campanha de 50% de desconto na taxa (parcela reduzida) ENCERROU. " +
       "Não ofereça nem cite aqueles valores. Colete o bem desejado e o valor do crédito e diga que um corretor confirma as condições vigentes."
     );
@@ -766,7 +787,7 @@ function consorcioParaIA() {
     return `${p.bem} — grupo de ${p.prazo}${obs}\n  ${p.condicoes}\n${linhas}`;
   }).join("\n\n");
 
-  return `
+  return `${CONSORCIO_LANCES}
 
 CAMPANHA CONSÓRCIO PORTO BANK — válida até 31/08/2026 (estamos na reta final):
 "50% de desconto na taxa": a parcela fica reduzida em 50% até a contemplação.
