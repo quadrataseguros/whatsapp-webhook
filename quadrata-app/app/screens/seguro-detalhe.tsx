@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Linking } from "react-native";
+import { CONTATOS, CORRETORA, waLink } from "../../constants/contato";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -88,7 +89,15 @@ export default function SeguroDetalhe() {
 
       <Text style={s.sectionTitle}>Corretor Responsável</Text>
       <View style={s.card}>
-        <Text style={s.corretorText}>🧑‍💼 Quadrata Seguros — (11) 98678-0000</Text>
+        <Text style={s.corretorNome}>🧑‍💼 {CORRETORA}</Text>
+        <TouchableOpacity style={s.corretorLinha} onPress={() => Linking.openURL(waLink(CONTATOS.escritorio.whatsapp))}>
+          <Text style={s.corretorText}>📞 {CONTATOS.escritorio.display}</Text>
+          <Text style={s.corretorWpp}>WhatsApp →</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={s.corretorLinha} onPress={() => Linking.openURL(waLink(CONTATOS.mariana.whatsapp))}>
+          <Text style={s.corretorText}>🤖 {CONTATOS.mariana.display} · 24h</Text>
+          <Text style={s.corretorWpp}>WhatsApp →</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={s.actions}>
@@ -127,7 +136,10 @@ const s = StyleSheet.create({
   card: { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 14, elevation: 2, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6 },
   cobRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: "#F3F6FC" },
   cobLabel: { fontSize: 13, color: "#333", fontWeight: "500" },
-  corretorText: { fontSize: 14, color: "#0D2B6E", fontWeight: "600" },
+  corretorNome: { fontSize: 15, color: "#0D2B6E", fontWeight: "700", marginBottom: 8 },
+  corretorLinha: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingVertical: 8, borderTopWidth: 1, borderTopColor: "#F3F6FC" },
+  corretorText: { fontSize: 13, color: "#444", fontWeight: "600" },
+  corretorWpp: { fontSize: 12, color: "#16A34A", fontWeight: "700" },
   actions: { gap: 10 },
   btn: { backgroundColor: "#0D2B6E", borderRadius: 14, padding: 15, alignItems: "center" },
   btnText: { color: "#fff", fontWeight: "700", fontSize: 15 },

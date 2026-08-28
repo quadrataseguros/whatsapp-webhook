@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, ActivityIndicator, Linking } from "react-native";
+import { CONTATOS, waLink } from "../../constants/contato";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useEffect, useState } from "react";
@@ -15,8 +16,8 @@ const ACTIONS = [
   { label: "Fale Conosco",    emoji: "💬", color: "#9333EA", route: "/screens/contato" },
   { label: "2ª Via Boleto",   emoji: "📄", color: "#EA580C", route: "/screens/boleto" },
   { label: "Solicitar Cotação",emoji:"📝", color: "#0891B2", route: "/screens/cotacao" },
-  { label: "WhatsApp",        emoji: "📱", color: "#15803D" },
-  { label: "Indique e Ganhe", emoji: "🎁", color: "#B45309" },
+  { label: "WhatsApp",        emoji: "📱", color: "#15803D", wa: "escritorio" as const },
+  { label: "MarIAna 24h",     emoji: "🤖", color: "#B45309", wa: "mariana" as const },
 ];
 
 const TIPO_EMOJI: Record<string, string> = {
@@ -88,7 +89,10 @@ export default function Inicio() {
         <View style={s.grid}>
           {ACTIONS.map((item) => (
             <TouchableOpacity key={item.label} style={s.cell} activeOpacity={0.75}
-              onPress={() => { if (item.route) router.push(item.route as any); }}>
+              onPress={() => {
+                if (item.route) router.push(item.route as any);
+                else if (item.wa) Linking.openURL(waLink(CONTATOS[item.wa].whatsapp));
+              }}>
               <View style={[s.iconCircle, { backgroundColor: item.color }]}>
                 <Text style={s.iconEmoji}>{item.emoji}</Text>
               </View>

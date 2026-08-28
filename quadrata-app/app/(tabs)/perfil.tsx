@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CONTATOS, CORRETORA, waLink } from "../../constants/contato";
 
 type Cliente = { nome: string; cpf: string; email: string; telefone: string; criado_em: string };
 
@@ -28,7 +29,8 @@ export default function Perfil() {
     Alert.alert("Sair", "Deseja sair da sua conta?", [
       { text: "Cancelar", style: "cancel" },
       { text: "Sair", style: "destructive", onPress: async () => {
-        await AsyncStorage.multiRemove(["@token", "@cliente"]);
+        await AsyncStorage.removeItem("@token");
+        await AsyncStorage.removeItem("@cliente");
         router.replace("/login");
       }},
     ]);
@@ -62,11 +64,15 @@ export default function Perfil() {
           <View style={s.corretorRow}>
             <View style={s.corretorAvatar}><Text style={s.corretorAvatarText}>QS</Text></View>
             <View style={{ flex: 1 }}>
-              <Text style={s.corretorName}>Quadrata Seguros</Text>
-              <Text style={s.corretorTel}>📞 (11) 98678-0000</Text>
+              <Text style={s.corretorName}>{CORRETORA}</Text>
+              <Text style={s.corretorTel}>📞 {CONTATOS.escritorio.display}</Text>
+              <Text style={s.corretorTel}>🤖 {CONTATOS.mariana.display} · 24h</Text>
             </View>
-            <TouchableOpacity style={s.chatBtn} onPress={() => Linking.openURL("https://wa.me/5511986780000")}>
-              <Text style={s.chatBtnText}>Contato</Text>
+            <TouchableOpacity style={s.chatBtn} onPress={() => Linking.openURL(waLink(CONTATOS.escritorio.whatsapp))}>
+              <Text style={s.chatBtnText}>💬</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={[s.chatBtn, s.chatBtn24h]} onPress={() => Linking.openURL(waLink(CONTATOS.mariana.whatsapp))}>
+              <Text style={s.chatBtnText}>🤖</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -115,8 +121,9 @@ const s = StyleSheet.create({
   corretorAvatarText: { color: "#fff", fontWeight: "700" },
   corretorName: { fontWeight: "700", color: "#0D2B6E", fontSize: 14 },
   corretorTel: { color: "#666", fontSize: 12, marginTop: 2 },
-  chatBtn: { backgroundColor: "#0D2B6E", borderRadius: 10, paddingHorizontal: 14, paddingVertical: 8 },
-  chatBtnText: { color: "#fff", fontWeight: "700", fontSize: 12 },
+  chatBtn: { backgroundColor: "#0D2B6E", borderRadius: 10, width: 40, height: 40, justifyContent: "center", alignItems: "center" },
+  chatBtn24h: { backgroundColor: "#16A34A" },
+  chatBtnText: { color: "#fff", fontWeight: "700", fontSize: 17 },
   menuCard: { marginHorizontal: 16, marginBottom: 12, backgroundColor: "#fff", borderRadius: 14, overflow: "hidden", elevation: 2, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6 },
   menuItem: { flexDirection: "row", alignItems: "center", padding: 16, gap: 12 },
   menuBorder: { borderBottomWidth: 1, borderBottomColor: "#F3F6FC" },
