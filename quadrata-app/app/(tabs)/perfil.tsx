@@ -1,23 +1,42 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+type Cliente = { nome: string; cpf: string; email: string; telefone: string; criado_em: string };
 
 const MENU = [
   { label: "Dados Pessoais", emoji: "👤", desc: "Nome, CPF, contato" },
-  { label: "Documentos", emoji: "📁", desc: "CNH, RG e outros" },
+  { label: "Meus Boletos", emoji: "📄", desc: "2ª via e pagamentos", route: "/screens/boleto" },
   { label: "Notificações", emoji: "🔔", desc: "Alertas e lembretes" },
-  { label: "Alterar Senha", emoji: "🔐", desc: "Segurança da conta" },
-  { label: "Suporte", emoji: "🎧", desc: "Fale com a Quadrata" },
+  { label: "Suporte", emoji: "🎧", desc: "Fale com a Quadrata", route: "/screens/contato" },
   { label: "Sobre o App", emoji: "ℹ️", desc: "Versão 1.0.0" },
 ];
 
 export default function Perfil() {
+  const [cliente, setCliente] = useState<Cliente | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const stored = await AsyncStorage.getItem("@cliente");
+      if (stored) setCliente(JSON.parse(stored));
+    })();
+  }, []);
+
   const handleLogout = () => {
     Alert.alert("Sair", "Deseja sair da sua conta?", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Sair", style: "destructive", onPress: () => router.replace("/login") },
+      { text: "Sair", style: "destructive", onPress: async () => {
+        await AsyncStorage.multiRemove(["@token", "@cliente"]);
+        router.replace("/login");
+      }},
     ]);
   };
+
+  const initials = (n: string) => n.split(" ").slice(0, 2).map(x => x[0]).join("").toUpperCase();
+  const fmtCPF = (c: string) => c ? c.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : "";
+  const anoCadastro = cliente?.criado_em ? cliente.criado_em.slice(0, 4) : "";
 
   return (
     <View style={s.root}>
@@ -25,39 +44,37 @@ export default function Perfil() {
         <Text style={s.headerTitle}>Meu Perfil</Text>
       </SafeAreaView>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Profile Card */}
         <View style={s.profileCard}>
           <View style={s.avatarLarge}>
-            <Text style={s.avatarText}>SQ</Text>
+            <Text style={s.avatarText}>{cliente ? initials(cliente.nome) : "?"}</Text>
           </View>
-          <Text style={s.profileName}>Segurado Quadrata</Text>
-          <Text style={s.profileCPF}>CPF: 123.456.789-00</Text>
-          <Text style={s.profileEmail}>segurado@email.com</Text>
+          <Text style={s.profileName}>{cliente?.nome || "Carregando..."}</Text>
+          <Text style={s.profileCPF}>CPF: {fmtCPF(cliente?.cpf || "")}</Text>
+          {cliente?.email ? <Text style={s.profileEmail}>{cliente.email}</Text> : null}
           <View style={s.tagWrap}>
-            <View style={s.tag}><Text style={s.tagText}>Cliente desde 2022</Text></View>
+            {anoCadastro ? <View style={s.tag}><Text style={s.tagText}>Cliente desde {anoCadastro}</Text></View> : null}
             <View style={[s.tag, { backgroundColor: "#DCFCE7" }]}><Text style={[s.tagText, { color: "#16A34A" }]}>✓ Verificado</Text></View>
           </View>
         </View>
 
-        {/* Corretor */}
         <View style={s.corretorCard}>
           <Text style={s.corretorLabel}>Meu Corretor</Text>
           <View style={s.corretorRow}>
             <View style={s.corretorAvatar}><Text style={s.corretorAvatarText}>QS</Text></View>
             <View style={{ flex: 1 }}>
               <Text style={s.corretorName}>Quadrata Seguros</Text>
-              <Text style={s.corretorTel}>📞 (11) 9999-9999</Text>
+              <Text style={s.corretorTel}>📞 (11) 98678-0000</Text>
             </View>
-            <TouchableOpacity style={s.chatBtn}>
+            <TouchableOpacity style={s.chatBtn} onPress={() => Linking.openURL("https://wa.me/5511986780000")}>
               <Text style={s.chatBtnText}>Contato</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Menu */}
         <View style={s.menuCard}>
           {MENU.map((item, i) => (
-            <TouchableOpacity key={item.label} style={[s.menuItem, i < MENU.length - 1 && s.menuBorder]}>
+            <TouchableOpacity key={item.label} style={[s.menuItem, i < MENU.length - 1 && s.menuBorder]}
+              onPress={() => item.route && router.push(item.route as any)}>
               <Text style={s.menuEmoji}>{item.emoji}</Text>
               <View style={{ flex: 1 }}>
                 <Text style={s.menuLabel}>{item.label}</Text>
@@ -85,10 +102,10 @@ const s = StyleSheet.create({
   profileCard: { margin: 16, backgroundColor: "#0D2B6E", borderRadius: 20, padding: 24, alignItems: "center" },
   avatarLarge: { width: 80, height: 80, borderRadius: 40, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center", marginBottom: 12 },
   avatarText: { color: "#fff", fontSize: 28, fontWeight: "900" },
-  profileName: { color: "#fff", fontSize: 20, fontWeight: "700" },
+  profileName: { color: "#fff", fontSize: 20, fontWeight: "700", textAlign: "center" },
   profileCPF: { color: "rgba(255,255,255,0.65)", fontSize: 13, marginTop: 4 },
   profileEmail: { color: "rgba(255,255,255,0.65)", fontSize: 13, marginTop: 2 },
-  tagWrap: { flexDirection: "row", gap: 8, marginTop: 12 },
+  tagWrap: { flexDirection: "row", gap: 8, marginTop: 12, flexWrap: "wrap", justifyContent: "center" },
   tag: { backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
   tagText: { color: "#fff", fontSize: 11, fontWeight: "600" },
   corretorCard: { marginHorizontal: 16, marginBottom: 12, backgroundColor: "#fff", borderRadius: 14, padding: 16, elevation: 2, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6 },

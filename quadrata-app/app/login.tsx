@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, Image } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, Alert, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE } from "../constants/api";
 
 export default function Login() {
   const [cpf, setCpf] = useState("");
@@ -15,10 +17,28 @@ export default function Login() {
     return `${n.slice(0,3)}.${n.slice(3,6)}.${n.slice(6,9)}-${n.slice(9)}`;
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!cpf || !senha) { Alert.alert("Atenção", "Preencha CPF e senha."); return; }
     setLoading(true);
-    setTimeout(() => { setLoading(false); router.replace("/(tabs)/inicio"); }, 1200);
+    try {
+      const res = await fetch(`${API_BASE}/api/cliente/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cpf, senha }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        Alert.alert("Erro", data.erro || "CPF ou senha incorretos.");
+        return;
+      }
+      await AsyncStorage.setItem("@token", data.token);
+      await AsyncStorage.setItem("@cliente", JSON.stringify(data.cliente));
+      router.replace("/(tabs)/inicio");
+    } catch {
+      Alert.alert("Erro", "Não foi possível conectar ao servidor.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

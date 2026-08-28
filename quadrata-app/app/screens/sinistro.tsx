@@ -1,24 +1,70 @@
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from "react-native";
-import { useState } from "react";
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { useEffect, useState } from "react";
+import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE } from "../../constants/api";
 
 const TIPOS = ["Colisão", "Furto/Roubo", "Incêndio", "Alagamento", "Terceiros", "Vidros", "Outros"];
+
+type Apolice = { id: number; tipo: string; numero: string };
 
 export default function Sinistro() {
   const [tipo, setTipo] = useState("");
   const [data, setData] = useState("");
   const [local, setLocal] = useState("");
   const [desc, setDesc] = useState("");
+  const [apolices, setApolices] = useState<Apolice[]>([]);
+  const [apoliceId, setApoliceId] = useState<number | null>(null);
+  const [sending, setSending] = useState(false);
 
-  const submit = () => {
-    if (!tipo || !data || !local || !desc) {
-      Alert.alert("Atenção", "Preencha todos os campos.");
-      return;
+  useEffect(() => {
+    (async () => {
+      const token = await AsyncStorage.getItem("@token");
+      if (!token) return;
+      try {
+        const res = await fetch(`${API_BASE}/api/cliente/apolices`, { headers: { Authorization: "Bearer " + token } });
+        if (res.ok) {
+          const list = await res.json();
+          setApolices(list);
+          if (list.length === 1) setApoliceId(list[0].id);
+        }
+      } catch {}
+    })();
+  }, []);
+
+  const toISO = (br: string) => {
+    const p = br.replace(/\D/g, "");
+    if (p.length !== 8) return "";
+    return `${p.slice(4)}-${p.slice(2,4)}-${p.slice(0,2)}`;
+  };
+
+  const fmtData = (v: string) => {
+    const n = v.replace(/\D/g, "").slice(0, 8);
+    if (n.length <= 2) return n;
+    if (n.length <= 4) return `${n.slice(0,2)}/${n.slice(2)}`;
+    return `${n.slice(0,2)}/${n.slice(2,4)}/${n.slice(4)}`;
+  };
+
+  const submit = async () => {
+    if (!tipo || !data || !local || !desc) { Alert.alert("Atenção", "Preencha todos os campos."); return; }
+    const token = await AsyncStorage.getItem("@token");
+    if (!token) { Alert.alert("Erro", "Sessão expirada. Faça login novamente."); return; }
+    setSending(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/cliente/sinistro`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+        body: JSON.stringify({ apolice_id: apoliceId, tipo, data_ocorrido: toISO(data), local, descricao: desc }),
+      });
+      const json = await res.json();
+      if (!res.ok) { Alert.alert("Erro", json.erro || "Não foi possível registrar."); return; }
+      Alert.alert("Sinistro Registrado", `Protocolo: ${json.protocolo}\n\nNossa equipe entrará em contato em até 24h.`,
+        [{ text: "OK", onPress: () => router.back() }]);
+    } catch {
+      Alert.alert("Erro", "Não foi possível conectar ao servidor.");
+    } finally {
+      setSending(false);
     }
-    Alert.alert(
-      "Sinistro Registrado",
-      "Protocolo gerado com sucesso! Nossa equipe entrará em contato em até 24h.\n\nProtocolo: SIN-2024-" + Math.floor(Math.random() * 900 + 100),
-      [{ text: "OK" }]
-    );
   };
 
   return (
@@ -27,6 +73,19 @@ export default function Sinistro() {
         <Text style={s.alertTitle}>🚨 Emergência?</Text>
         <Text style={s.alertText}>Se houver risco à vida, acione o SAMU (192) ou Bombeiros (193) imediatamente.</Text>
       </View>
+
+      {apolices.length > 1 && (
+        <>
+          <Text style={s.sectionTitle}>Apólice envolvida</Text>
+          <View style={s.chipGroup}>
+            {apolices.map((a) => (
+              <TouchableOpacity key={a.id} style={[s.chip, apoliceId === a.id && s.chipSel]} onPress={() => setApoliceId(a.id)}>
+                <Text style={[s.chipText, apoliceId === a.id && s.chipTextSel]}>{a.tipo} — {a.numero}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </>
+      )}
 
       <Text style={s.sectionTitle}>Tipo de sinistro</Text>
       <View style={s.chipGroup}>
@@ -38,7 +97,7 @@ export default function Sinistro() {
       </View>
 
       <Text style={s.label}>Data do ocorrido</Text>
-      <TextInput style={s.input} placeholder="DD/MM/AAAA" placeholderTextColor="#aaa" value={data} onChangeText={setData} keyboardType="numeric" />
+      <TextInput style={s.input} placeholder="DD/MM/AAAA" placeholderTextColor="#aaa" value={data} onChangeText={v => setData(fmtData(v))} keyboardType="numeric" maxLength={10} />
 
       <Text style={s.label}>Local do ocorrido</Text>
       <TextInput style={s.input} placeholder="Endereço completo" placeholderTextColor="#aaa" value={local} onChangeText={setLocal} />
@@ -46,8 +105,8 @@ export default function Sinistro() {
       <Text style={s.label}>Descrição detalhada</Text>
       <TextInput style={[s.input, s.textarea]} placeholder="Descreva o que aconteceu com o máximo de detalhes..." placeholderTextColor="#aaa" value={desc} onChangeText={setDesc} multiline numberOfLines={5} textAlignVertical="top" />
 
-      <TouchableOpacity style={s.btn} onPress={submit}>
-        <Text style={s.btnText}>📋  Registrar Sinistro</Text>
+      <TouchableOpacity style={[s.btn, sending && { opacity: 0.7 }]} onPress={submit} disabled={sending}>
+        {sending ? <ActivityIndicator color="#fff" /> : <Text style={s.btnText}>📋  Registrar Sinistro</Text>}
       </TouchableOpacity>
       <Text style={s.info}>Após o registro, você receberá um protocolo e nossa equipe entrará em contato.</Text>
       <View style={{ height: 30 }} />

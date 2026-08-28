@@ -3,13 +3,33 @@ const express = require("express");
 const path = require("path");
 const axios = require("axios");
 const apiRoutes = require("./api-routes");
+const quadrataApi = require("./quadrata-api");
+const adminHtml = require("./quadrata-admin");
 const app = express();
 app.use(express.json());
 
-// MYSeg App API routes
-app.use("/api", apiRoutes);
+// ── Quadrata App (cliente) — API real com SQLite ──
+app.use("/api", quadrataApi);
 
-// Serve MYSeg web app
+// ── Legacy MYSeg API (mantido para compatibilidade) ──
+app.use("/api/legacy", apiRoutes);
+
+// ── Painel Admin ──
+app.get("/admin", (_req, res) => res.send(adminHtml));
+
+// ── Serve Quadrata App (web/PWA) ──
+const quadrataDistPath = path.join(__dirname, "quadrata-app", "dist");
+app.use("/quadrata", express.static(quadrataDistPath, {
+  setHeaders: (res, filePath) => {
+    // O service worker nunca pode ser cacheado, senão o app trava numa versão antiga
+    if (filePath.endsWith("sw.js")) res.setHeader("Cache-Control", "no-cache");
+  },
+}));
+app.get("/quadrata/*", (_req, res) => {
+  res.sendFile(path.join(quadrataDistPath, "index.html"));
+});
+
+// ── Serve MYSeg web app (legado) ──
 const webDistPath = path.join(__dirname, "myseg-app", "dist");
 app.use("/app", express.static(webDistPath));
 app.get("/app/*", (_req, res) => {

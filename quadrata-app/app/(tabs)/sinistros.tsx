@@ -1,43 +1,73 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl } from "react-native";
+import { router, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useState, useCallback } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE } from "../../constants/api";
 
-const SINISTROS = [
-  { id: "SIN-2024-001", tipo: "Colisão", veiculo: "Toyota Corolla 2022", data: "10/03/2024", status: "Em análise", cor: "#EA580C" },
-  { id: "SIN-2023-004", tipo: "Furto de acessório", veiculo: "Toyota Corolla 2022", data: "22/11/2023", status: "Concluído", cor: "#16A34A" },
-];
+type Sinistro = { id: number; protocolo: string; tipo: string; data_ocorrido: string; local: string; status: string };
+
+const COR_STATUS: Record<string, string> = {
+  "Em análise": "#EA580C", "Concluído": "#16A34A", "Negado": "#DC2626", "Aguardando documentos": "#B45309",
+};
 
 export default function Sinistros() {
+  const [sinistros, setSinistros] = useState<Sinistro[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const load = useCallback(async () => {
+    const token = await AsyncStorage.getItem("@token");
+    if (!token) { setLoading(false); return; }
+    try {
+      const res = await fetch(`${API_BASE}/api/cliente/sinistros`, { headers: { Authorization: "Bearer " + token } });
+      if (res.ok) setSinistros(await res.json());
+    } catch {}
+    setLoading(false);
+    setRefreshing(false);
+  }, []);
+
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  const fmtDate = (s: string) => s ? s.split("-").reverse().join("/") : "-";
+
   return (
     <View style={s.root}>
       <SafeAreaView style={s.header} edges={["top"]}>
         <Text style={s.headerTitle}>Sinistros</Text>
         <Text style={s.headerSub}>Histórico de acionamentos</Text>
       </SafeAreaView>
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={s.scroll}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
+      >
         <TouchableOpacity style={s.newBtn} onPress={() => router.push("/screens/sinistro" as any)}>
           <Text style={s.newBtnText}>+ Acionar Novo Sinistro</Text>
         </TouchableOpacity>
 
-        {SINISTROS.length === 0 ? (
+        {loading ? (
+          <ActivityIndicator color="#0D2B6E" style={{ marginTop: 30 }} />
+        ) : sinistros.length === 0 ? (
           <View style={s.empty}>
             <Text style={s.emptyEmoji}>📭</Text>
             <Text style={s.emptyText}>Nenhum sinistro registrado</Text>
           </View>
-        ) : (
-          SINISTROS.map((sin) => (
+        ) : sinistros.map((sin) => {
+          const cor = COR_STATUS[sin.status] || "#6B7280";
+          return (
             <View key={sin.id} style={s.card}>
               <View style={s.row}>
                 <Text style={s.tipo}>🚨 {sin.tipo}</Text>
-                <View style={[s.badge, { backgroundColor: sin.cor + "22" }]}>
-                  <Text style={[s.badgeText, { color: sin.cor }]}>{sin.status}</Text>
+                <View style={[s.badge, { backgroundColor: cor + "22" }]}>
+                  <Text style={[s.badgeText, { color: cor }]}>{sin.status}</Text>
                 </View>
               </View>
-              <Text style={s.veiculo}>{sin.veiculo}</Text>
-              <Text style={s.meta}>Protocolo: {sin.id}  •  Data: {sin.data}</Text>
+              {sin.local ? <Text style={s.veiculo}>{sin.local}</Text> : null}
+              <Text style={s.meta}>Protocolo: {sin.protocolo}  •  Data: {fmtDate(sin.data_ocorrido)}</Text>
             </View>
-          ))
-        )}
+          );
+        })}
         <View style={{ height: 20 }} />
       </ScrollView>
     </View>

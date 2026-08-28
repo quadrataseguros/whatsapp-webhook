@@ -1,56 +1,69 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import { router } from "expo-router";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from "react-native";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE } from "../../constants/api";
 
-const SEGURO = {
-  tipo: "Automóvel",
-  emoji: "🚗",
-  cor: "#2563EB",
-  apolice: "APL-2024-0012",
-  status: "Vigente",
-  veiculo: "Toyota Corolla 2.0 XEI 2022",
-  placa: "ABC-1D34",
-  chassi: "9BWZZZ377VT004251",
-  inicio: "12/12/2024",
-  fim: "12/12/2025",
-  premio: "R$ 189,00/mês",
-  franquia: "R$ 2.300,00",
-  coberturas: [
-    { label: "Colisão (casco)", incl: true },
-    { label: "Incêndio e explosão", incl: true },
-    { label: "Roubo e furto", incl: true },
-    { label: "Danos a terceiros (RCF)", incl: true },
-    { label: "Vidros", incl: true },
-    { label: "Carro reserva (30 dias)", incl: true },
-    { label: "Seguro de acidentes pessoais", incl: false },
-    { label: "Fenômenos naturais", incl: false },
-  ],
-  seguradora: "Porto Seguro",
-  corretor: "Quadrata Seguros – (11) 9999-9999",
+type Apolice = {
+  id: number; tipo: string; numero: string; seguradora: string; descricao: string;
+  vigencia_inicio: string; vigencia_fim: string; premio_mensal: string; franquia: string;
+  coberturas: string[]; status: string;
+};
+
+const TIPO_EMOJI: Record<string, string> = {
+  "Automóvel":"🚗","Residência":"🏠","Vida":"❤️","Saúde":"🏥",
+  "Empresarial":"🏢","Previdência":"💰","Embarcações":"⛵","Responsabilidade Civil":"⚖️","Outro":"📋",
+};
+const TIPO_COR: Record<string, string> = {
+  "Automóvel":"#2563EB","Residência":"#16A34A","Vida":"#DC2626","Saúde":"#0891B2",
+  "Empresarial":"#9333EA","Previdência":"#B45309","Embarcações":"#0D9488","Responsabilidade Civil":"#7C3AED","Outro":"#6B7280",
 };
 
 export default function SeguroDetalhe() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [ap, setAp] = useState<Apolice | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const token = await AsyncStorage.getItem("@token");
+      if (!token || !id) { setLoading(false); return; }
+      try {
+        const res = await fetch(`${API_BASE}/api/cliente/apolices/${id}`, { headers: { Authorization: "Bearer " + token } });
+        if (res.ok) setAp(await res.json());
+      } catch {}
+      setLoading(false);
+    })();
+  }, [id]);
+
+  const fmtDate = (s: string) => s ? s.split("-").reverse().join("/") : "-";
+
+  if (loading) return <View style={s.center}><ActivityIndicator color="#0D2B6E" size="large" /></View>;
+  if (!ap) return <View style={s.center}><Text style={s.notFound}>Apólice não encontrada</Text></View>;
+
+  const cor = TIPO_COR[ap.tipo] || "#6B7280";
+  const emoji = TIPO_EMOJI[ap.tipo] || "📋";
+
   return (
     <ScrollView style={s.root} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
-      {/* Hero */}
-      <View style={[s.hero, { backgroundColor: SEGURO.cor }]}>
-        <Text style={s.heroEmoji}>{SEGURO.emoji}</Text>
-        <View>
-          <Text style={s.heroTipo}>{SEGURO.tipo}</Text>
-          <Text style={s.heroVeiculo}>{SEGURO.veiculo}</Text>
-          <Text style={s.heroPlaca}>Placa: {SEGURO.placa}</Text>
+      <View style={[s.hero, { backgroundColor: cor }]}>
+        <Text style={s.heroEmoji}>{emoji}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.heroTipo}>{ap.tipo}</Text>
+          {ap.descricao ? <Text style={s.heroVeiculo}>{ap.descricao}</Text> : null}
+          <Text style={s.heroPlaca}>Apólice: {ap.numero}</Text>
         </View>
-        <View style={s.heroBadge}><Text style={s.heroBadgeText}>{SEGURO.status}</Text></View>
+        <View style={s.heroBadge}><Text style={s.heroBadgeText}>{ap.status}</Text></View>
       </View>
 
-      {/* Info grid */}
       <View style={s.infoGrid}>
         {[
-          { label: "Apólice", val: SEGURO.apolice },
-          { label: "Vigência", val: `${SEGURO.inicio} – ${SEGURO.fim}` },
-          { label: "Prêmio", val: SEGURO.premio },
-          { label: "Franquia", val: SEGURO.franquia },
-          { label: "Seguradora", val: SEGURO.seguradora },
-          { label: "Chassi", val: SEGURO.chassi },
+          { label: "Apólice", val: ap.numero },
+          { label: "Seguradora", val: ap.seguradora || "-" },
+          { label: "Início da vigência", val: fmtDate(ap.vigencia_inicio) },
+          { label: "Fim da vigência", val: fmtDate(ap.vigencia_fim) },
+          { label: "Prêmio mensal", val: ap.premio_mensal || "-" },
+          { label: "Franquia", val: ap.franquia || "-" },
         ].map((item) => (
           <View key={item.label} style={s.infoItem}>
             <Text style={s.infoLabel}>{item.label}</Text>
@@ -59,24 +72,25 @@ export default function SeguroDetalhe() {
         ))}
       </View>
 
-      {/* Coberturas */}
-      <Text style={s.sectionTitle}>Coberturas</Text>
-      <View style={s.card}>
-        {SEGURO.coberturas.map((cob) => (
-          <View key={cob.label} style={s.cobRow}>
-            <Text style={{ fontSize: 16 }}>{cob.incl ? "✅" : "❌"}</Text>
-            <Text style={[s.cobLabel, !cob.incl && s.cobLabelOff]}>{cob.label}</Text>
+      {ap.coberturas?.length > 0 && (
+        <>
+          <Text style={s.sectionTitle}>Coberturas</Text>
+          <View style={s.card}>
+            {ap.coberturas.map((cob, i) => (
+              <View key={i} style={s.cobRow}>
+                <Text style={{ fontSize: 16 }}>✅</Text>
+                <Text style={s.cobLabel}>{cob}</Text>
+              </View>
+            ))}
           </View>
-        ))}
-      </View>
+        </>
+      )}
 
-      {/* Corretor */}
       <Text style={s.sectionTitle}>Corretor Responsável</Text>
       <View style={s.card}>
-        <Text style={s.corretorText}>🧑‍💼 {SEGURO.corretor}</Text>
+        <Text style={s.corretorText}>🧑‍💼 Quadrata Seguros — (11) 98678-0000</Text>
       </View>
 
-      {/* Actions */}
       <View style={s.actions}>
         <TouchableOpacity style={s.btn} onPress={() => router.push("/screens/sinistro" as any)}>
           <Text style={s.btnText}>🚨 Acionar Sinistro</Text>
@@ -95,6 +109,8 @@ export default function SeguroDetalhe() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: "#F3F6FC" },
+  center: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#F3F6FC" },
+  notFound: { color: "#aaa", fontSize: 15 },
   scroll: { padding: 16 },
   hero: { borderRadius: 18, padding: 18, flexDirection: "row", alignItems: "center", gap: 14, marginBottom: 16, position: "relative" },
   heroEmoji: { fontSize: 40 },
@@ -111,7 +127,6 @@ const s = StyleSheet.create({
   card: { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 14, elevation: 2, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6 },
   cobRow: { flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: "#F3F6FC" },
   cobLabel: { fontSize: 13, color: "#333", fontWeight: "500" },
-  cobLabelOff: { color: "#bbb", textDecorationLine: "line-through" },
   corretorText: { fontSize: 14, color: "#0D2B6E", fontWeight: "600" },
   actions: { gap: 10 },
   btn: { backgroundColor: "#0D2B6E", borderRadius: 14, padding: 15, alignItems: "center" },

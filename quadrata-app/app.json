@@ -7,16 +7,19 @@
     "scheme": "quadrataapp",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "splash": { "backgroundColor": "#0D2B6E" },
+    "icon": "./public/icon-1024.png",
+    "splash": { "backgroundColor": "#0D2B6E", "resizeMode": "contain" },
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.quadrataseguros.app"
     },
     "android": {
-      "adaptiveIcon": { "backgroundColor": "#0D2B6E" },
-      "package": "com.quadrataseguros.app"
+      "adaptiveIcon": { "foregroundImage": "./public/icon-1024.png", "backgroundColor": "#0D2B6E" },
+      "package": "com.quadrataseguros.app",
+      "versionCode": 1
     },
-    "web": { "bundler": "metro", "output": "static" },
+    "web": { "bundler": "metro", "output": "static", "favicon": "./public/favicon.png" },
+    "experiments": { "baseUrl": "/quadrata" },
     "plugins": ["expo-router", "expo-secure-store"]
   }
 }

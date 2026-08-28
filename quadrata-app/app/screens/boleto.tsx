@@ -1,63 +1,92 @@
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { useEffect, useState } from "react";
+import * as Clipboard from "expo-clipboard";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { API_BASE } from "../../constants/api";
 
-const BOLETOS = [
-  { apolice: "APL-2024-0012", tipo: "Automóvel", venc: "15/09/2025", valor: "R$ 189,00", status: "Em aberto", emoji: "🚗" },
-  { apolice: "APL-2024-0005", tipo: "Residência", venc: "20/09/2025", valor: "R$ 67,00", status: "Em aberto", emoji: "🏠" },
-  { apolice: "APL-2024-0012", tipo: "Automóvel", venc: "15/08/2025", valor: "R$ 189,00", status: "Pago", emoji: "🚗" },
-  { apolice: "APL-2024-0005", tipo: "Residência", venc: "20/08/2025", valor: "R$ 67,00", status: "Pago", emoji: "🏠" },
-];
+type Boleto = {
+  id: number; vencimento: string; valor: string; status: string;
+  linha_digitavel: string; pix_copia_cola: string; tipo: string; numero: string;
+};
 
-export default function Boleto() {
-  const copiar = (linha: string) => {
-    Alert.alert("Copiado!", "Linha digitável copiada para a área de transferência.");
+const TIPO_EMOJI: Record<string, string> = {
+  "Automóvel":"🚗","Residência":"🏠","Vida":"❤️","Saúde":"🏥","Empresarial":"🏢","Outro":"📋",
+};
+
+export default function BoletoScreen() {
+  const [boletos, setBoletos] = useState<Boleto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      const token = await AsyncStorage.getItem("@token");
+      if (!token) { setLoading(false); return; }
+      try {
+        const res = await fetch(`${API_BASE}/api/cliente/boletos`, { headers: { Authorization: "Bearer " + token } });
+        if (res.ok) setBoletos(await res.json());
+      } catch {}
+      setLoading(false);
+    })();
+  }, []);
+
+  const copiar = async (texto: string, label: string) => {
+    if (!texto) { Alert.alert("Indisponível", `${label} ainda não foi cadastrado para este boleto.`); return; }
+    await Clipboard.setStringAsync(texto);
+    Alert.alert("Copiado!", `${label} copiado para a área de transferência.`);
   };
+
+  const fmtDate = (s: string) => s ? s.split("-").reverse().join("/") : "-";
+  const abertos = boletos.filter(b => b.status !== "Pago");
+  const pagos = boletos.filter(b => b.status === "Pago");
+
+  const renderBoleto = (b: Boleto) => (
+    <View key={b.id} style={s.card}>
+      <View style={s.cardTop}>
+        <Text style={{ fontSize: 24 }}>{TIPO_EMOJI[b.tipo] || "📋"}</Text>
+        <View style={{ flex: 1, marginLeft: 10 }}>
+          <Text style={s.cardTipo}>{b.tipo}</Text>
+          <Text style={s.cardApolice}>Apólice: {b.numero}</Text>
+        </View>
+        <View style={[s.badge, { backgroundColor: b.status === "Pago" ? "#DCFCE7" : b.status === "Vencido" ? "#FEE2E2" : "#FEF3C7" }]}>
+          <Text style={[s.badgeText, { color: b.status === "Pago" ? "#16A34A" : b.status === "Vencido" ? "#DC2626" : "#B45309" }]}>{b.status}</Text>
+        </View>
+      </View>
+      <View style={s.rowInfo}>
+        <View><Text style={s.infoLabel}>Vencimento</Text><Text style={s.infoVal}>{fmtDate(b.vencimento)}</Text></View>
+        <View><Text style={s.infoLabel}>Valor</Text><Text style={[s.infoVal, { color: "#0D2B6E", fontWeight: "700" }]}>{b.valor}</Text></View>
+      </View>
+      {b.status !== "Pago" && (
+        <View style={s.actions}>
+          <TouchableOpacity style={s.btnCopiar} onPress={() => copiar(b.linha_digitavel, "Código de barras")}>
+            <Text style={s.btnCopiarText}>📋 Copiar código</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={s.btnPix} onPress={() => copiar(b.pix_copia_cola, "PIX")}>
+            <Text style={s.btnPixText}>💠 Pagar via Pix</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
 
   return (
     <ScrollView style={s.root} contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
       <View style={s.infoCard}>
-        <Text style={s.infoText}>📋 Solicite aqui a 2ª via dos seus boletos. Para pagamentos vencidos há mais de 30 dias, entre em contato com nosso corretor.</Text>
+        <Text style={s.infoText}>📋 Seus boletos aparecem aqui assim que emitidos. Para dúvidas, fale com nosso corretor.</Text>
       </View>
 
-      {["Em aberto", "Pago"].map((grupo) => (
-        <View key={grupo}>
-          <Text style={s.sectionTitle}>{grupo === "Em aberto" ? "⏳ Em Aberto" : "✅ Pagos"}</Text>
-          {BOLETOS.filter((b) => b.status === grupo).map((b, i) => (
-            <View key={i} style={s.card}>
-              <View style={s.cardTop}>
-                <Text style={{ fontSize: 24 }}>{b.emoji}</Text>
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={s.cardTipo}>{b.tipo}</Text>
-                  <Text style={s.cardApolice}>Apólice: {b.apolice}</Text>
-                </View>
-                <View style={[s.badge, { backgroundColor: grupo === "Em aberto" ? "#FEF3C7" : "#DCFCE7" }]}>
-                  <Text style={[s.badgeText, { color: grupo === "Em aberto" ? "#B45309" : "#16A34A" }]}>{b.status}</Text>
-                </View>
-              </View>
-              <View style={s.rowInfo}>
-                <View>
-                  <Text style={s.infoLabel}>Vencimento</Text>
-                  <Text style={s.infoVal}>{b.venc}</Text>
-                </View>
-                <View>
-                  <Text style={s.infoLabel}>Valor</Text>
-                  <Text style={[s.infoVal, { color: "#0D2B6E", fontWeight: "700" }]}>{b.valor}</Text>
-                </View>
-              </View>
-              {grupo === "Em aberto" && (
-                <View style={s.actions}>
-                  <TouchableOpacity style={s.btnCopiar} onPress={() => copiar("")}>
-                    <Text style={s.btnCopiarText}>📋 Copiar código</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={s.btnPix}>
-                    <Text style={s.btnPixText}>💠 Pagar via Pix</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          ))}
+      {loading ? (
+        <ActivityIndicator color="#0D2B6E" style={{ marginTop: 40 }} />
+      ) : boletos.length === 0 ? (
+        <View style={s.empty}>
+          <Text style={s.emptyEmoji}>📄</Text>
+          <Text style={s.emptyText}>Nenhum boleto disponível</Text>
         </View>
-      ))}
+      ) : (
+        <>
+          {abertos.length > 0 && <><Text style={s.sectionTitle}>⏳ Em Aberto</Text>{abertos.map(renderBoleto)}</>}
+          {pagos.length > 0 && <><Text style={s.sectionTitle}>✅ Pagos</Text>{pagos.map(renderBoleto)}</>}
+        </>
+      )}
       <View style={{ height: 30 }} />
     </ScrollView>
   );
@@ -68,6 +97,9 @@ const s = StyleSheet.create({
   scroll: { padding: 16 },
   infoCard: { backgroundColor: "#EBF0FB", borderRadius: 14, padding: 14, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: "#0D2B6E" },
   infoText: { color: "#0D2B6E", fontSize: 13, lineHeight: 18 },
+  empty: { alignItems: "center", marginTop: 60 },
+  emptyEmoji: { fontSize: 48, marginBottom: 12 },
+  emptyText: { color: "#aaa", fontSize: 15 },
   sectionTitle: { fontSize: 15, fontWeight: "700", color: "#0D2B6E", marginBottom: 10, marginTop: 8 },
   card: { backgroundColor: "#fff", borderRadius: 14, padding: 16, marginBottom: 12, elevation: 2, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6 },
   cardTop: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
