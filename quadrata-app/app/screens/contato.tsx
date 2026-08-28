@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert, Linking } from "react-native";
 import { useState } from "react";
-import { CONTATOS, waLink, telLink } from "../../constants/contato";
+import { CONTATOS, EMAIL, waLink, telLink, mailLink } from "../../constants/contato";
 
 const ASSUNTOS = ["Dúvidas sobre apólice", "Renovação de seguro", "Alteração de dados", "Reclamação", "Outros"];
 
@@ -58,6 +58,16 @@ export default function Contato() {
         </View>
       </View>
 
+      {/* E-mail */}
+      <TouchableOpacity style={s.emailCard} onPress={() => Linking.openURL(mailLink("Contato pelo Quadrata App"))}>
+        <Text style={s.emailEmoji}>📧</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.emailLabel}>E-mail</Text>
+          <Text style={s.emailVal}>{EMAIL}</Text>
+        </View>
+        <Text style={s.emailArrow}>›</Text>
+      </TouchableOpacity>
+
       {/* Formulário */}
       <Text style={s.sectionTitle}>Ou envie sua mensagem</Text>
       <Text style={s.label}>Seu telefone (opcional)</Text>
@@ -99,6 +109,11 @@ const s = StyleSheet.create({
   btnWppText: { color: "#fff", fontWeight: "700", fontSize: 13 },
   btnLigar: { flex: 1, backgroundColor: "#fff", borderRadius: 10, padding: 11, alignItems: "center" },
   btnLigarText: { color: "#0D2B6E", fontWeight: "700", fontSize: 13 },
+  emailCard: { backgroundColor: "#fff", borderRadius: 14, padding: 16, flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 20, elevation: 2, shadowColor: "#000", shadowOpacity: 0.06, shadowRadius: 6 },
+  emailEmoji: { fontSize: 26 },
+  emailLabel: { fontSize: 11, color: "#aaa", fontWeight: "700", textTransform: "uppercase", letterSpacing: 0.8 },
+  emailVal: { fontSize: 14, color: "#0D2B6E", fontWeight: "700", marginTop: 2 },
+  emailArrow: { fontSize: 24, color: "#ccc" },
   label: { fontSize: 13, fontWeight: "600", color: "#555", marginBottom: 6 },
   input: { backgroundColor: "#fff", borderRadius: 12, padding: 14, fontSize: 14, color: "#222", borderWidth: 1, borderColor: "#E0E8F5", marginBottom: 14 },
   textarea: { height: 120 },

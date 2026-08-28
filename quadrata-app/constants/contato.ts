@@ -16,9 +16,14 @@ export const CONTATOS = {
   },
 } as const;
 
+export const EMAIL = "atendimento@quadrataseguros.com";
+
 export const CORRETORA = "Quadrata Seguros";
 
 export const waLink = (numero: string, texto?: string) =>
   `https://wa.me/${numero}${texto ? `?text=${encodeURIComponent(texto)}` : ""}`;
 
 export const telLink = (numero: string) => `tel:${numero}`;
+
+export const mailLink = (assunto?: string) =>
+  `mailto:${EMAIL}${assunto ? `?subject=${encodeURIComponent(assunto)}` : ""}`;

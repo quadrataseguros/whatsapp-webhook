@@ -3,7 +3,7 @@ import { router } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { CONTATOS, CORRETORA, waLink } from "../../constants/contato";
+import { CONTATOS, CORRETORA, EMAIL, waLink, mailLink } from "../../constants/contato";
 
 type Cliente = { nome: string; cpf: string; email: string; telefone: string; criado_em: string };
 
@@ -75,6 +75,9 @@ export default function Perfil() {
               <Text style={s.chatBtnText}>🤖</Text>
             </TouchableOpacity>
           </View>
+          <TouchableOpacity style={s.emailRow} onPress={() => Linking.openURL(mailLink())}>
+            <Text style={s.emailText} numberOfLines={1}>📧 {EMAIL}</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={s.menuCard}>
@@ -121,6 +124,8 @@ const s = StyleSheet.create({
   corretorAvatarText: { color: "#fff", fontWeight: "700" },
   corretorName: { fontWeight: "700", color: "#0D2B6E", fontSize: 14 },
   corretorTel: { color: "#666", fontSize: 12, marginTop: 2 },
+  emailRow: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: "#F3F6FC" },
+  emailText: { fontSize: 13, color: "#0D2B6E", fontWeight: "600" },
   chatBtn: { backgroundColor: "#0D2B6E", borderRadius: 10, width: 40, height: 40, justifyContent: "center", alignItems: "center" },
   chatBtn24h: { backgroundColor: "#16A34A" },
   chatBtnText: { color: "#fff", fontWeight: "700", fontSize: 17 },
