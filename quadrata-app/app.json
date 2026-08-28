@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Quadrata App",
+    "slug": "quadrata-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "quadrataapp",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": { "backgroundColor": "#0D2B6E" },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.quadrataseguros.app"
+    },
+    "android": {
+      "adaptiveIcon": { "backgroundColor": "#0D2B6E" },
+      "package": "com.quadrataseguros.app"
+    },
+    "web": { "bundler": "metro", "output": "static" },
+    "plugins": ["expo-router", "expo-secure-store"]
+  }
+}
