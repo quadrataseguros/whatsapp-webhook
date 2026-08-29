@@ -1,9 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 118" role="img" aria-label="Quadrata Seguros">
-  <!-- Balão de fala azul, com a cauda no canto inferior esquerdo -->
-  <path fill="#2f86f2" d="M32 4h56a28 28 0 0 1 28 28v32a28 28 0 0 1-28 28H50c-6 10-18 18-32 21 8-8 12-14 12-21A28 28 0 0 1 4 64V32A28 28 0 0 1 32 4z"/>
-  <!-- Disco branco -->
-  <circle cx="60" cy="48" r="36" fill="#ffffff"/>
-  <!-- O "Q": anel de miolo generoso + cauda curta que atravessa o traço -->
-  <circle cx="60" cy="46" r="21" fill="none" stroke="#14294f" stroke-width="12"/>
-  <path d="M70 56 81 68" fill="none" stroke="#14294f" stroke-width="12" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-label="Quadrata Seguros">
+  <!-- Balão: quadrado bem arredondado, com o canto inferior direito quase em
+       ponta — é ali que sai a cauda da fala. O caminho aparece duas vezes de
+       propósito (uma para pintar, outra como máscara): SVG usado como imagem
+       de fundo no CSS nem sempre resolve <use href>. -->
+  <clipPath id="dentro">
+    <path d="M58 6h104a52 52 0 0 1 52 52v142a14 14 0 0 1-14 14H58A52 52 0 0 1 6 162V58A52 52 0 0 1 58 6z"/>
+  </clipPath>
+  <path fill="#2f86f2" d="M58 6h104a52 52 0 0 1 52 52v142a14 14 0 0 1-14 14H58A52 52 0 0 1 6 162V58A52 52 0 0 1 58 6z"/>
+  <!-- Halo branco em volta do "Q" -->
+  <circle cx="102" cy="98" r="72" fill="#ffffff"/>
+  <!-- O azul volta pelo canto inferior direito e encosta no traço do "Q" -->
+  <g clip-path="url(#dentro)"><circle cx="194" cy="188" r="78" fill="#2f86f2"/></g>
+  <!-- O "Q": anel grosso e cauda do mesmo peso, atravessando o traço -->
+  <circle cx="102" cy="98" r="44" fill="none" stroke="#14294f" stroke-width="24"/>
+  <path d="M124 120 147 147" fill="none" stroke="#14294f" stroke-width="24" stroke-linecap="round"/>
 </svg>

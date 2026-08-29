@@ -1,8 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 118" role="img" aria-label="Quadrata Seguros">
-  <!-- Versão para fundo azul: balão branco, "Q" azul -->
-  <path fill="#ffffff" d="M32 4h56a28 28 0 0 1 28 28v32a28 28 0 0 1-28 28H50c-6 10-18 18-32 21 8-8 12-14 12-21A28 28 0 0 1 4 64V32A28 28 0 0 1 32 4z"/>
-  
-  <!-- O "Q": anel de miolo generoso + cauda curta que atravessa o traço -->
-  <circle cx="60" cy="46" r="21" fill="none" stroke="#2f86f2" stroke-width="12"/>
-  <path d="M70 56 81 68" fill="none" stroke="#2f86f2" stroke-width="12" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-label="Quadrata Seguros">
+  <!-- Versão para fundo azul: o balão vira branco e o "Q" vira azul. Aqui não
+       entra a mordida do canto inferior direito — sobre o azul ela sumiria. -->
+  <path fill="#ffffff" d="M58 6h104a52 52 0 0 1 52 52v142a14 14 0 0 1-14 14H58A52 52 0 0 1 6 162V58A52 52 0 0 1 58 6z"/>
+  <circle cx="102" cy="98" r="44" fill="none" stroke="#2f86f2" stroke-width="24"/>
+  <path d="M124 120 147 147" fill="none" stroke="#2f86f2" stroke-width="24" stroke-linecap="round"/>
 </svg>
