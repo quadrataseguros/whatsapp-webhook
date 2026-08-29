@@ -188,3 +188,26 @@ que o lance máximo é 30% do crédito. Ele entra com ou sem campanha ativa.
 a pedir bem e valor, e a IA passa a dizer que um corretor confirma as condições
 vigentes. Para renovar, atualize `CONSORCIO_VALIDADE` e, se os valores mudarem,
 `CONSORCIO_PLANOS`.
+
+---
+
+## Posts do Instagram (`conteudo/instagram/`)
+
+A biblioteca de conteúdo do `@marianaquadrata`: 11 carrosséis prontos cobrindo
+consórcio, auto, residencial, vida, saúde, cartão, sinistro, app e
+institucional. Cada post tem o roteiro (`slides.html`), a legenda com hashtags
+(`legenda.md`) e as imagens 1080×1350 já geradas (`imagens/`).
+
+```bash
+node conteudo/instagram/gerar-slides.js            # regera todas as imagens
+node conteudo/instagram/gerar-slides.js 01-consorcio  # só um post
+```
+
+O guia completo — calendário sugerido, classes do CSS, como criar um post novo
+e as regras de conteúdo — está em
+[`conteudo/instagram/README.md`](conteudo/instagram/README.md).
+
+> Os textos dos posts saem das mesmas fontes que a MarIAna usa na conversa
+> (`MARIANA_SYSTEM`, `CONSORCIO_PLANOS`, `CONSORCIO_LANCES`). Ao mudar uma
+> campanha no `index.js`, confira se algum post ficou desatualizado —
+> especialmente o `01-consorcio-reta-final`, que carrega os valores da tabela.

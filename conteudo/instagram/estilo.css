@@ -1,0 +1,363 @@
+/* ===========================================================================
+   Identidade visual dos posts do @marianaquadrata — Quadrata Seguros
+   ---------------------------------------------------------------------------
+   Cada arquivo slides.html usa estas classes. Para mudar a cara de TODOS os
+   posts de uma vez, mexa aqui e rode `node gerar-slides.js` de novo.
+
+   Formato: 1080 x 1350 (4:5) — o retrato ocupa mais tela no feed do Instagram
+   do que o quadrado, então rende mais alcance com o mesmo conteúdo.
+   =========================================================================== */
+
+@font-face {
+  font-family: "Inter";
+  src: url("./fontes/inter-latin.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: block;
+}
+
+:root {
+  --navy: #0d2141;        /* fundo escuro das capas */
+  --navy-2: #122c56;      /* azul institucional da marca (o "Q" do logo) */
+  --azul: #2f89f5;        /* azul principal — botões, destaques, badges */
+  --azul-claro: #7cb8fb;  /* apoios sobre fundo escuro */
+  --papel: #f4f7fb;       /* fundo claro dos slides de conteúdo */
+  --branco: #ffffff;
+  --tinta: #14213d;       /* texto sobre fundo claro */
+  --tinta-2: #4b5b73;     /* texto secundário sobre fundo claro */
+  --ouro: #f5a524;        /* urgência / campanha por tempo limitado */
+  --verde: #16a34a;       /* confirmação, "sem juros" */
+  --vermelho: #e11d48;    /* alerta, o lado ruim de uma comparação */
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+  background: #23272e;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --------------------------------------------------------------------------
+   O slide
+   -------------------------------------------------------------------------- */
+.slide {
+  width: 1080px;
+  height: 1350px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 88px 86px 78px;
+  margin: 0 auto 40px;
+  background: var(--papel);
+  color: var(--tinta);
+}
+
+/* Fundos ------------------------------------------------------------------ */
+.slide.escuro {
+  background:
+    radial-gradient(1100px 700px at 82% -10%, #1d4b8f 0%, rgba(29, 75, 143, 0) 62%),
+    linear-gradient(168deg, #0d2141 0%, #122c56 58%, #0b1c39 100%);
+  color: var(--branco);
+}
+.slide.azul {
+  background: linear-gradient(160deg, #2f89f5 0%, #1f66c9 100%);
+  color: var(--branco);
+}
+
+/* Marca d'água geométrica: o mesmo recorte do "Q" do logo, bem discreto. */
+.slide.escuro::after,
+.slide.azul::after {
+  content: "";
+  position: absolute;
+  right: -250px;
+  bottom: -300px;
+  width: 640px;
+  height: 640px;
+  border-radius: 175px;
+  border: 78px solid rgba(255, 255, 255, .05);
+  transform: rotate(-14deg);
+  pointer-events: none;
+}
+
+/* --------------------------------------------------------------------------
+   Cabeçalho (logo)
+   -------------------------------------------------------------------------- */
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  position: relative;
+  z-index: 2;
+}
+.marca svg { flex: 0 0 auto; }
+.marca .nome {
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -.2px;
+  line-height: 1.15;
+}
+.marca .assinatura {
+  font-size: 19px;
+  font-weight: 500;
+  opacity: .62;
+  margin-top: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Corpo
+   -------------------------------------------------------------------------- */
+.corpo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  padding: 34px 0;
+}
+.corpo.topo { justify-content: flex-start; padding-top: 62px; }
+
+.kicker {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  padding: 14px 26px;
+  border-radius: 999px;
+  background: rgba(47, 137, 245, .14);
+  color: var(--azul);
+  margin-bottom: 40px;
+}
+.escuro .kicker { background: rgba(124, 184, 251, .16); color: var(--azul-claro); }
+.azul .kicker { background: rgba(255, 255, 255, .18); color: #fff; }
+.kicker.urgente { background: rgba(245, 165, 36, .18); color: var(--ouro); }
+
+h1 {
+  font-size: 96px;
+  line-height: 1.03;
+  font-weight: 800;
+  letter-spacing: -3.2px;
+}
+h1.menor { font-size: 78px; letter-spacing: -2.4px; }
+h2 {
+  font-size: 66px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -2px;
+  margin-bottom: 40px;
+}
+h2.menor { font-size: 54px; letter-spacing: -1.4px; }
+
+.realce { color: var(--azul); }
+.escuro .realce, .azul .realce { color: var(--azul-claro); }
+.azul .realce { color: #fff; text-decoration: underline; text-decoration-thickness: 7px; text-underline-offset: 12px; }
+.realce-ouro { color: var(--ouro); }
+
+.sub {
+  font-size: 36px;
+  line-height: 1.45;
+  font-weight: 400;
+  color: var(--tinta-2);
+  margin-top: 36px;
+  max-width: 810px;
+}
+.escuro .sub, .azul .sub { color: rgba(255, 255, 255, .82); }
+.sub strong { font-weight: 700; color: var(--tinta); }
+.escuro .sub strong, .azul .sub strong { color: #fff; }
+
+/* --------------------------------------------------------------------------
+   Listas
+   -------------------------------------------------------------------------- */
+.lista { list-style: none; display: flex; flex-direction: column; gap: 34px; margin-top: 8px; }
+.lista li {
+  display: flex;
+  gap: 26px;
+  align-items: flex-start;
+  font-size: 36px;
+  line-height: 1.38;
+  font-weight: 500;
+}
+.lista li strong { font-weight: 800; }
+.lista .bolinha {
+  flex: 0 0 62px;
+  height: 62px;
+  border-radius: 20px;
+  background: var(--azul);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: 800;
+  margin-top: -2px;
+}
+.escuro .lista .bolinha { background: rgba(124, 184, 251, .2); color: var(--azul-claro); }
+.lista .bolinha.ok { background: var(--verde); }
+.lista .bolinha.nao { background: var(--vermelho); }
+.lista .bolinha.ouro { background: var(--ouro); color: #3a2600; }
+.lista li .texto { padding-top: 6px; }
+.lista li .texto small {
+  display: block;
+  font-size: 28px;
+  font-weight: 400;
+  color: var(--tinta-2);
+  margin-top: 8px;
+  line-height: 1.4;
+}
+.escuro .lista li .texto small { color: rgba(255, 255, 255, .7); }
+
+/* --------------------------------------------------------------------------
+   Cartões e números grandes
+   -------------------------------------------------------------------------- */
+.cartao {
+  background: var(--branco);
+  border-radius: 34px;
+  padding: 46px 48px;
+  box-shadow: 0 24px 60px rgba(13, 33, 65, .1);
+  border: 1px solid rgba(13, 33, 65, .07);
+}
+.escuro .cartao, .azul .cartao {
+  background: rgba(255, 255, 255, .09);
+  border-color: rgba(255, 255, 255, .16);
+  box-shadow: none;
+}
+.cartao + .cartao { margin-top: 28px; }
+.cartao .rotulo {
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--tinta-2);
+  margin-bottom: 14px;
+}
+.escuro .cartao .rotulo, .azul .cartao .rotulo { color: rgba(255, 255, 255, .68); }
+.cartao .valor { font-size: 76px; font-weight: 800; letter-spacing: -2.4px; line-height: 1.05; }
+.cartao .valor.riscado {
+  font-size: 46px;
+  text-decoration: line-through;
+  text-decoration-thickness: 4px;
+  color: var(--tinta-2);
+  font-weight: 600;
+}
+.escuro .cartao .valor.riscado { color: rgba(255, 255, 255, .55); }
+.cartao .nota { font-size: 27px; color: var(--tinta-2); margin-top: 12px; line-height: 1.4; }
+.escuro .cartao .nota, .azul .cartao .nota { color: rgba(255, 255, 255, .72); }
+
+.numerao {
+  font-size: 210px;
+  font-weight: 900;
+  letter-spacing: -10px;
+  line-height: .9;
+  color: var(--azul);
+}
+.escuro .numerao, .azul .numerao { color: #fff; }
+
+/* Comparação lado a lado -------------------------------------------------- */
+.confronto { display: flex; gap: 26px; margin-top: 12px; }
+.confronto > div {
+  flex: 1;
+  border-radius: 34px;
+  padding: 40px 36px;
+  background: var(--branco);
+  border: 2px solid rgba(13, 33, 65, .08);
+}
+.confronto .titulo { font-size: 34px; font-weight: 800; margin-bottom: 26px; }
+.confronto ul { list-style: none; display: flex; flex-direction: column; gap: 20px; }
+.confronto li { font-size: 29px; line-height: 1.35; font-weight: 500; color: var(--tinta-2); }
+.confronto li b { color: var(--tinta); font-weight: 800; }
+.confronto .bom { border-color: rgba(22, 163, 74, .45); }
+.confronto .bom .titulo { color: var(--verde); }
+.confronto .ruim .titulo { color: var(--vermelho); }
+
+/* Aviso obrigatório (letra miúda com dignidade) --------------------------- */
+.aviso {
+  margin-top: 34px;
+  font-size: 24px;
+  line-height: 1.45;
+  color: var(--tinta-2);
+  border-left: 6px solid var(--azul);
+  padding-left: 24px;
+  max-width: 830px;
+}
+.escuro .aviso, .azul .aviso {
+  color: rgba(255, 255, 255, .74);
+  border-left-color: var(--azul-claro);
+}
+
+/* Botão do CTA ------------------------------------------------------------ */
+.botao {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 18px;
+  background: var(--azul);
+  color: #fff;
+  font-size: 38px;
+  font-weight: 800;
+  padding: 30px 46px;
+  border-radius: 999px;
+  margin-top: 46px;
+}
+.escuro .botao { background: var(--azul); }
+.azul .botao { background: #fff; color: var(--azul); }
+
+/* --------------------------------------------------------------------------
+   Rodapé
+   -------------------------------------------------------------------------- */
+.rodape {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 25px;
+  font-weight: 600;
+  color: var(--tinta-2);
+  position: relative;
+  z-index: 2;
+}
+.escuro .rodape, .azul .rodape { color: rgba(255, 255, 255, .6); }
+.rodape .arraste {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  color: var(--azul);
+}
+.escuro .rodape .arraste { color: var(--azul-claro); }
+.azul .rodape .arraste { color: #fff; }
+/* O contador "2/6" é preenchido pelo gerar-slides.js. */
+.rodape .contador { font-variant-numeric: tabular-nums; }
+
+/* --------------------------------------------------------------------------
+   O selo da marca (o "Q" da Quadrata), desenhado em SVG para não depender de
+   nenhum arquivo de imagem. Use com <i class="q"></i> dentro de .marca.
+   -------------------------------------------------------------------------- */
+.marca .q {
+  flex: 0 0 auto;
+  width: 78px;
+  height: 78px;
+  display: block;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M9 3h22a7 7 0 0 1 7 7v13.5c0 .9-1.1 1.3-1.7.7L28 16.5V31a7 7 0 0 1-7 7H9a7 7 0 0 1-7-7V10a7 7 0 0 1 7-7z' fill='%232f89f5'/%3E%3Ccircle cx='19' cy='19' r='10.2' fill='%23ffffff'/%3E%3Ccircle cx='19' cy='18.2' r='5.6' fill='none' stroke='%23122c56' stroke-width='3.4'/%3E%3Crect x='21.3' y='20.4' width='3.4' height='7.4' rx='1.7' fill='%23122c56' transform='rotate(-38 23 24.1)'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+/* Sobre o fundo azul, o selo inverte: quadrado branco, "Q" azul. */
+.azul .marca .q {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M9 3h22a7 7 0 0 1 7 7v13.5c0 .9-1.1 1.3-1.7.7L28 16.5V31a7 7 0 0 1-7 7H9a7 7 0 0 1-7-7V10a7 7 0 0 1 7-7z' fill='%23ffffff'/%3E%3Ccircle cx='19' cy='18.2' r='5.6' fill='none' stroke='%232f89f5' stroke-width='3.4'/%3E%3Crect x='21.3' y='20.4' width='3.4' height='7.4' rx='1.7' fill='%232f89f5' transform='rotate(-38 23 24.1)'/%3E%3C/svg%3E");
+}
+
+/* Quando o marcador da lista é um emoji, o fundo azul sólido briga com a cor
+   do próprio emoji — então o badge fica claro e discreto. */
+.lista .bolinha.emoji {
+  background: rgba(47, 137, 245, .12);
+  font-size: 34px;
+}
+.escuro .lista .bolinha.emoji, .azul .lista .bolinha.emoji {
+  background: rgba(255, 255, 255, .12);
+}
