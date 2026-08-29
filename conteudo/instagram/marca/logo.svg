@@ -1,17 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-label="Quadrata Seguros">
-  <!-- Balão: quadrado bem arredondado, com o canto inferior direito quase em
-       ponta — é ali que sai a cauda da fala. O caminho aparece duas vezes de
-       propósito (uma para pintar, outra como máscara): SVG usado como imagem
-       de fundo no CSS nem sempre resolve <use href>. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 252" role="img" aria-label="Quadrata Seguros">
+  <!-- Balão: corpo quadrado bem arredondado, com a cauda saindo do canto
+       inferior direito e apontando para baixo e para a esquerda.
+       O caminho aparece duas vezes de propósito — uma para pintar, outra como
+       máscara: SVG usado como background-image no CSS nem sempre resolve <use>. -->
   <clipPath id="dentro">
-    <path d="M58 6h104a52 52 0 0 1 52 52v142a14 14 0 0 1-14 14H58A52 52 0 0 1 6 162V58A52 52 0 0 1 58 6z"/>
+    <path d="M44 6h132a38 38 0 0 1 38 38v170c0 34-30 58-88 63 26-16 42-31 42-49v-14H44a38 38 0 0 1-38-38V44A38 38 0 0 1 44 6z"/>
   </clipPath>
-  <path fill="#2f86f2" d="M58 6h104a52 52 0 0 1 52 52v142a14 14 0 0 1-14 14H58A52 52 0 0 1 6 162V58A52 52 0 0 1 58 6z"/>
+  <path fill="#2f86f2" d="M44 6h132a38 38 0 0 1 38 38v170c0 34-30 58-88 63 26-16 42-31 42-49v-14H44a38 38 0 0 1-38-38V44A38 38 0 0 1 44 6z"/>
   <!-- Halo branco em volta do "Q" -->
-  <circle cx="102" cy="98" r="72" fill="#ffffff"/>
-  <!-- O azul volta pelo canto inferior direito e encosta no traço do "Q" -->
-  <g clip-path="url(#dentro)"><circle cx="194" cy="188" r="78" fill="#2f86f2"/></g>
-  <!-- O "Q": anel grosso e cauda do mesmo peso, atravessando o traço -->
-  <circle cx="102" cy="98" r="44" fill="none" stroke="#14294f" stroke-width="24"/>
-  <path d="M124 120 147 147" fill="none" stroke="#14294f" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="110" cy="110" r="59" fill="#ffffff"/>
+  <!-- O azul volta pelo canto inferior direito, por baixo da cauda do "Q" -->
+  <g clip-path="url(#dentro)"><circle cx="200" cy="200" r="78" fill="#2f86f2"/></g>
+  <!-- O "Q": anel e cauda do mesmo peso, a cauda atravessando o traço -->
+  <circle cx="110" cy="108" r="33" fill="none" stroke="#12294d" stroke-width="17"/>
+  <path d="M128 126 143 141" fill="none" stroke="#12294d" stroke-width="17" stroke-linecap="round"/>
 </svg>

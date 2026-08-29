@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220" role="img" aria-label="Quadrata Seguros">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 252" role="img" aria-label="Quadrata Seguros">
   <!-- Versão para fundo azul: o balão vira branco e o "Q" vira azul. Aqui não
        entra a mordida do canto inferior direito — sobre o azul ela sumiria. -->
-  <path fill="#ffffff" d="M58 6h104a52 52 0 0 1 52 52v142a14 14 0 0 1-14 14H58A52 52 0 0 1 6 162V58A52 52 0 0 1 58 6z"/>
-  <circle cx="102" cy="98" r="44" fill="none" stroke="#2f86f2" stroke-width="24"/>
-  <path d="M124 120 147 147" fill="none" stroke="#2f86f2" stroke-width="24" stroke-linecap="round"/>
+  <path fill="#ffffff" d="M44 6h132a38 38 0 0 1 38 38v170c0 34-30 58-88 63 26-16 42-31 42-49v-14H44a38 38 0 0 1-38-38V44A38 38 0 0 1 44 6z"/>
+  <circle cx="110" cy="108" r="33" fill="none" stroke="#2f86f2" stroke-width="17"/>
+  <path d="M128 126 143 141" fill="none" stroke="#2f86f2" stroke-width="17" stroke-linecap="round"/>
 </svg>
