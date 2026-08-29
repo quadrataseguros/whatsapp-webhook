@@ -334,23 +334,24 @@ h2.menor { font-size: 54px; letter-spacing: -1.4px; }
 .rodape .contador { font-variant-numeric: tabular-nums; }
 
 /* --------------------------------------------------------------------------
-   O selo da marca (o "Q" da Quadrata), desenhado em SVG para não depender de
-   nenhum arquivo de imagem. Use com <i class="q"></i> dentro de .marca.
+   O selo da marca (o balão com o "Q" da Quadrata). Fica em arquivo próprio:
+   para atualizar o logo, basta substituir marca/logo.svg e marca/logo-branco.svg
+   e rodar o gerar-slides.js de novo — nada muda por aqui.
+   Use com <i class="q"></i> dentro de .marca.
    -------------------------------------------------------------------------- */
 .marca .q {
   flex: 0 0 auto;
-  width: 78px;
-  height: 78px;
+  width: 82px;
+  height: 82px;
   display: block;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M9 3h22a7 7 0 0 1 7 7v13.5c0 .9-1.1 1.3-1.7.7L28 16.5V31a7 7 0 0 1-7 7H9a7 7 0 0 1-7-7V10a7 7 0 0 1 7-7z' fill='%232f89f5'/%3E%3Ccircle cx='19' cy='19' r='10.2' fill='%23ffffff'/%3E%3Ccircle cx='19' cy='18.2' r='5.6' fill='none' stroke='%23122c56' stroke-width='3.4'/%3E%3Crect x='21.3' y='20.4' width='3.4' height='7.4' rx='1.7' fill='%23122c56' transform='rotate(-38 23 24.1)'/%3E%3C/svg%3E");
+  background-image: url("./marca/logo.svg");
   background-size: contain;
+  background-position: center;
   background-repeat: no-repeat;
 }
 
-/* Sobre o fundo azul, o selo inverte: quadrado branco, "Q" azul. */
-.azul .marca .q {
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M9 3h22a7 7 0 0 1 7 7v13.5c0 .9-1.1 1.3-1.7.7L28 16.5V31a7 7 0 0 1-7 7H9a7 7 0 0 1-7-7V10a7 7 0 0 1 7-7z' fill='%23ffffff'/%3E%3Ccircle cx='19' cy='18.2' r='5.6' fill='none' stroke='%232f89f5' stroke-width='3.4'/%3E%3Crect x='21.3' y='20.4' width='3.4' height='7.4' rx='1.7' fill='%232f89f5' transform='rotate(-38 23 24.1)'/%3E%3C/svg%3E");
-}
+/* Sobre o fundo azul o balão azul sumiria — aí entra a versão invertida. */
+.azul .marca .q { background-image: url("./marca/logo-branco.svg"); }
 
 /* Quando o marcador da lista é um emoji, o fundo azul sólido briga com a cor
    do próprio emoji — então o badge fica claro e discreto. */

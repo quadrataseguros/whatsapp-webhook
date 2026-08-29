@@ -9,6 +9,7 @@ conteudo/instagram/
 ├── README.md            ← você está aqui
 ├── estilo.css           ← a identidade visual de TODOS os posts
 ├── gerar-slides.js      ← transforma os slides.html em imagens 1080×1350
+├── marca/               ← o logo da Quadrata em SVG (versão normal e invertida)
 ├── fontes/              ← a Inter, embutida (renderiza igual em qualquer PC)
 └── posts/
     └── NN-nome-do-post/
@@ -87,6 +88,12 @@ Ele fica **fora** do `package.json` de propósito: só serve para produzir
 conteúdo aqui, e o servidor que vai para o Railway não precisa carregar esse peso.
 
 **Mudar a cara de todos os posts de uma vez:** mexa no `estilo.css`.
+
+**Trocar o logo:** substitua `marca/logo.svg` (o selo colorido, usado nos fundos
+claro e azul-marinho) e `marca/logo-branco.svg` (a versão invertida, usada só
+nos slides de fundo azul) e rode o gerador de novo. O CSS aponta para os
+arquivos, então não precisa mexer em mais nada. Se tiver o logo original em
+SVG, é só salvar por cima — fica idêntico à marca.
 
 **Criar um post novo:** copie a pasta de um parecido, ajuste os
 `<section class="slide">` e gere. A numeração "2/6" do rodapé é preenchida
