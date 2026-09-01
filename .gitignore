@@ -22,3 +22,6 @@ yarn-error.log*
 # Documentos de clientes (propostas, apolices) — nunca versionar
 *.pdf
 *.PDF
+
+# Tela de design montada (saida de build, ~2,4 MB)
+marca/**/logotipo-*.html
