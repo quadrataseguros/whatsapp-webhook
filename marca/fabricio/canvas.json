@@ -4,12 +4,13 @@
     { "file": "Escuro.dc.html", "x": 960, "y": 0, "w": 880, "h": 560, "title": "Fundo escuro" },
     { "file": "Mono.dc.html", "x": 1920, "y": 0, "w": 880, "h": 560, "title": "Monocromático" },
     { "file": "Avatar.dc.html", "x": 0, "y": 700, "w": 1080, "h": 1080, "title": "Avatar 1080×1080" },
-    { "file": "Perfil.dc.html", "x": 1200, "y": 700, "w": 880, "h": 420, "title": "Teste de recorte" },
-    { "file": "DirecaoB.dc.html", "x": 1200, "y": 1240, "w": 880, "h": 440, "title": "Direção B — tile" },
-    { "file": "DirecaoC.dc.html", "x": 1200, "y": 1800, "w": 880, "h": 440, "title": "Direção C — terminal" }
+    { "file": "Familia.dc.html", "x": 1200, "y": 700, "w": 880, "h": 420, "title": "O vínculo com a Quadrata" },
+    { "file": "Perfil.dc.html", "x": 1200, "y": 1240, "w": 880, "h": 420, "title": "Teste de recorte" },
+    { "file": "DirecaoB.dc.html", "x": 1200, "y": 1780, "w": 880, "h": 440, "title": "Direção B — tile" },
+    { "file": "DirecaoC.dc.html", "x": 1200, "y": 2340, "w": 880, "h": 440, "title": "Direção C — terminal" }
   ],
   "annotations": [
-    { "id": "conceito", "x": 0, "y": -150, "w": 620, "text": "FabrícIO — o IO do nome é o símbolo de liga/desliga (barra + círculo).\nMesmo truque da MarIAna, que destaca o IA. Base azul da Quadrata, acento ciano." }
+    { "id": "conceito", "x": 0, "y": -170, "w": 700, "text": "O Q da Quadrata é um círculo com um traço. Abrindo uma fresta no topo do bojo e\nenfiando a barra ali, o mesmo desenho lê como Q e como botão de ligar.\nO azul é da corretora; o ciano é a chave ligada — o ON 24h." }
   ],
   "launch": { "view": "canvas" }
 }
