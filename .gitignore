@@ -18,3 +18,7 @@ yarn-error.log*
 *.db
 *.db-shm
 *.db-wal
+
+# Documentos de clientes (propostas, apolices) — nunca versionar
+*.pdf
+*.PDF
