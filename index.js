@@ -5,12 +5,13 @@ const Anthropic = require("@anthropic-ai/sdk");
 const path = require("path");
 const db = require("./db");
 const ADMIN_HTML = require("./admin-page");
+const personas = require("./personas");
 
 const app = express();
 app.use(express.json());
 
 // Versão do servidor (para confirmar que o código novo está rodando)
-const SERVER_VERSION = "v5-full-features-2026-05-14";
+const SERVER_VERSION = "v6-personas-2026-09-01";
 app.get("/api/version", (_req, res) => res.json({ version: SERVER_VERSION }));
 
 // Admin panel servido direto da memória (sem cache, sempre atualizado)
@@ -24,7 +25,8 @@ app.get(["/admin", "/admin.html", "/gestor", "/gestor.html"], (_req, res) => {
 app.use(express.static(path.join(__dirname, "public")));
 
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "quadrata123";
-// IA da MarIAna — agora direto pela API da Anthropic (Claude), sem Langflow.
+// IA das personas (MarIAna e FabrícIO) — direto pela API da Anthropic
+// (Claude), sem Langflow. Quem responde cada mensagem sai de personas.js.
 // A chave é lida automaticamente de ANTHROPIC_API_KEY pelo SDK.
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
 const MARIANA_MODEL = process.env.MARIANA_MODEL || "claude-haiku-4-5";
@@ -32,8 +34,6 @@ const anthropic = ANTHROPIC_API_KEY ? new Anthropic() : null;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
-const IG_ACCESS_TOKEN = process.env.IG_ACCESS_TOKEN || "";
-const IG_USER_ID = process.env.IG_USER_ID || "";
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
 // Espelho das conversas no Telegram. O token do bot e o id do chat/grupo são
 // lidos do ambiente (Render) — nunca ficam no código. Se ambos estiverem
@@ -59,8 +59,17 @@ app.get("/webhook", (req, res) => {
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
-    mode: anthropic ? "mariana" : MAKE_WEBHOOK_URL ? "make" : "menu",
+    mode: anthropic ? "ia" : MAKE_WEBHOOK_URL ? "make" : "menu",
     modelo: anthropic ? MARIANA_MODEL : null,
+    // Quem atende e por qual Instagram. "NAO configurado" = a persona só
+    // responde no WhatsApp; faltam IG_USER_ID/IG_ACCESS_TOKEN dela.
+    personas: Object.values(personas.PERSONAS).map((p) => ({
+      id: p.id,
+      nome: p.nome,
+      padrao: p.id === personas.padrao().id,
+      instagram: p.igUserId && p.igAccessToken ? "configurado" : "NAO configurado",
+      link: p.id === personas.padrao().id ? "/fale" : `/fale/${p.id}`,
+    })),
     // Diagnóstico do espelho de conversas (sem expor tokens/URLs). Se vier
     // "NAO configurado", falta definir as variáveis no ambiente (Render).
     espelhoTelegram:
@@ -75,8 +84,9 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// Diagnóstico da IA — abre no browser para checar se a MarIAna (Claude) responde
-app.get("/mariana-status", async (_req, res) => {
+// Diagnóstico da IA — abre no browser para checar se o Claude responde.
+// O caminho antigo (/mariana-status) continua valendo.
+app.get(["/ia-status", "/mariana-status"], async (_req, res) => {
   if (!anthropic) {
     return res
       .status(503)
@@ -99,10 +109,10 @@ app.get("/mariana-status", async (_req, res) => {
   }
 });
 
-// ─── Página pública "Fale com a MarIAna" ─────────────────────────────────────
-// É o link da bio do Instagram (/fale). Leva o cliente direto para a conversa
-// no WhatsApp, onde a MarIAna atende. O número é o (11) 98678-0000; para
-// trocar sem mexer no código, basta definir WHATSAPP_NUMERO no ambiente.
+// ─── Página pública "Fale com a gente" ──────────────────────────────────────
+// É o link da bio do Instagram. Leva o cliente direto para a conversa no
+// WhatsApp — um número só, (11) 98678-0000, para as duas personas; para trocar
+// sem mexer no código, basta definir WHATSAPP_NUMERO no ambiente.
 const NUMERO_PADRAO = "5511986780000";
 
 // Aceita o número escrito de qualquer jeito — (11) 98678-0000, 11986780000,
@@ -116,33 +126,19 @@ function normalizarNumero(valor) {
 
 const WHATSAPP_NUMERO = normalizarNumero(process.env.WHATSAPP_NUMERO) || NUMERO_PADRAO;
 
-// Mensagem já digitada ao abrir o WhatsApp.
+// Mensagem já digitada ao abrir o WhatsApp. Os textos vivem em personas.js:
+// cada persona tem os seus, e é o trecho de origem ("pelo Instagram do
+// Fabricio") que, lá no webhook, diz quem deve atender o cliente.
 //
-// ATENÇÃO ao mexer no texto padrão: ele precisa começar com uma saudação de
-// MENU_TRIGGERS ("Oi", "Olá", "Menu"...) para a MarIAna abrir o menu principal
-// em vez de acionar a IA. Pontuação colada ("Oi,") pode — isMenuTrigger trata.
-const FALE_PADRAO = "Oi, quero mais informações.";
-
-// Com ?assunto=auto etc. o texto vai direto ao tema e quem responde é a
-// MarIAna (IA), que já entra no assunto em vez de mostrar o menu. Por isso
-// estes NÃO começam com saudação: um "Oi" na frente abriria o menu geral e
-// jogaria fora a informação de que o cliente já disse o que queria.
-const FALE_ASSUNTOS = {
-  auto: "Vim pelo Instagram e quero cotar um seguro de automóvel.",
-  saude: "Vim pelo Instagram e quero cotar um plano de saúde.",
-  odonto: "Vim pelo Instagram e quero saber do plano odontológico.",
-  vida: "Vim pelo Instagram e quero cotar um seguro de vida.",
-  residencia: "Vim pelo Instagram e quero cotar um seguro residencial.",
-  consorcio: "Vim pelo Instagram e quero saber sobre consórcio.",
-  financiamento: "Vim pelo Instagram e quero saber sobre financiamento.",
-  cartao: "Vim pelo Instagram e quero saber do Cartão Porto Bank.",
-  sinistro: "Preciso de ajuda com um sinistro/guincho.",
-};
-
-// GET /fale → abre a conversa no WhatsApp com a MarIAna
-app.get(["/fale", "/fale.html", "/contato"], (req, res) => {
+// GET /fale            → atende a MarIAna (padrão; é o link já publicado)
+// GET /fale/fabricio   → mesmo número, mas quem atende é o FabrícIO
+// Os dois aceitam ?assunto=auto etc., como antes.
+app.get(["/fale", "/fale.html", "/contato", "/fale/:persona"], (req, res) => {
+  const persona =
+    personas.porId(req.params.persona || req.query.de) || personas.padrao();
+  const textos = personas.textosFale(persona);
   const assunto = String(req.query.assunto || "").toLowerCase();
-  const texto = FALE_ASSUNTOS[assunto] || FALE_PADRAO;
+  const texto = textos[assunto] || textos.padrao;
   res.setHeader("Cache-Control", "no-store");
   res.redirect(302, `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(texto)}`);
 });
@@ -156,6 +152,9 @@ function extractWhatsAppMessage(body) {
     return {
       platform: "whatsapp",
       from: message.from,
+      // Chave da conversa e da persona. Separa por plataforma para um id do
+      // Instagram nunca colidir com um telefone do WhatsApp.
+      chave: `whatsapp:${message.from}`,
       messageId: message.id,
       type: message.type,
       text:
@@ -177,11 +176,16 @@ function extractWhatsAppMessage(body) {
 
 function extractInstagramMessage(body) {
   try {
-    const messaging = body.entry?.[0]?.messaging?.[0];
+    const entry = body.entry?.[0];
+    const messaging = entry?.messaging?.[0];
     if (!messaging?.message?.text) return null;
     return {
       platform: "instagram",
+      // Conta que RECEBEU a mensagem — é o que diz se o direct caiu no perfil
+      // da MarIAna ou no do FabrícIO.
+      igAccountId: entry?.id ? String(entry.id) : "",
       from: messaging.sender.id,
+      chave: `instagram:${messaging.sender.id}`,
       messageId: messaging.message.mid,
       type: "text",
       text: messaging.message.text,
@@ -192,7 +196,56 @@ function extractInstagramMessage(body) {
   }
 }
 
-async function sendWhatsAppReply(to, text) {
+// ─── Quem atende esta mensagem ───────────────────────────────────────────────
+// O WhatsApp é um número só, então a persona vem da PORTA DE ENTRADA:
+//   1. Instagram → a conta em que o direct caiu (o sinal mais confiável, não
+//      depende do que o cliente digitou).
+//   2. WhatsApp  → o anúncio (referral) ou o texto do link /fale da bio.
+//   3. Sem pista → quem já vinha atendendo este contato (fica gravado).
+//   4. Contato novo e sem pista → a persona padrão (MarIAna).
+//
+// Um sinal EXPLÍCITO (1 ou 2) vale mais que o histórico: quem falava com a
+// MarIAna e chega pelo link do Fabricio passa a ser atendido por ele. Nesse
+// caso a conversa recomeça do zero, para o novo atendente não responder em
+// cima das falas do outro.
+const lerPersona = db.prepare("SELECT persona FROM contact_persona WHERE chave = ?");
+const gravarPersona = db.prepare(
+  `INSERT INTO contact_persona (chave, persona, updated_at)
+   VALUES (?, ?, datetime('now', 'localtime'))
+   ON CONFLICT(chave) DO UPDATE SET
+     persona = excluded.persona, updated_at = excluded.updated_at`
+);
+
+function resolverPersona(msg) {
+  const explicita =
+    msg.platform === "instagram"
+      ? personas.porInstagram(msg.igAccountId)
+      : personas.porReferral(msg.referral) || personas.porTexto(msg.text);
+
+  let salva = null;
+  try {
+    salva = personas.porId(lerPersona.get(msg.chave)?.persona);
+  } catch (e) {
+    console.error("Falha ao ler a persona do contato:", e.message);
+  }
+
+  const escolhida = explicita || salva || personas.padrao();
+  if (!salva || salva.id !== escolhida.id) {
+    try {
+      gravarPersona.run(msg.chave, escolhida.id);
+    } catch (e) {
+      console.error("Falha ao gravar a persona do contato:", e.message);
+    }
+    // Trocou de atendente no meio do caminho: zera o histórico.
+    if (salva) {
+      console.log(`  Troca de atendente: ${salva.nome} → ${escolhida.nome} (conversa zerada)`);
+      esquecerConversa(msg.chave);
+    }
+  }
+  return escolhida;
+}
+
+async function sendWhatsAppReply(to, text, persona) {
   if (!WA_PHONE_NUMBER_ID || !WA_ACCESS_TOKEN) return;
   await axios.post(
     `https://graph.facebook.com/${GRAPH_VERSION}/${WA_PHONE_NUMBER_ID}/messages`,
@@ -209,8 +262,8 @@ async function sendWhatsAppReply(to, text) {
       },
     }
   );
-  // Espelha no Telegram o que a MarIAna respondeu.
-  espelharTelegram(`🤖 MarIAna → ${to}\n${text}`);
+  // Espelha no Telegram o que a persona respondeu.
+  espelharTelegram(`🤖 ${persona?.nome || "IA"} → ${to}\n${text}`);
 }
 
 // Envia uma cópia da conversa para o Telegram (monitoramento pelo time).
@@ -239,7 +292,7 @@ async function espelharTelegram(text) {
 
 // ---------------------------------------------------------------------------
 // Menu interativo (WhatsApp Cloud API) — mesmo recurso de lista/botões do
-// Digisac, enviado direto pelo webhook. A MarIAna (IA) segue como fallback
+// Digisac, enviado direto pelo webhook. A IA segue como fallback
 // para mensagens de texto livre.
 // ---------------------------------------------------------------------------
 
@@ -337,13 +390,14 @@ const COTACAO_IDS = new Set([
   "cot_outros",
 ]);
 
-async function sendMainMenu(to, name) {
+async function sendMainMenu(to, name, persona) {
+  const p = persona || personas.padrao();
   await sendWhatsAppInteractiveList(to, {
     header: "Quadrata Seguros",
     body:
-      `Olá${name ? ", " + name : ""}! 👋 Eu sou a *MarIAna*, assistente virtual da *Quadrata Seguros*.\n\n` +
+      `Olá${name ? ", " + name : ""}! 👋 ${p.apresentacao}\n\n` +
       `Resolvo bastante coisa por aqui na hora e, quando precisar, chamo um corretor pra te atender. Toque em *"Ver opções"* e me diz o que você precisa:`,
-    footer: "MarIAna • Atendimento digital",
+    footer: p.footer,
     button: "Ver opções",
     rows: [
       { id: "cotacao", title: "Cotação de seguro", description: "Auto, vida, saúde, residência e mais" },
@@ -522,37 +576,37 @@ function detectAssunto(text) {
 }
 
 // Retorna true se o menu tratou a mensagem (e a IA não deve ser acionada).
-async function handleWhatsAppMenu(msg) {
+async function handleWhatsAppMenu(msg, persona) {
   // 1. Cliente selecionou um item de lista/botão
   if (msg.interactiveId) {
     if (msg.interactiveId === "cotacao") {
       await sendCotacaoMenu(msg.from);
-      lembrarTroca(msg.from, msg.text || "Cotação de seguro",
+      lembrarTroca(msg.chave, msg.text || "Cotação de seguro",
         "Perfeito! Te mostrei os tipos de seguro para você escolher qual quer cotar.");
       return true;
     }
     if (msg.interactiveId === "sinistro") {
       await sendSeguradorasMenu(msg.from);
-      marcarSinistroTratado(msg.from);
-      lembrarTroca(msg.from, msg.text || "Sinistro / Guincho",
+      marcarSinistroTratado(msg.chave);
+      lembrarTroca(msg.chave, msg.text || "Sinistro / Guincho",
         "Sinto muito pelo ocorrido. Te mostrei a lista de seguradoras para você me dizer qual é a sua.");
       return true;
     }
     if (msg.interactiveId === "corretor") {
       const t = RESPOSTAS.corretor + fechoCorretor("te atender");
-      await sendWhatsAppReply(msg.from, t);
-      lembrarTroca(msg.from, msg.text || "Falar com corretor", t);
+      await sendWhatsAppReply(msg.from, t, persona);
+      lembrarTroca(msg.chave, msg.text || "Falar com corretor", t);
       return true;
     }
     const resposta = respostaDe(msg.interactiveId);
     if (resposta) {
       const extra = COTACAO_IDS.has(msg.interactiveId) ? fechoCorretor() : "";
       const t = resposta + extra;
-      await sendWhatsAppReply(msg.from, t);
+      await sendWhatsAppReply(msg.from, t, persona);
       // Ao escolher a seguradora, marcamos o sinistro como tratado (já demos os
       // telefones), para o fluxo não repetir a pergunta depois.
-      if (msg.interactiveId.startsWith("seg_")) marcarSinistroTratado(msg.from);
-      lembrarTroca(msg.from, msg.text || msg.interactiveId, t);
+      if (msg.interactiveId.startsWith("seg_")) marcarSinistroTratado(msg.chave);
+      lembrarTroca(msg.chave, msg.text || msg.interactiveId, t);
       return true;
     }
     return false;
@@ -566,22 +620,22 @@ async function handleWhatsAppMenu(msg) {
         .filter(Boolean)
         .join(" ")
     );
-    const ola = "Olá! 👋 Eu sou a *MarIAna*, assistente virtual da *Quadrata Seguros*. Que bom falar com você!\n\n";
+    const ola = `Olá! 👋 ${persona.apresentacao} Que bom falar com você!\n\n`;
     if (assuntoAd === "sinistro") {
       await sendSeguradorasMenu(msg.from);
-      marcarSinistroTratado(msg.from);
-      lembrarTroca(msg.from, msg.text || "(veio de um anúncio sobre sinistro)",
+      marcarSinistroTratado(msg.chave);
+      lembrarTroca(msg.chave, msg.text || "(veio de um anúncio sobre sinistro)",
         "Sinto muito pelo ocorrido. Te mostrei a lista de seguradoras para você me dizer qual é a sua.");
       return true;
     }
     if (assuntoAd) {
       const t = ola + respostaDe(assuntoAd) + fechoCorretor();
-      await sendWhatsAppReply(msg.from, t);
-      lembrarTroca(msg.from, msg.text || "(veio de um anúncio)", t);
+      await sendWhatsAppReply(msg.from, t, persona);
+      lembrarTroca(msg.chave, msg.text || "(veio de um anúncio)", t);
       return true;
     }
     await sendCotacaoMenu(msg.from);
-    lembrarTroca(msg.from, msg.text || "(veio de um anúncio)",
+    lembrarTroca(msg.chave, msg.text || "(veio de um anúncio)",
       "Te dei as boas-vindas e mostrei os tipos de seguro para você escolher qual quer cotar.");
     return true;
   }
@@ -590,33 +644,32 @@ async function handleWhatsAppMenu(msg) {
   // escreve "Oi, bati o carro" precisa do telefone da assistência 24h, não do
   // menu geral. Na PRIMEIRA vez mandamos o menu de seguradoras — ali estão os
   // telefones urgentes, que a IA não tem na memória. Se o sinistro já foi
-  // tratado nesta conversa, NÃO repetimos a pergunta: deixamos a MarIAna
+  // tratado nesta conversa, NÃO repetimos a pergunta: deixamos a persona
   // conduzir com o contexto que já tem.
   const assunto = detectAssunto(msg.text);
-  if (assunto === "sinistro" && !sinistroJaTratado(msg.from)) {
+  if (assunto === "sinistro" && !sinistroJaTratado(msg.chave)) {
     await sendSeguradorasMenu(msg.from);
-    marcarSinistroTratado(msg.from);
-    lembrarTroca(msg.from, msg.text,
+    marcarSinistroTratado(msg.chave);
+    lembrarTroca(msg.chave, msg.text,
       "Sinto muito pelo ocorrido. Te mostrei a lista de seguradoras para você me dizer qual é a sua.");
     return true;
   }
 
   // 3. Saudação / palavra-chave → mostra o menu principal
   if (isMenuTrigger(msg.text)) {
-    await sendMainMenu(msg.from, msg.name);
-    lembrarTroca(msg.from, msg.text,
-      "Oi! Sou a MarIAna, da Quadrata Seguros. Te mostrei o menu com as opções: cotação, sinistro/guincho, baixar o app e falar com corretor.");
+    await sendMainMenu(msg.from, msg.name, persona);
+    lembrarTroca(msg.chave, msg.text, persona.resumoMenu);
     return true;
   }
 
-  // 4. Demais textos livres → deixamos a MarIAna (IA) conduzir a conversa: ela
+  // 4. Demais textos livres → deixamos a persona (IA) conduzir a conversa: ela
   // entende pedidos com nuance (ex.: "consórcio de automóvel de 100 mil") que o
   // atalho por palavra-chave interpretaria errado. O atalho vira PLANO B, usado
   // só quando a IA está desativada, para ainda assim dar uma resposta útil.
   if (!anthropic && assunto) {
     const t = respostaDe(assunto) + fechoCorretor();
-    await sendWhatsAppReply(msg.from, t);
-    lembrarTroca(msg.from, msg.text, t);
+    await sendWhatsAppReply(msg.from, t, persona);
+    lembrarTroca(msg.chave, msg.text, t);
     return true;
   }
 
@@ -625,14 +678,15 @@ async function handleWhatsAppMenu(msg) {
   return false;
 }
 
-async function sendInstagramReply(to, text) {
-  if (!IG_ACCESS_TOKEN || !IG_USER_ID) {
-    console.log("Instagram: IG_ACCESS_TOKEN ou IG_USER_ID não configurado");
+async function sendInstagramReply(to, text, persona) {
+  const p = persona || personas.padrao();
+  if (!p.igAccessToken || !p.igUserId) {
+    console.log(`Instagram: ${p.nome} sem IG_USER_ID/IG_ACCESS_TOKEN configurado`);
     return;
   }
-  console.log('[IG] Enviando para', to, 'com user_id', IG_USER_ID, 'token inicio:', IG_ACCESS_TOKEN.substring(0,20));
+  console.log('[IG] Enviando para', to, 'como', p.nome, 'com user_id', p.igUserId);
   try { await axios.post(
-    `https://graph.instagram.com/v21.0/${IG_USER_ID}/messages`,
+    `https://graph.instagram.com/v21.0/${p.igUserId}/messages`,
     {
       recipient: { id: to },
       message: { text },
@@ -640,17 +694,17 @@ async function sendInstagramReply(to, text) {
     },
     {
       headers: {
-        Authorization: `Bearer ${IG_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${p.igAccessToken}`,
         "Content-Type": "application/json",
       },
     }
   ); } catch(igErr) { console.error('[IG] Erro detalhado:', igErr.response?.status, JSON.stringify(igErr.response?.data)); throw igErr; }
-  // Espelha no Telegram o que a MarIAna respondeu (Instagram).
-  espelharTelegram(`🤖 MarIAna → ${to} (Instagram)\n${text}`);
+  // Espelha no Telegram o que a persona respondeu (Instagram).
+  espelharTelegram(`🤖 ${p.nome} → ${to} (Instagram)\n${text}`);
 }
 
 // ---------------------------------------------------------------------------
-// MarIAna — IA de atendimento via API da Anthropic (Claude).
+// IA de atendimento via API da Anthropic (Claude).
 // Substitui o antigo servidor Langflow: sem servidor pesado ligado 24h, paga-se
 // só por mensagem processada. O menu interativo continua como primeira camada.
 // ---------------------------------------------------------------------------
@@ -807,53 +861,14 @@ Ao falar desta campanha:
 - Para seguir, peça o valor do crédito desejado e avise que um corretor da Quadrata finaliza a simulação e a adesão.`;
 }
 
-const MARIANA_SYSTEM = `Você é a MarIAna, atendente virtual da *Quadrata Seguros*, uma corretora de seguros brasileira. Você atende clientes pelo WhatsApp.
-
-Quem você é:
-- Seu nome é MarIAna. Use-o para dar um toque pessoal: no início de uma conversa nova, apresente-se brevemente ("Oi, aqui é a MarIAna, da Quadrata Seguros 🙂"). Deixe natural que você é uma assistente virtual (digital), sem esconder e sem repetir isso o tempo todo.
-- Simpática, atenciosa e prestativa, como uma boa atendente que gosta de ajudar. Fale como uma pessoa de verdade, não como um robô ou um formulário.
-- Você conhece de seguros e transmite segurança, mas sem enrolação.
-
-Tom e estilo:
-- Escreva em português do Brasil, de forma calorosa, educada e objetiva.
-- Respostas CURTAS (é WhatsApp): normalmente de 2 a 4 linhas. Evite textos longos e listas grandes.
-- Use no máximo 1 emoji por mensagem, e nem sempre — só quando somar algo.
-- Chame o cliente pelo primeiro nome quando souber, mas sem exagerar (não em toda frase).
-- Para negrito, use *asteriscos simples* (padrão do WhatsApp), nunca **duplos**.
-
-Como conduzir a conversa:
-- Uma pergunta de cada vez. Ao iniciar uma cotação, não despeje todos os dados de uma vez: peça primeiro o principal e vá conduzindo o cliente, passo a passo.
-- Sempre deixe claro qual é o próximo passo. Termine, quando fizer sentido, com uma pergunta ou um convite para o cliente continuar.
-- Reconheça o que o cliente disse antes de pedir algo novo (ex.: "Ótimo, seguro de carro então!").
-- Não repita a mesma frase pronta em toda resposta. Só mencione que "um corretor vai retornar" quando o assunto realmente depende de um humano (valores, fechamento) — e diga isso de formas variadas, não sempre igual.
-
-O que você faz:
-- Ajuda com cotação de seguros (auto, residência, vida, saúde), consórcio, financiamento e outros; orientações sobre sinistro/assistência 24h; e dúvidas gerais.
-- Preste atenção ao que o cliente realmente quer. Consórcio e financiamento NÃO são seguros — são formas de conquistar um bem (imóvel, carro). Se o cliente disser "consórcio de automóvel", é consórcio, não seguro de carro. Na dúvida, pergunte com gentileza para confirmar.
-- Dados essenciais por tipo (peça aos poucos): auto: CPF, CEP e placa; residência: CPF e CEP do imóvel; vida: nome completo e data de nascimento; consórcio: qual bem e valor aproximado; financiamento: qual bem, valor do bem e entrada.
-
-Regras importantes:
-- NUNCA invente preços, valores de apólice, coberturas específicas ou números de protocolo. Você não fecha vendas nem informa valores — quem faz isso é um corretor humano.
-- Quando o cliente pedir algo que dependa de um corretor (valores, contratação, negociação), colete as informações e avise, de forma natural, que um corretor da Quadrata Seguros dá sequência.
-- Sinistro/emergência (batida, roubo, pane): acolha primeiro ("Sinto muito pelo ocorrido"). Se o histórico da conversa já mostra que passamos o telefone da assistência 24h da seguradora, NÃO pergunte a seguradora de novo — oriente os próximos passos: acionar a seguradora por aquele telefone, ter em mãos o CPF do titular ou a placa, e registrar aqui para um corretor acompanhar. NUNCA invente números de telefone: use somente os que já apareceram na conversa.
-- Se perguntarem sobre assunto fora de seguros, redirecione gentilmente para como você pode ajudar com seguros.
-- Se o cliente quiser ver todas as opções, diga que ele pode digitar *menu*.
-
-Informações úteis:
-- Horário de atendimento humano: segunda a sexta, das 8h30 às 17h30.
-- App do cliente: *MySeg* (2ª via de boleto, apólices). No cadastro, informar o código da corretora *1133* (Quadrata Seguros).
-- Link de cotação online (ofereça quando fizer sentido): http://gestao.segfy.com/Publico/Segurados/Orcamentos/SolicitarCotacao?e=N4%2BhsohRMBQkt3Y5rAUWTQ%3D%3D
-
-Cartão de Crédito Porto Bank (campanha atual — muitos clientes estão PRÉ-APROVADOS):
-- Benefícios: 12 meses de anuidade grátis (depois, isenção 100% por gastos: Gold/Platinum a partir de R$3.500/mês, Ultra a partir de R$10.000/mês); até 4 cartões adicionais sem anuidade; até 3,5 pontos/dólar com acesso a salas VIP; IOF Zero em compras internacionais (o IOF volta como cashback); descontos nos seguros Porto com o cartão ativo (Auto até 15%, Residencial 10% + 5% de cashback, Vida até 10%); Shell Box com até R$0,15/litro na rede Shell; ConectCar com até 4 tags grátis, sem mensalidade; controle total pelo super app.
-- Como funciona a adesão: o cliente aceita a oferta enviando o CPF. Com os dados, a Quadrata monta um LINK PERSONALIZADO para o cliente assinar a proposta, que segue para análise da Porto Bank. Você (MarIAna) NÃO gera nem envia o link — quem prepara e envia é um corretor da Quadrata.
-- Fluxo quando o cliente quiser o cartão: explique os principais benefícios de forma breve e peça o CPF (confirme o nome, se ainda não souber). Quando ele enviar o CPF, agradeça, confirme os dados e avise que um corretor vai preparar o link personalizado e enviar em seguida para ele assinar, seguindo depois para análise da Porto Bank.
-- Se o cliente enviar SÓ um CPF, sem outro contexto, provavelmente está aceitando esta oferta do cartão — confirme gentilmente ("É para garantir seu Cartão Porto Bank, certo?") antes de seguir.
-- NUNCA prometa aprovação (a análise é da Porto Bank) nem invente taxas/limites além dos listados; detalhes finais são confirmados na proposta.`;
+// O prompt de sistema mora em personas.js: cada persona tem a sua identidade
+// (nome, gênero, jeito de falar) e todas compartilham o mesmo corpo — produtos,
+// tom, regras e limites. Ver personas.systemPrompt().
 
 // Memória de conversa por cliente (em memória do processo). Mantém o contexto
 // das últimas trocas, como fazia a "session" do Langflow. Some após um período
-// de inatividade — atendimento novo recomeça do zero.
+// de inatividade — atendimento novo recomeça do zero. A chave é a de msg.chave
+// ("whatsapp:5511..." / "instagram:123..."), a mesma da persona do contato.
 const conversas = new Map();
 const CONVERSA_TTL_MS = 30 * 60 * 1000; // 30 min de inatividade
 const MAX_MENSAGENS = 12; // ~6 trocas (user + assistant)
@@ -877,7 +892,7 @@ function pushHistorico(from, role, content) {
 }
 
 // Registra no histórico da IA uma troca que foi tratada pelo MENU (seleção,
-// sinistro, cotação…). Assim a MarIAna "enxerga" o que o menu respondeu e
+// sinistro, cotação…). Assim a IA "enxerga" o que o menu respondeu e
 // mantém o fio da conversa, em vez de responder como se nada tivesse ocorrido.
 // Sempre grava o par (cliente + resposta) para o histórico continuar alternando.
 function lembrarTroca(from, userText, assistantText) {
@@ -899,6 +914,12 @@ function sinistroJaTratado(from) {
   return !!c.sinistroTratado;
 }
 
+// Zera a conversa — usado quando o contato troca de persona, para o novo
+// atendente não continuar de onde o outro parou.
+function esquecerConversa(chave) {
+  conversas.delete(chave);
+}
+
 // Limpeza periódica das conversas antigas (evita crescer a memória).
 setInterval(() => {
   const agora = Date.now();
@@ -907,11 +928,11 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000).unref();
 
-async function runMarIAna(inputText, from, name) {
-  const historico = getHistorico(from);
+async function runIA(inputText, chave, name, persona) {
+  const historico = getHistorico(chave);
   const messages = [...historico, { role: "user", content: inputText }];
 
-  let system = MARIANA_SYSTEM;
+  let system = personas.systemPrompt(persona || personas.padrao());
   // A tabela do consórcio só entra quando o assunto aparece na conversa (na
   // mensagem atual ou no que já foi dito). Evita carregar dezenas de faixas de
   // preço em todo atendimento — e diminui a chance de a IA citar valor fora
@@ -937,10 +958,10 @@ async function runMarIAna(inputText, from, name) {
     .trim();
 
   if (result) {
-    pushHistorico(from, "user", inputText);
-    pushHistorico(from, "assistant", result);
+    pushHistorico(chave, "user", inputText);
+    pushHistorico(chave, "assistant", result);
   } else {
-    console.warn("MarIAna retornou resposta vazia. stop_reason:", response.stop_reason);
+    console.warn("IA retornou resposta vazia. stop_reason:", response.stop_reason);
   }
 
   return result;
@@ -962,11 +983,15 @@ app.post("/webhook", async (req, res) => {
     }${msg.text}`
   );
 
+  // Quem atende: definido pela porta de entrada e gravado por contato.
+  const persona = resolverPersona(msg);
+  console.log(`  Atende: ${persona.nome}`);
+
   // Espelho das conversas → Telegram (monitoramento pelo time). Roda SEMPRE,
   // com a IA ligada ou não. Aqui espelhamos a mensagem que CHEGOU do cliente;
-  // as respostas da MarIAna são espelhadas dentro das funções de envio.
+  // as respostas da persona são espelhadas dentro das funções de envio.
   espelharTelegram(
-    `📩 ${msg.name} (${msg.from}) · ${msg.platform}\n` +
+    `📩 ${msg.name} (${msg.from}) · ${msg.platform} · ${persona.nome}\n` +
       `${msg.interactiveId ? "🔘 [menu] " : ""}${msg.text}`
   );
 
@@ -980,28 +1005,28 @@ app.post("/webhook", async (req, res) => {
   }
 
   try {
-    // Camada de menu interativo (apenas WhatsApp). A MarIAna/IA continua
-    // como fallback para mensagens de texto livre.
+    // Camada de menu interativo (apenas WhatsApp). A IA continua como
+    // fallback para mensagens de texto livre.
     if (msg.platform === "whatsapp") {
-      const handled = await handleWhatsAppMenu(msg);
+      const handled = await handleWhatsAppMenu(msg, persona);
       if (handled) return;
     }
 
     if (anthropic) {
       let reply = "";
       try {
-        reply = await runMarIAna(msg.text, msg.from, msg.name);
+        reply = await runIA(msg.text, msg.chave, msg.name, persona);
       } catch (aiErr) {
         // IA fora do ar: não repassamos o erro — abaixo montamos uma
         // resposta conclusiva (direta ao assunto quando possível).
-        console.error("  IA (MarIAna) indisponível:", aiErr.message);
+        console.error(`  IA (${persona.nome}) indisponível:`, aiErr.message);
       }
       if (reply) {
-        console.log(`Resposta MarIAna: ${reply}`);
+        console.log(`Resposta ${persona.nome}: ${reply}`);
         if (msg.platform === "whatsapp") {
-          await sendWhatsAppReply(msg.from, reply);
+          await sendWhatsAppReply(msg.from, reply, persona);
         } else {
-          await sendInstagramReply(msg.from, reply);
+          await sendInstagramReply(msg.from, reply, persona);
         }
       } else {
         // Sem resposta da IA. Se conseguirmos identificar o assunto,
@@ -1020,9 +1045,9 @@ app.post("/webhook", async (req, res) => {
               : "");
         }
         if (msg.platform === "whatsapp") {
-          await sendWhatsAppReply(msg.from, texto);
+          await sendWhatsAppReply(msg.from, texto, persona);
         } else {
-          await sendInstagramReply(msg.from, texto);
+          await sendInstagramReply(msg.from, texto, persona);
         }
       }
     } else if (MAKE_WEBHOOK_URL) {
@@ -1045,9 +1070,9 @@ app.post("/webhook", async (req, res) => {
     const aviso = "Ops, tive uma instabilidade técnica rapidinha por aqui. 🙏 Pode me mandar sua mensagem de novo em alguns instantes? Se preferir, também pode falar com a gente por telefone.";
     try {
       if (msg.platform === "whatsapp") {
-        await sendWhatsAppReply(msg.from, aviso);
+        await sendWhatsAppReply(msg.from, aviso, persona);
       } else {
-        await sendInstagramReply(msg.from, aviso);
+        await sendInstagramReply(msg.from, aviso, persona);
       }
     } catch {
       // ignora erro ao enviar aviso
@@ -1583,10 +1608,15 @@ app.get("/api/daily-stats", (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
-  console.log(`Servidor MarIAna rodando na porta ${PORT}`);
+  console.log(`Servidor Quadrata rodando na porta ${PORT}`);
   console.log(`IA (Anthropic): ${anthropic ? "ativa" : "(ANTHROPIC_API_KEY não configurada)"}`);
   console.log(`Modelo: ${MARIANA_MODEL}`);
-  console.log(`Modo: ${anthropic ? "mariana" : MAKE_WEBHOOK_URL ? "make" : "só menu"}`);
+  console.log(`Modo: ${anthropic ? "ia" : MAKE_WEBHOOK_URL ? "make" : "só menu"}`);
+  for (const p of Object.values(personas.PERSONAS)) {
+    const ig = p.igUserId && p.igAccessToken ? "Instagram ok" : "sem Instagram";
+    const link = p.id === personas.padrao().id ? "/fale" : `/fale/${p.id}`;
+    console.log(`Persona: ${p.nome} — ${link} — ${ig}`);
+  }
   console.log(`>>> VERSAO: ${SERVER_VERSION} <<<`);
   console.log(`>>> Admin: http://localhost:${PORT}/admin.html`);
   console.log(`>>> Senha admin: ${ADMIN_PASSWORD === "admin123" ? "admin123 (padrao)" : "(custom via .env)"}`);

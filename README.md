@@ -1,8 +1,12 @@
-# WhatsApp Webhook — MarIAna · Quadrata Seguros
+# WhatsApp Webhook — MarIAna e FabrícIO · Quadrata Seguros
 
 Webhook Node.js que recebe mensagens do WhatsApp Business API, responde com um
-**menu interativo** e, para texto livre, usa a **MarIAna** (IA via API da Anthropic /
-Claude) — enviando a resposta automática de volta ao cliente.
+**menu interativo** e, para texto livre, usa a IA (API da Anthropic / Claude) —
+enviando a resposta automática de volta ao cliente.
+
+São **duas personas** atendendo pelo **mesmo número** de WhatsApp: a **MarIAna**
+e o **FabrícIO**. Quem responde depende da porta de entrada do cliente — ver
+[Personas](#personas-mariana-e-fabrício) abaixo.
 
 > **Nota:** a IA roda direto pela API da Anthropic. Não há mais servidor Langflow
 > para manter ligado 24h — paga-se apenas por mensagem processada.
@@ -12,9 +16,11 @@ Claude) — enviando a resposta automática de volta ao cliente.
 ## Arquitetura
 
 ```
-WhatsApp  →  Meta Webhook  →  Este servidor  →  MarIAna (Claude, API Anthropic)
-                                                      ↓
-WhatsApp  ←  WhatsApp Cloud API  ←─────────── resposta automática
+WhatsApp  →  Meta Webhook  →  Este servidor  →  persona (Claude, API Anthropic)
+                                  ↑                   ↓
+                          quem atende?      resposta automática
+                       (porta de entrada)             ↓
+                                          WhatsApp Cloud API  →  cliente
 ```
 
 ---
@@ -28,10 +34,12 @@ Copie `.env.example` para `.env` e preencha:
 | `VERIFY_TOKEN` | Token de verificação da Meta (padrão: `quadrata123`) |
 | `WA_PHONE_NUMBER_ID` | ID do número no painel Meta |
 | `WA_ACCESS_TOKEN` | Token de acesso da Meta |
-| `ANTHROPIC_API_KEY` | Chave da API da Anthropic (crie em console.anthropic.com) — ativa a MarIAna |
+| `ANTHROPIC_API_KEY` | Chave da API da Anthropic (crie em console.anthropic.com) — ativa a IA |
 | `MARIANA_MODEL` | Modelo do Claude (padrão: `claude-haiku-4-5`) |
+| `IG_USER_ID` · `IG_ACCESS_TOKEN` | Instagram da **MarIAna** |
+| `IG_USER_ID_FABRICIO` · `IG_ACCESS_TOKEN_FABRICIO` | Instagram do **FabrícIO** |
 | `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se `ANTHROPIC_API_KEY` não estiver configurada |
-| `WHATSAPP_NUMERO` | Opcional. Troca o número para onde o `/fale` manda o cliente. Padrão: `(11) 98678-0000` |
+| `WHATSAPP_NUMERO` | Opcional. Troca o número para onde os `/fale` mandam o cliente (é o mesmo para as duas personas). Padrão: `(11) 98678-0000` |
 
 ---
 
@@ -57,7 +65,50 @@ Cloudflare estão detalhados lá.
 
 ---
 
-## Configurar a MarIAna (IA)
+## Personas: MarIAna e FabrícIO
+
+O WhatsApp é **um número só** — o (11) 98678-0000. O que muda é **quem atende**,
+conforme por onde o cliente chegou:
+
+| Porta de entrada | Quem responde |
+|---|---|
+| Direct no Instagram da MarIAna | MarIAna |
+| Direct no Instagram do FabrícIO | FabrícIO |
+| Link `/fale` na bio (ou anúncio) da MarIAna | MarIAna |
+| Link `/fale/fabricio` na bio (ou anúncio) do FabrícIO | FabrícIO |
+| Qualquer outra origem | MarIAna (padrão) |
+
+Como cada sinal é lido:
+
+- **Instagram:** o webhook diz em qual conta o direct caiu (`entry[0].id`), e o
+  servidor compara com o `IG_USER_ID` de cada persona. É o sinal mais confiável,
+  porque não depende do que o cliente digitou.
+- **WhatsApp:** o link `/fale` já abre a conversa com um texto digitado que
+  carrega a origem ("Vim *pelo Instagram do Fabricio* e quero..."). Anúncios
+  *Click to WhatsApp* são reconhecidos pelo `referral` quando o anúncio cita o
+  Fabricio.
+- **Depois da primeira mensagem** a escolha fica **gravada por contato** (tabela
+  `contact_persona`), então o cliente não vê o atendente trocar de nome no meio
+  da conversa. Se ele voltar pela outra porta, a persona troca e a conversa
+  recomeça do zero — o novo atendente não responde em cima das falas do outro.
+
+O que muda entre as duas: **nome, gênero, papel e jeito de falar**. Produtos,
+menu, regras, campanha de consórcio e limites são exatamente os mesmos — o corpo
+do prompt é compartilhado. Tudo fica em **`personas.js`**; para criar uma
+terceira persona, copie um dos objetos e acrescente ao registro.
+
+Diagnóstico: `GET /health` lista as personas, quais têm Instagram configurado e
+o link de bio de cada uma.
+
+> **Atenção — a foto e o nome do perfil do WhatsApp são um só.** Quem chega pelo
+> Instagram do Fabricio cai num WhatsApp cuja foto e nome de exibição são os da
+> conta única. Para não gerar estranheza, deixe o perfil do WhatsApp **neutro,
+> com a marca da Quadrata** (não com a cara de uma das personas) — cada uma se
+> apresenta pelo nome na conversa.
+
+---
+
+## Configurar a IA
 
 A IA roda direto pela API da Anthropic — nada para manter ligado, sem servidor
 Langflow. Para ativar:
@@ -69,20 +120,22 @@ Langflow. Para ativar:
    Render/Railway, ou no `.env` local).
 
 Personalização:
-- O comportamento e as informações da MarIAna ficam na constante
-  `MARIANA_SYSTEM`, em `index.js`.
+- O comportamento e as informações das personas ficam em **`personas.js`**: a
+  identidade de cada uma (nome, gênero, jeito de falar) e o corpo comum
+  (produtos, tom, regras) que vale para todas.
 - O modelo padrão é `claude-haiku-4-5` (rápido e econômico). Para trocar, use a
   variável `MARIANA_MODEL`.
-- A MarIAna lembra o contexto das últimas mensagens de cada cliente por 30
-  minutos de inatividade (memória em `index.js`).
+- A IA lembra o contexto das últimas mensagens de cada cliente por 30 minutos
+  de inatividade (memória em `index.js`).
 
-Diagnóstico: acesse `GET /mariana-status` para checar se a IA está respondendo.
+Diagnóstico: acesse `GET /ia-status` (ou o antigo `/mariana-status`) para checar
+se a IA está respondendo.
 
 ---
 
 ## Menu interativo (WhatsApp)
 
-Além da MarIAna (IA), o webhook envia **menus interativos** nativos do WhatsApp
+Além da IA, o webhook envia **menus interativos** nativos do WhatsApp
 (mensagens do tipo `list`), o mesmo recurso visual de plataformas como a Digisac,
 porém direto pela Cloud API:
 
@@ -90,10 +143,10 @@ porém direto pela Cloud API:
   → recebe o menu principal com as opções: Cotação, Sinistro/Guincho, App e Corretor.
 - Ao tocar em **Sinistro/Guincho** → abre um submenu com as seguradoras e devolve
   os telefones de assistência 24h.
-- **Texto livre** (perguntas abertas) → continua sendo respondido pela **MarIAna (IA)**.
+- **Texto livre** (perguntas abertas) → continua sendo respondido pela **IA**, na voz da persona que estiver atendendo aquele contato.
 
 Requisito: a conexão precisa ser **WhatsApp Cloud API oficial** (o número já usado
-pela MarIAna atende esse requisito). Menus interativos **não** funcionam em conexões
+pelas personas atende esse requisito). Menus interativos **não** funcionam em conexões
 via QR Code.
 
 Os textos, telefones e o fluxo do menu ficam centralizados em `index.js`
@@ -108,8 +161,9 @@ Os textos, telefones e o fluxo do menu ficam centralizados em `index.js`
 | `GET` | `/webhook` | Verificação Meta |
 | `POST` | `/webhook` | Recebe mensagens WhatsApp |
 | `GET` | `/health` | Status do servidor e modo ativo |
-| `GET` | `/mariana-status` | Testa se a IA (Claude) está respondendo |
-| `GET` | `/fale` | Link da bio do Instagram — redireciona para a conversa no WhatsApp |
+| `GET` | `/ia-status` | Testa se a IA (Claude) está respondendo (antigo `/mariana-status`) |
+| `GET` | `/fale` | Link da bio do Instagram da MarIAna — redireciona para a conversa no WhatsApp |
+| `GET` | `/fale/fabricio` | Link da bio do Instagram do FabrícIO — mesmo número, quem atende é ele |
 
 ---
 
@@ -129,19 +183,28 @@ curl http://localhost:3000/health
 
 ---
 
-## Link da bio do Instagram (`/fale`)
+## Links da bio do Instagram (`/fale`)
 
-A bio do `@marianaquadrata` aponta para `https://webhook.quadratadigital.com.br/fale`.
-Essa rota apenas redireciona o visitante para a conversa no WhatsApp com a
-MarIAna, já com a mensagem digitada:
+Cada perfil tem o seu link, e é ele que diz quem vai atender:
+
+| Perfil | Link da bio |
+|---|---|
+| `@marianaquadrata` | `https://webhook.quadratadigital.com.br/fale` |
+| Instagram do FabrícIO | `https://webhook.quadratadigital.com.br/fale/fabricio` |
+
+A rota redireciona o visitante para a conversa no WhatsApp já com a mensagem
+digitada — e é essa mensagem que carrega a origem:
 
 | Link | Mensagem que abre |
 |------|-------------------|
-| `/fale` | `Oi, quero mais informações.` (abre o menu principal) |
+| `/fale` | `Oi, vim pelo Instagram e quero mais informações.` (abre o menu principal) |
+| `/fale/fabricio` | `Oi, vim pelo Instagram do Fabricio e quero mais informações.` |
 | `/fale?assunto=auto` | cotação de seguro auto |
-| `/fale?assunto=saude` | plano de saúde |
-| `/fale?assunto=odonto` | plano odontológico |
-| `/fale?assunto=vida` · `residencia` · `consorcio` · `financiamento` · `cartao` · `sinistro` | o tema correspondente |
+| `/fale/fabricio?assunto=auto` | idem, mas quem atende é o FabrícIO |
+| `?assunto=saude` · `odonto` · `vida` · `residencia` · `consorcio` · `financiamento` · `cartao` · `sinistro` | o tema correspondente, nos dois links |
+
+> Não reescreva o trecho "vim pelo Instagram (do Fabricio)" nesses textos: é
+> exatamente ele que o webhook lê para saber qual persona deve responder.
 
 O número de destino é o **(11) 98678-0000**. Para trocar sem mexer no código,
 defina `WHATSAPP_NUMERO` no ambiente (pode escrever com máscara — `(11) 98678-0000`
@@ -158,7 +221,7 @@ defina `WHATSAPP_NUMERO` no ambiente (pode escrever com máscara — `(11) 98678
 
 ## Campanha de consórcio (valores e validade)
 
-A MarIAna conhece a tabela da campanha **Consórcio Porto Bank — 50% de desconto
+As duas personas conhecem a tabela da campanha **Consórcio Porto Bank — 50% de desconto
 na taxa** (parcela reduzida pela metade até a contemplação). Tudo fica em
 `index.js`, em duas constantes:
 
