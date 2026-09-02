@@ -19,8 +19,9 @@ ON 24h*.
 | `Mono.dc.html` | Monocromático, positivo e negativo |
 | `Avatar.dc.html` | Avatar 1080×1080 (perfil do WhatsApp e do Instagram) |
 | `Familia.dc.html` | O vínculo: a marca da Quadrata ao lado da do FabrícIO |
-| `Perfil.dc.html` | Teste do recorte circular em 132, 56 e 40 px |
-| `DirecaoB.dc.html` · `DirecaoC.dc.html` | Direções alternativas, ainda em aberto |
+| `Perfil.dc.html` | Os dois monogramas em 132, 56 e 40 px — o teste que decide |
+| `Selo.dc.html` | Selo com a frase curvada — só para formato grande |
+| `MonogramaFQ.dc.html` | F+Q ao lado de Q, a escolha em aberto |
 | `canvas.json` | Posição de cada peça na tela |
 
 Tipografia: Space Grotesk no nome, Inter no descritor (a mesma do painel).
@@ -44,3 +45,12 @@ faz é publicar posts e responder direct — as duas coisas que o servidor já c
 conversa sem texto, e como o número é o mesmo da MarIAna o servidor não teria
 como saber de onde o cliente veio — ela atenderia no perfil dele. O caminho do
 WhatsApp é só o link da bio, `/fale/fabricio`.
+
+### Selo e avatar são peças diferentes
+
+O selo (anel, frase curvada, monograma no centro) só é legível acima de uns
+200px: serve para post, assinatura de e-mail, carimbo e banner. O avatar do
+WhatsApp e do Instagram aparece a 40px na maior parte do tempo — ali vai a marca
+sozinha, sem texto nenhum em volta. Uma peça não substitui a outra.
+
+A frase é "ON 24h", não "24hs", e aparece **uma vez** por peça.

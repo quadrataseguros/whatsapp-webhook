@@ -1,16 +1,87 @@
 {
   "artboards": [
-    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 880, "h": 560, "title": "Logotipo principal" },
-    { "file": "Escuro.dc.html", "x": 960, "y": 0, "w": 880, "h": 560, "title": "Fundo escuro" },
-    { "file": "Mono.dc.html", "x": 1920, "y": 0, "w": 880, "h": 560, "title": "Monocromático" },
-    { "file": "Avatar.dc.html", "x": 0, "y": 700, "w": 1080, "h": 1080, "title": "Avatar 1080×1080" },
-    { "file": "Familia.dc.html", "x": 1200, "y": 700, "w": 880, "h": 420, "title": "O vínculo com a Quadrata" },
-    { "file": "Perfil.dc.html", "x": 1200, "y": 1240, "w": 880, "h": 420, "title": "Teste de recorte" },
-    { "file": "DirecaoB.dc.html", "x": 1200, "y": 1780, "w": 880, "h": 440, "title": "Direção B — tile" },
-    { "file": "DirecaoC.dc.html", "x": 1200, "y": 2340, "w": 880, "h": 440, "title": "Direção C — terminal" }
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 880,
+      "h": 560,
+      "title": "Logotipo principal"
+    },
+    {
+      "file": "Escuro.dc.html",
+      "x": 960,
+      "y": 0,
+      "w": 880,
+      "h": 560,
+      "title": "Fundo escuro"
+    },
+    {
+      "file": "Mono.dc.html",
+      "x": 1920,
+      "y": 0,
+      "w": 880,
+      "h": 560,
+      "title": "Monocromático"
+    },
+    {
+      "file": "Selo.dc.html",
+      "x": 0,
+      "y": 700,
+      "w": 1080,
+      "h": 1080,
+      "title": "Selo — formato grande"
+    },
+    {
+      "file": "Avatar.dc.html",
+      "x": 1200,
+      "y": 700,
+      "w": 1080,
+      "h": 1080,
+      "title": "Avatar 1080×1080"
+    },
+    {
+      "file": "MonogramaFQ.dc.html",
+      "x": 2400,
+      "y": 700,
+      "w": 880,
+      "h": 560,
+      "title": "F+Q ou só Q?"
+    },
+    {
+      "file": "Perfil.dc.html",
+      "x": 2400,
+      "y": 1380,
+      "w": 880,
+      "h": 460,
+      "title": "Teste de tamanho real"
+    },
+    {
+      "file": "Familia.dc.html",
+      "x": 0,
+      "y": 1900,
+      "w": 880,
+      "h": 420,
+      "title": "O vínculo com a Quadrata"
+    }
   ],
   "annotations": [
-    { "id": "conceito", "x": 0, "y": -170, "w": 700, "text": "O Q da Quadrata é um círculo com um traço. Abrindo uma fresta no topo do bojo e\nenfiando a barra ali, o mesmo desenho lê como Q e como botão de ligar.\nO azul é da corretora; o ciano é a chave ligada — o ON 24h." }
+    {
+      "id": "selo",
+      "x": 0,
+      "y": 560,
+      "w": 700,
+      "text": "SELO — para formato grande: post, assinatura de e-mail, carimbo, banner.\nA frase curvada só é legível acima de uns 200px, então ela mora aqui, nunca no avatar."
+    },
+    {
+      "id": "escolha",
+      "x": 2400,
+      "y": 1240,
+      "w": 700,
+      "text": "A ESCOLHA QUE FALTA: o F cabe no desenho, mas custa legibilidade.\nCompare os dois a 40px logo abaixo — é o tamanho da foto na lista de conversas."
+    }
   ],
-  "launch": { "view": "canvas" }
+  "launch": {
+    "view": "canvas"
+  }
 }
