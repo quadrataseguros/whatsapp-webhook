@@ -27,3 +27,20 @@ Tipografia: Space Grotesk no nome, Inter no descritor (a mesma do painel).
 
 O arquivo montado (`logotipo-fabricio.html`, ~2,4 MB) não é versionado: é
 saída de build, remontada a partir destes arquivos.
+
+## Instagram — @fabricioquadrata
+
+| Arquivo | O que é |
+|---|---|
+| `perfil-instagram.html` | Nome, @, bio, link, categoria, destaques e a legenda do post fixado |
+| `lancamento/Main..Post5.dc.html` | Carrossel do post fixado (1080×1350) |
+| `lancamento/Dest1..Dest5.dc.html` | Capas dos destaques (1080×1920, recortadas em círculo) |
+
+Os campos do perfil (nome, bio, link, foto, categoria) são preenchidos **à mão
+no app**: a API oficial da Meta expõe esses campos só para leitura. O que a API
+faz é publicar posts e responder direct — as duas coisas que o servidor já cobre.
+
+**O botão nativo de WhatsApp fica desligado no perfil do FabrícIO.** Ele abre a
+conversa sem texto, e como o número é o mesmo da MarIAna o servidor não teria
+como saber de onde o cliente veio — ela atenderia no perfil dele. O caminho do
+WhatsApp é só o link da bio, `/fale/fabricio`.
