@@ -1,13 +1,13 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><style>
-  html,body{margin:0;background:#2f89f5}
-  .q{width:640px;height:640px;background:#2f89f5;position:relative;overflow:hidden}
-  .disco{position:absolute;left:140px;top:140px;width:360px;height:360px;border-radius:50%;background:#fff;
-         display:flex;align-items:center;justify-content:center}
-  .letra{font:900 262px 'Liberation Sans','DejaVu Sans',Arial,sans-serif;color:#122c56;line-height:1;
-         transform:translateY(-10px)}
-  .on{position:absolute;left:446px;top:446px;width:96px;height:96px;border-radius:50%;background:#22c55e;
-      box-shadow:0 0 0 16px #2f89f5}
-</style></head><body>
-<div class="q"><div class="disco"><span class="letra">Q</span></div><div class="on"></div></div>
-</body></html>
+  /* Avatar 640×640 a partir de quadrata-digital.jpg (990×989).
+     A foto inteira é o fundo, deslocada para a marca ficar no centro:
+     origem x 190–830, y 40–680 → a marca (280–560 × 200–520) cai em 90–370 × 160–480
+     e a poeira vai até x≈520. O texto "Quadrata" começa em y≈530 da origem
+     (490 aqui): o degradê escuro cobre dali para baixo, sem tocar a marca. */
+  html,body{margin:0;background:#0a0612}
+  .q{width:640px;height:640px;position:relative;overflow:hidden;
+     background:#0a0612 url(quadrata-digital.jpg) -190px -40px / 990px 989px no-repeat}
+  .q::after{content:"";position:absolute;inset:0;
+     background:linear-gradient(to bottom,transparent 75%,#0a0612 76.5%)}
+</style></head><body><div class="q"></div></body></html>

@@ -124,10 +124,13 @@ troca é feita pelo próprio servidor, onde a chave já está:
 3. Clique **Aplicar foto e textos**.
 
 O que sobe está em `PERFIL_WHATSAPP`, no `index.js`: a foto
-(`marca/quadrata/avatar-whatsapp.png`, 640×640 — o Q da Quadrata com o ponto
-verde de "online"), o *sobre* (limite de 139 caracteres) e a descrição (512).
-Para trocar a foto, substitua o arquivo e acione a rota de novo; a fonte dela
-é `marca/quadrata/avatar-whatsapp.html`, renderizada com Chromium headless.
+(`marca/quadrata/avatar-whatsapp.png`, 640×640), o *sobre* (limite de 139
+caracteres) e a descrição (512). A foto é um recorte da arte **Quadrata Seguros
+Digital** (`marca/quadrata/quadrata-digital.jpg`): só a marca dissolvendo em
+pixels, sem o texto — a 40px, texto vira ruído. A arte inteira é para formato
+grande (post, capa, banner). Para trocar a foto, substitua o arquivo e acione a
+rota de novo; o recorte é feito em `avatar-whatsapp.html`, renderizado com
+Chromium headless.
 
 ---
 
