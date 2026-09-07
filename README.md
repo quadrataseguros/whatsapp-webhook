@@ -108,6 +108,29 @@ o link de bio de cada uma.
 
 ---
 
+## Perfil comercial do WhatsApp (foto e textos)
+
+O número é um só para as duas personas, então a foto e os textos do perfil têm
+que ser **neutros — da Quadrata**, não da MarIAna nem do FabrícIO. Quem chega
+pelo link do Fabricio e vê o rosto da Mariana estranha.
+
+Ao contrário do Instagram, a Cloud API **deixa editar o perfil por API**. A
+troca é feita pelo próprio servidor, onde a chave já está:
+
+1. Defina `META_APP_ID` no ambiente (o id do App, em developers.facebook.com).
+2. Abra `/admin/whatsapp`, digite a senha do painel e clique **Ver perfil atual**
+   — se a chave não tiver a permissão `whatsapp_business_management`, o erro
+   aparece aqui, antes de mudar qualquer coisa.
+3. Clique **Aplicar foto e textos**.
+
+O que sobe está em `PERFIL_WHATSAPP`, no `index.js`: a foto
+(`marca/quadrata/avatar-whatsapp.png`, 640×640 — o Q da Quadrata com o ponto
+verde de "online"), o *sobre* (limite de 139 caracteres) e a descrição (512).
+Para trocar a foto, substitua o arquivo e acione a rota de novo; a fonte dela
+é `marca/quadrata/avatar-whatsapp.html`, renderizada com Chromium headless.
+
+---
+
 ## Configurar a IA
 
 A IA roda direto pela API da Anthropic — nada para manter ligado, sem servidor

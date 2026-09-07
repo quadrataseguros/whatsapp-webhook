@@ -3,6 +3,7 @@ const express = require("express");
 const axios = require("axios");
 const Anthropic = require("@anthropic-ai/sdk");
 const path = require("path");
+const fs = require("fs");
 const db = require("./db");
 const ADMIN_HTML = require("./admin-page");
 const personas = require("./personas");
@@ -23,6 +24,7 @@ app.get(["/admin", "/admin.html", "/gestor", "/gestor.html"], (_req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/marca", express.static(path.join(__dirname, "marca"), { index: false }));
 
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "quadrata123";
 // IA das personas (MarIAna e FabrícIO) — direto pela API da Anthropic
@@ -43,6 +45,9 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "";
 // Versão da Graph API da Meta. Versões antigas são descontinuadas ~2 anos
 // após o lançamento e passam a retornar 404; mantenha em uma versão vigente.
 const GRAPH_VERSION = process.env.GRAPH_VERSION || "v21.0";
+// Id do App da Meta (painel developers.facebook.com). Só é usado para subir
+// a foto do perfil comercial do WhatsApp — o resto da API não precisa dele.
+const META_APP_ID = process.env.META_APP_ID || "";
 
 const PORT = process.env.PORT || 3000;
 
@@ -1136,6 +1141,144 @@ app.get("/api/simular-venda", (req, res) => {
   const gross = parseFloat(req.query.value);
   if (!gross || gross <= 0) return res.status(400).json({ error: "Valor inválido" });
   res.json(calcularVenda(gross, req.query.ramo || "", req.query.seguradora || ""));
+});
+
+
+// ─── Perfil comercial do WhatsApp ────────────────────────────────────────────
+// O número é um só para as duas personas, então o perfil (foto, "sobre",
+// descrição) tem que ser NEUTRO — da Quadrata, não da MarIAna nem do FabrícIO.
+// A Cloud API deixa editar isso por API, ao contrário do Instagram. A chave de
+// acesso mora no servidor, então a troca é feita daqui, pela rota abaixo.
+//
+// Foto: marca/quadrata/avatar-whatsapp.png (640×640). Para trocar, substitua o
+// arquivo e acione a rota de novo. Precisa de META_APP_ID no ambiente — o
+// upload da imagem passa pela API de upload do App, não pelo número.
+const PERFIL_WHATSAPP = {
+  foto: path.join(__dirname, "marca", "quadrata", "avatar-whatsapp.png"),
+  // "Sobre" — aparece embaixo do nome. Limite da Meta: 139 caracteres.
+  about: "Atendimento digital 24h com a MarIAna e o FabrícIO. Um corretor humano fecha com você.",
+  // Descrição — na tela de perfil. Limite: 512 caracteres.
+  description:
+    "Quadrata Corretora de Seguros. Cotação de auto, vida, saúde e residência, consórcio, " +
+    "financiamento e Cartão Porto Bank. Atendimento digital 24h: a MarIAna e o FabrícIO " +
+    "tiram sua dúvida na hora; valores e contratação são sempre com um corretor humano. " +
+    "Atendimento humano de segunda a sexta, das 8h30 às 17h30.",
+  // Categoria do negócio (enum da Meta). Seguros entra em serviços financeiros.
+  vertical: "FINANCE",
+};
+
+const graph = (caminho) => `https://graph.facebook.com/${GRAPH_VERSION}/${caminho}`;
+
+function erroMeta(e) {
+  const d = e.response?.data?.error;
+  return d ? `${d.message} (código ${d.code}${d.error_subcode ? "/" + d.error_subcode : ""})` : e.message;
+}
+
+// Lê o perfil atual na Meta. Também serve de teste: se a chave não tiver a
+// permissão whatsapp_business_management, o erro aparece aqui, antes de
+// qualquer alteração.
+async function lerPerfilWhatsApp() {
+  const r = await axios.get(graph(`${WA_PHONE_NUMBER_ID}/whatsapp_business_profile`), {
+    params: { fields: "about,address,description,email,profile_picture_url,websites,vertical" },
+    headers: { Authorization: `Bearer ${WA_ACCESS_TOKEN}` },
+  });
+  return r.data?.data?.[0] || r.data;
+}
+
+// Sobe a imagem pela API de upload retomável e devolve o handle que o perfil
+// aceita em profile_picture_handle.
+async function subirFotoPerfil(arquivo) {
+  const bytes = fs.readFileSync(arquivo);
+  const tipo = arquivo.endsWith(".png") ? "image/png" : "image/jpeg";
+  const sessao = await axios.post(graph(`${META_APP_ID}/uploads`), null, {
+    params: { file_length: bytes.length, file_type: tipo },
+    headers: { Authorization: `Bearer ${WA_ACCESS_TOKEN}` },
+  });
+  const envio = await axios.post(graph(sessao.data.id), bytes, {
+    headers: {
+      Authorization: `OAuth ${WA_ACCESS_TOKEN}`,
+      file_offset: "0",
+      "Content-Type": "application/octet-stream",
+    },
+    maxBodyLength: Infinity,
+  });
+  return envio.data.h;
+}
+
+async function aplicarPerfilWhatsApp({ comFoto = true } = {}) {
+  const corpo = {
+    messaging_product: "whatsapp",
+    about: PERFIL_WHATSAPP.about,
+    description: PERFIL_WHATSAPP.description,
+    vertical: PERFIL_WHATSAPP.vertical,
+  };
+  if (comFoto) corpo.profile_picture_handle = await subirFotoPerfil(PERFIL_WHATSAPP.foto);
+  await axios.post(graph(`${WA_PHONE_NUMBER_ID}/whatsapp_business_profile`), corpo, {
+    headers: { Authorization: `Bearer ${WA_ACCESS_TOKEN}`, "Content-Type": "application/json" },
+  });
+  return corpo;
+}
+
+function faltaParaPerfil(comFoto) {
+  const falta = [];
+  if (!WA_PHONE_NUMBER_ID) falta.push("WA_PHONE_NUMBER_ID");
+  if (!WA_ACCESS_TOKEN) falta.push("WA_ACCESS_TOKEN");
+  if (comFoto) {
+    if (!META_APP_ID) falta.push("META_APP_ID");
+    if (!fs.existsSync(PERFIL_WHATSAPP.foto)) falta.push("arquivo " + path.relative(__dirname, PERFIL_WHATSAPP.foto));
+  }
+  return falta;
+}
+
+// GET  /api/whatsapp/perfil  → como o perfil está hoje na Meta
+// POST /api/whatsapp/perfil  → aplica foto + textos (?foto=nao pula a imagem)
+app.get("/api/whatsapp/perfil", requireAdmin, async (_req, res) => {
+  const falta = faltaParaPerfil(false);
+  if (falta.length) return res.status(400).json({ erro: "Falta configurar: " + falta.join(", ") });
+  try {
+    res.json({ perfil: await lerPerfilWhatsApp(), proposto: { ...PERFIL_WHATSAPP, foto: path.basename(PERFIL_WHATSAPP.foto) } });
+  } catch (e) {
+    res.status(502).json({ erro: erroMeta(e) });
+  }
+});
+
+app.post("/api/whatsapp/perfil", requireAdmin, async (req, res) => {
+  const comFoto = String(req.query.foto || "sim") !== "nao";
+  const falta = faltaParaPerfil(comFoto);
+  if (falta.length) return res.status(400).json({ erro: "Falta configurar: " + falta.join(", ") });
+  try {
+    const aplicado = await aplicarPerfilWhatsApp({ comFoto });
+    console.log("Perfil do WhatsApp atualizado" + (comFoto ? " (com foto)" : ""));
+    res.json({ ok: true, aplicado, perfil: await lerPerfilWhatsApp() });
+  } catch (e) {
+    console.error("Falha ao atualizar o perfil do WhatsApp:", erroMeta(e));
+    res.status(502).json({ erro: erroMeta(e) });
+  }
+});
+
+// Página mínima para acionar isso pelo navegador, com a senha do painel.
+app.get("/admin/whatsapp", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.type("html").send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Perfil do WhatsApp — Quadrata</title>
+<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:40px auto;padding:0 20px;color:#1e293b}
+h1{font-size:20px}label{display:block;font-size:13px;color:#64748b;margin-top:16px}
+input{width:100%;padding:10px;font-size:15px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box}
+button{margin:16px 8px 0 0;padding:10px 18px;font-size:15px;border:0;border-radius:8px;cursor:pointer;background:#e2e8f0}
+button.p{background:#2f89f5;color:#fff}pre{background:#f1f5f9;padding:14px;border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-word}
+img{width:96px;height:96px;border-radius:50%;vertical-align:middle;margin-right:12px}</style></head><body>
+<h1>Perfil comercial do WhatsApp</h1>
+<p><img src="/marca/quadrata/avatar-whatsapp.png" alt=""> Foto que vai subir, mais o "sobre" e a descrição neutros da Quadrata.</p>
+<label>Senha do painel</label><input id="s" type="password" autocomplete="current-password">
+<button onclick="ver()">Ver perfil atual</button>
+<button class="p" onclick="aplicar(true)">Aplicar foto e textos</button>
+<button onclick="aplicar(false)">Só os textos</button>
+<pre id="out">—</pre>
+<script>
+const out=document.getElementById('out');
+async function chamar(m,q){out.textContent='…';const r=await fetch('/api/whatsapp/perfil'+(q||''),{method:m,headers:{'x-admin-password':document.getElementById('s').value}});out.textContent=JSON.stringify(await r.json(),null,2)}
+function ver(){chamar('GET')}function aplicar(f){if(confirm(f?'Trocar a foto e os textos do perfil do WhatsApp?':'Aplicar só os textos?'))chamar('POST',f?'':'?foto=nao')}
+</script></body></html>`);
 });
 
 // ─── Dashboard API ────────────────────────────────────────────────────────────
