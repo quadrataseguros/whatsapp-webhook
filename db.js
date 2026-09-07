@@ -65,6 +65,17 @@ db.exec(`
     key   TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  -- Qual persona atende cada contato (MarIAna ou FabrícIO). O WhatsApp é um
+  -- número só: a porta de entrada (Instagram de cada um) decide quem responde
+  -- na primeira mensagem e a escolha fica valendo daqui para a frente, para o
+  -- cliente não ver o atendente trocar de nome no meio da conversa.
+  -- A chave é "<plataforma>:<id do contato>", ex.: "whatsapp:5511999999999".
+  CREATE TABLE IF NOT EXISTS contact_persona (
+    chave      TEXT PRIMARY KEY,
+    persona    TEXT NOT NULL,
+    updated_at TEXT DEFAULT (datetime('now', 'localtime'))
+  );
 `);
 
 // Migrations

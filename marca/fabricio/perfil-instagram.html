@@ -1,0 +1,411 @@
+<title>Perfil do FabrícIO</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+  :root {
+    --ground: #f4f7fb;
+    --surface: #ffffff;
+    --surface-2: #eef3fa;
+    --line: #d9e3f0;
+    --ink: #0e2244;
+    --ink-2: #3d5680;
+    --muted: #6c83a8;
+    --marca: #2f89f5;
+    --sinal: #0b7c92;
+    --sinal-soft: #e0f4f8;
+    --alerta: #b45309;
+    --alerta-soft: #fdf3e3;
+    --alerta-line: #e8c99a;
+    --navy: #0b1c38;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #081527;
+      --surface: #0f2440;
+      --surface-2: #16304f;
+      --line: #23415f;
+      --ink: #eaf1fb;
+      --ink-2: #b3c6e0;
+      --muted: #8aa2c4;
+      --marca: #5aa5ff;
+      --sinal: #45d3ea;
+      --sinal-soft: #103744;
+      --alerta: #f0b661;
+      --alerta-soft: #33260f;
+      --alerta-line: #5c4520;
+      --navy: #061021;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #081527;
+    --surface: #0f2440;
+    --surface-2: #16304f;
+    --line: #23415f;
+    --ink: #eaf1fb;
+    --ink-2: #b3c6e0;
+    --muted: #8aa2c4;
+    --marca: #5aa5ff;
+    --sinal: #45d3ea;
+    --sinal-soft: #103744;
+    --alerta: #f0b661;
+    --alerta-soft: #33260f;
+    --alerta-line: #5c4520;
+    --navy: #061021;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 15.5px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 44px 22px 90px; }
+
+  h1, h2, h3 { font-family: 'Archivo', 'Helvetica Neue', Arial, sans-serif; text-wrap: balance; margin: 0; }
+  h1 { font-size: 34px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.14; }
+  h2 { font-size: 21px; font-weight: 700; letter-spacing: -0.012em; }
+  h3 { font-size: 15px; font-weight: 600; letter-spacing: -0.005em; }
+  p { margin: 0; }
+  a { color: var(--marca); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:hover { color: var(--sinal); }
+
+  .eyebrow {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--muted);
+  }
+
+  header.top { display: flex; align-items: center; gap: 20px; margin-bottom: 12px; }
+  header.top .mark {
+    width: 62px; height: 62px; flex-shrink: 0; border-radius: 50%;
+    background: radial-gradient(circle at 34% 26%, #16386b 0%, var(--navy) 62%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lede { color: var(--ink-2); margin-top: 14px; max-width: 62ch; }
+
+  section { margin-top: 52px; }
+  .sec-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .sec-head .eyebrow { flex-shrink: 0; }
+
+  /* ── prévia do perfil ─────────────────────────────────────── */
+  .preview {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 16px; padding: 26px 24px; display: flex; gap: 22px; align-items: flex-start;
+  }
+  .preview .av {
+    width: 88px; height: 88px; flex-shrink: 0; border-radius: 50%;
+    background: radial-gradient(circle at 34% 26%, #16386b 0%, #0b1c38 62%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .preview .body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .preview .handle { font-family: 'Archivo', sans-serif; font-weight: 600; font-size: 17px; }
+  .preview .nome { font-weight: 600; font-size: 14.5px; }
+  .preview .bio { font-size: 14.5px; white-space: pre-line; color: var(--ink); }
+  .preview .link { font-size: 14.5px; font-weight: 500; word-break: break-all; }
+  .preview .cat { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+
+  /* ── campos ───────────────────────────────────────────────── */
+  .campos { display: flex; flex-direction: column; gap: 14px; }
+  .campo {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; padding: 16px 18px;
+    display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 4px 20px; align-items: baseline;
+  }
+  .campo > h3 { color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: 0.07em; padding-top: 2px; }
+  .campo .val { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .nota { font-size: 13.5px; color: var(--ink-2); }
+
+  code, .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .copiar {
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px;
+    padding: 9px 12px; font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+    cursor: pointer; transition: border-color .15s;
+  }
+  .copiar:hover, .copiar:focus-visible { border-color: var(--marca); outline: none; }
+
+  .opcoes { display: flex; flex-direction: column; gap: 12px; }
+  .opcao { display: flex; flex-direction: column; gap: 6px; }
+  .opcao-cab { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+  .tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+    letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 5px; background: var(--surface-2); color: var(--muted);
+  }
+  .tag.rec { background: var(--sinal-soft); color: var(--sinal); }
+  .contador { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* ── alerta ───────────────────────────────────────────────── */
+  .alerta {
+    background: var(--alerta-soft); border: 1px solid var(--alerta-line);
+    border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 9px;
+  }
+  .alerta h3 { color: var(--alerta); }
+  .alerta p { font-size: 14.5px; color: var(--ink); }
+
+  /* ── listas ───────────────────────────────────────────────── */
+  .grade { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+  @media (max-width: 620px) { .grade { grid-template-columns: minmax(0, 1fr); } .campo { grid-template-columns: minmax(0, 1fr); } }
+  .item {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+    padding: 15px 17px; display: flex; flex-direction: column; gap: 5px;
+  }
+  .item p { font-size: 14px; color: var(--ink-2); }
+
+  .destaques { display: flex; gap: 18px; flex-wrap: wrap; }
+  .dest { display: flex; flex-direction: column; align-items: center; gap: 7px; width: 74px; }
+  .dest .capa {
+    width: 66px; height: 66px; border-radius: 50%; border: 2px solid var(--line);
+    background: radial-gradient(circle at 34% 26%, #16386b 0%, #0b1c38 62%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dest span { font-size: 12px; color: var(--ink-2); text-align: center; line-height: 1.3; }
+
+  ol.passos { margin: 0; padding-left: 0; list-style: none; counter-reset: p; display: flex; flex-direction: column; gap: 10px; }
+  ol.passos li { counter-increment: p; display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; align-items: baseline; font-size: 14.5px; }
+  ol.passos li::before {
+    content: counter(p); font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700;
+    color: var(--marca); font-variant-numeric: tabular-nums;
+  }
+
+  .fecho { margin-top: 56px; padding-top: 26px; border-top: 1px solid var(--line); }
+  ul.preciso { margin: 12px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; font-size: 14.5px; }
+  .dica { font-size: 12.5px; color: var(--muted); margin-top: 8px; }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <div class="mark">
+      <svg width="36" height="36" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+        <path d="M63.5 31.62 A27 27 0 1 1 36.5 31.62" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path>
+        <path d="M62 67 L75 80" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path>
+        <path d="M50 13 L50 47" stroke="#22d3ee" stroke-width="10" stroke-linecap="round"></path>
+      </svg>
+    </div>
+    <div>
+      <div class="eyebrow">Instagram · Quadrata Seguros</div>
+      <h1>Perfil do FabrícIO</h1>
+    </div>
+  </header>
+  <p class="lede">Tudo que vai em cada campo do perfil, pronto para copiar. Os textos dos links carregam a origem que o webhook lê para saber que o cliente veio do Fabricio — por isso não dá para trocar palavra à toa.</p>
+
+  <section>
+    <div class="sec-head"><span class="eyebrow">01</span><h2>Como vai ficar</h2></div>
+    <div class="preview">
+      <div class="av">
+        <svg width="50" height="50" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+          <path d="M63.5 31.62 A27 27 0 1 1 36.5 31.62" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path>
+          <path d="M62 67 L75 80" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path>
+          <path d="M50 13 L50 47" stroke="#22d3ee" stroke-width="10" stroke-linecap="round"></path>
+        </svg>
+      </div>
+      <div class="body">
+        <div class="handle">fabricioquadrata</div>
+        <div class="cat">Seguros</div>
+        <div class="nome">FabrícIO | Seguros e Consórcio</div>
+        <div class="bio">Consultor digital da Quadrata Seguros ⏻ ON 24h
+Auto · Vida · Saúde · Consórcio · Cartão Porto Bank
+Tira a dúvida na hora. Corretor humano fecha 👇</div>
+        <div class="link">webhook.quadratadigital.com.br/fale/fabricio</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="eyebrow">02</span><h2>Campo a campo</h2></div>
+    <div class="campos">
+
+      <div class="campo">
+        <h3>Nome</h3>
+        <div class="val">
+          <div class="copiar" tabindex="0" data-copy>FabrícIO | Seguros e Consórcio</div>
+          <p class="nota"><span class="contador">30/30</span> — no talo. Esse campo <strong>entra na busca do Instagram</strong>, diferente do @. Por isso ele carrega as palavras que as pessoas procuram, não só o nome.</p>
+        </div>
+      </div>
+
+      <div class="campo">
+        <h3>Usuário (@)</h3>
+        <div class="val">
+          <div class="opcao-cab"><span class="tag rec">Já criado</span></div>
+          <div class="copiar" tabindex="0" data-copy>fabricioquadrata</div>
+          <p class="nota">Espelha o <code>@marianaquadrata</code> — quem conhece um perfil acha o outro.</p>
+        </div>
+      </div>
+
+      <div class="campo">
+        <h3>Bio</h3>
+        <div class="val">
+          <div class="opcoes">
+            <div class="opcao">
+              <div class="opcao-cab"><span class="tag rec">A · recomendada</span><span class="contador">145/150</span></div>
+              <div class="copiar" tabindex="0" data-copy>Consultor digital da Quadrata Seguros ⏻ ON 24h
+Auto · Vida · Saúde · Consórcio · Cartão Porto Bank
+Tira a dúvida na hora. Corretor humano fecha 👇</div>
+            </div>
+            <div class="opcao">
+              <div class="opcao-cab"><span class="tag">B · foco na dor</span><span class="contador">134/150</span></div>
+              <div class="copiar" tabindex="0" data-copy>Seguro sem enrolação e sem esperar o comercial abrir
+Consultor digital da Quadrata ⏻ ON 24h
+Auto · Vida · Saúde · Consórcio · Cartão 👇</div>
+            </div>
+            <div class="opcao">
+              <div class="opcao-cab"><span class="tag">C · foco em consórcio</span><span class="contador">138/150</span></div>
+              <div class="copiar" tabindex="0" data-copy>Consultor digital da Quadrata Seguros ⏻ ON 24h
+Consórcio com taxa reduzida, seguros e Cartão Porto
+Simulo na hora. Corretor humano fecha 👇</div>
+            </div>
+          </div>
+          <p class="nota">O <code>⏻</code> é o símbolo de liga/desliga — o mesmo do logo. Ele carrega o "ON 24h" sem gastar caractere com a palavra.</p>
+        </div>
+      </div>
+
+      <div class="campo">
+        <h3>Link</h3>
+        <div class="val">
+          <div class="copiar" tabindex="0" data-copy>https://webhook.quadratadigital.com.br/fale/fabricio</div>
+          <p class="nota">Não use <code>/fale</code> nem um <code>wa.me</code> direto: só esta rota abre a conversa com o texto que identifica o Fabricio. Sem ela, quem atende é a MarIAna.</p>
+        </div>
+      </div>
+
+      <div class="campo">
+        <h3>Categoria</h3>
+        <div class="val">
+          <div class="copiar" tabindex="0" data-copy>Seguros</div>
+          <p class="nota">Evite <em>Agente de seguros</em> ou <em>Corretor</em>: são profissões reguladas pela SUSEP e o FabrícIO não é uma delas — quem fecha é um corretor humano da Quadrata.</p>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="eyebrow">03</span><h2>O botão de WhatsApp fica desligado</h2></div>
+    <div class="alerta">
+      <h3>Ativar o botão nativo quebra o roteamento</h3>
+      <p>O botão de WhatsApp do perfil abre a conversa <strong>sem texto nenhum</strong>. Como o número é o mesmo da MarIAna, o servidor não tem como saber que o cliente veio do Fabricio — e ela atende, no perfil dele.</p>
+      <p>Então no perfil do FabrícIO o caminho para o WhatsApp é <strong>só o link da bio</strong>. O botão de contato pode ficar no e-mail. O direct do Instagram continua livre: ali o roteamento é pela conta que recebeu a mensagem, e funciona sempre.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="eyebrow">04</span><h2>Destaques</h2></div>
+    <div class="destaques">
+      <div class="dest"><div class="capa"><svg width="28" height="28" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M63.5 31.62 A27 27 0 1 1 36.5 31.62" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path><path d="M62 67 L75 80" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path><path d="M50 13 L50 47" stroke="#22d3ee" stroke-width="10" stroke-linecap="round"></path></svg></div><span>Quem sou</span></div>
+      <div class="dest"><div class="capa"><svg width="28" height="28" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M63.5 31.62 A27 27 0 1 1 36.5 31.62" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path><path d="M62 67 L75 80" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path><path d="M50 13 L50 47" stroke="#22d3ee" stroke-width="10" stroke-linecap="round"></path></svg></div><span>Consórcio</span></div>
+      <div class="dest"><div class="capa"><svg width="28" height="28" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M63.5 31.62 A27 27 0 1 1 36.5 31.62" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path><path d="M62 67 L75 80" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path><path d="M50 13 L50 47" stroke="#22d3ee" stroke-width="10" stroke-linecap="round"></path></svg></div><span>Cartão Porto</span></div>
+      <div class="dest"><div class="capa"><svg width="28" height="28" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M63.5 31.62 A27 27 0 1 1 36.5 31.62" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path><path d="M62 67 L75 80" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path><path d="M50 13 L50 47" stroke="#22d3ee" stroke-width="10" stroke-linecap="round"></path></svg></div><span>Sinistro 24h</span></div>
+      <div class="dest"><div class="capa"><svg width="28" height="28" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M63.5 31.62 A27 27 0 1 1 36.5 31.62" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path><path d="M62 67 L75 80" stroke="#4da3ff" stroke-width="10" stroke-linecap="round"></path><path d="M50 13 L50 47" stroke="#22d3ee" stroke-width="10" stroke-linecap="round"></path></svg></div><span>Cotação</span></div>
+    </div>
+    <p class="nota" style="margin-top:14px">Capas iguais, o mark sobre o navy — exporte uma vez e reuse nas cinco. Nomes curtos porque o Instagram corta em torno de 15 caracteres.</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="eyebrow">05</span><h2>Pilares de conteúdo</h2></div>
+    <p class="nota" style="margin-bottom:16px">Escolhidos para bater com o que a IA já sabe responder. Assim o perfil promete exatamente o que o WhatsApp entrega — e cada post tem para onde mandar o cliente.</p>
+    <div class="grade">
+      <div class="item"><h3>Dúvida de cliente</h3><p>Uma pergunta real que chegou no WhatsApp, respondida em três linhas. É o formato mais barato de produzir e o que mais gera direct.</p></div>
+      <div class="item"><h3>Consórcio sem lenda</h3><p>Consórcio não é financiamento — não tem juros, tem taxa. A IA já é instruída a desfazer essa confusão; o conteúdo faz o mesmo antes de o cliente chamar.</p></div>
+      <div class="item"><h3>Os primeiros 10 minutos</h3><p>O que fazer quando bateu o carro, antes de ligar para qualquer um. O menu do WhatsApp entrega os telefones da assistência 24h na hora.</p></div>
+      <div class="item"><h3>Cartão Porto Bank</h3><p>A campanha que a IA já conhece de cor: 12 meses sem anuidade, salas VIP, desconto no seguro. Post de conversão direta.</p></div>
+    </div>
+    <p class="nota" style="margin-top:16px"><strong>Post fixado:</strong> a apresentação — quem é o FabrícIO, que ele é digital, que responde 24h e que um corretor humano da Quadrata fecha. Deixa a regra clara logo na entrada e evita mal-entendido depois.</p>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="eyebrow">06</span><h2>O que dá para automatizar</h2></div>
+    <div class="grade">
+      <div class="item">
+        <h3>Montar o perfil — manual</h3>
+        <p>Nome, @, bio, link, foto e categoria só existem no app. A API da Meta <strong>não tem endpoint de edição de perfil</strong>, então nem com token dá para automatizar. São cinco minutos digitando os textos daqui.</p>
+      </div>
+      <div class="item">
+        <h3>Responder direct — pronto</h3>
+        <p>Já está no código. Assim que o perfil for ligado à API, o FabrícIO responde os directs sozinho — e o roteamento pela conta que recebeu já foi testado.</p>
+      </div>
+      <div class="item">
+        <h3>Publicar posts — dá</h3>
+        <p>Posts e carrosséis podem sair daqui direto para o feed. O repositório já tem a skill <code>setup-instagram</code>, que guia a obtenção das credenciais e testa a conexão.</p>
+      </div>
+      <div class="item">
+        <h3>Destaques e stories — manual</h3>
+        <p>Capas e destaques são feitos no app. Eu entrego as imagens prontas para você subir.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="eyebrow">07</span><h2>Legenda do post fixado</h2></div>
+    <p class="nota" style="margin-bottom:14px">Acompanha o carrossel de cinco telas. Os dois trechos entre colchetes são fatos que eu não invento — preencha antes de publicar.</p>
+    <div class="opcao">
+      <div class="opcao-cab"><span class="tag rec">Legenda</span><span class="contador">945/2200</span></div>
+      <div class="copiar" tabindex="0" data-copy>Prazer, eu sou o FabrícIO 👋
+
+Sou o consultor digital da Quadrata Seguros — e sim, sou uma inteligência artificial. Não vou fingir o contrário.
+
+A vantagem de ser digital é justamente essa: eu não tenho horário. Lembrou do seguro à meia-noite de domingo? Me chama. Bateu o carro numa quarta às 5 da manhã e não sabe para quem ligar? Me chama, que eu te passo o telefone da assistência 24h da sua seguradora na hora.
+
+O que eu resolvo sozinho:
+• Cotação de auto, vida, saúde e residência
+• Consórcio e financiamento
+• Cartão de crédito Porto Bank
+• Assistência 24h na hora do sinistro
+
+E o que eu NÃO faço, para já deixar combinado: não invento preço e não fecho negócio. Valor, condição e assinatura são sempre com um corretor humano da Quadrata. O que eu faço é organizar tudo antes — assim você não precisa contar sua história três vezes até chegar em alguém que resolva.
+
+Quadrata Seguros — [CIDADE/REGIÃO] · SUSEP [Nº]
+
+Chama no link da bio 👆</div>
+    </div>
+    <div class="opcao" style="margin-top:16px">
+      <div class="opcao-cab"><span class="tag">Primeiro comentário</span></div>
+      <div class="copiar" tabindex="0" data-copy>#seguros #segurodeauto #segurodevida #planodesaude #consorcio #consorcioimovel #cartaodecredito #portobank #corretoradeseguros #quadrataseguros #segurosonline #protecaoveicular</div>
+      <p class="nota">Hashtag no primeiro comentário, não na legenda: mantém o texto limpo e rende o mesmo alcance. Troque duas ou três pela sua cidade.</p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><span class="eyebrow">08</span><h2>Ordem de publicação</h2></div>
+    <ol class="passos">
+      <li>Criar a conta e converter para <strong>conta profissional</strong> (é o que libera categoria, botões e o direct via API).</li>
+      <li>Foto de perfil: exportar o avatar 1080×1080 da tela do logotipo.</li>
+      <li>Preencher nome, @, bio, link e categoria com os textos acima.</li>
+      <li>Conferir que o <strong>botão de WhatsApp está desligado</strong>.</li>
+      <li>Publicar o post de apresentação e fixar.</li>
+      <li>Criar os cinco destaques com a capa do mark.</li>
+      <li>Conectar o perfil à API e me passar o <code>IG_USER_ID</code> e o token — eu ligo as variáveis <code>IG_USER_ID_FABRICIO</code> e <code>IG_ACCESS_TOKEN_FABRICIO</code> no Railway.</li>
+      <li>Testar: mandar um direct para o perfil e conferir no <code>/health</code> que quem respondeu foi o FabrícIO.</li>
+    </ol>
+  </section>
+
+  <div class="fecho">
+    <div class="eyebrow">Falta de você</div>
+    <ul class="preciso">
+      <li>Cidade ou região que vocês atendem — entra no nome e ajuda na busca local.</li>
+      <li>E-mail de contato para o botão do perfil.</li>
+      <li>Registro SUSEP da corretora, se quiser exibir no post fixado.</li>
+      <li>O <code>IG_USER_ID</code> do perfil, depois de convertido para conta profissional.</li>
+    </ul>
+    <p class="nota" style="margin-top:14px"><strong>O token de acesso não me mande por aqui.</strong> Ele é uma senha: cole direto na variável <code>IG_ACCESS_TOKEN_FABRICIO</code> no Railway. Eu confirmo que funcionou pelo <code>/health</code>, sem precisar ver o valor.</p>
+    <p class="dica">Clique em qualquer bloco cinza para selecionar o texto inteiro. Foto de perfil: o logo — confirmado que o Fabricio é uma persona digital, sem rosto de pessoa real.</p>
+  </div>
+
+</div>
+
+<script>
+  document.querySelectorAll('[data-copy]').forEach(function (el) {
+    function selecionar() {
+      var r = document.createRange();
+      r.selectNodeContents(el);
+      var s = window.getSelection();
+      s.removeAllRanges();
+      s.addRange(r);
+    }
+    el.addEventListener('click', selecionar);
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selecionar(); }
+    });
+  });
+</script>

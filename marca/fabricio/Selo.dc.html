@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; }
+    a { color: #2f89f5; } a:hover { color: #1d6fd6; }
+  </style>
+</helmet>
+<div style="width: 1080px; height: 1080px; background: #f4f7fb; display: flex; align-items: center; justify-content: center">
+  <svg width="1000" height="1000" viewBox="0 0 1080 1080" fill="none" role="img" aria-label="FabrícIO — Quadrata Seguros">
+    <defs>
+      <path id="arcoTopo" d="M 130 540 A 410 410 0 0 1 950 540" fill="none"></path>
+      <path id="arcoBase" d="M 950 540 A 410 410 0 0 1 130 540" fill="none"></path>
+    </defs>
+
+    <circle cx="540" cy="540" r="466" stroke="#122c56" stroke-width="5"></circle>
+    <circle cx="540" cy="540" r="330" stroke="#122c56" stroke-width="10"></circle>
+
+    <text font-family="Inter, sans-serif" font-size="47" font-weight="700"
+          letter-spacing="3.4" fill="#122c56">
+      <textPath href="#arcoTopo" startOffset="50%" text-anchor="middle">
+        SEU CONSULTOR DE SEGUROS DIGITAL
+      </textPath>
+    </text>
+    <text font-family="Inter, sans-serif" font-size="47" font-weight="700"
+          letter-spacing="3.4" fill="#122c56">
+      <textPath href="#arcoBase" startOffset="50%" text-anchor="middle">
+        QUADRATA SEGUROS · ON 24H
+      </textPath>
+    </text>
+
+    <circle cx="164" cy="540" r="9" fill="#2f89f5"></circle>
+    <circle cx="916" cy="540" r="9" fill="#2f89f5"></circle>
+
+    <g transform="translate(324, 324) scale(4.32)">
+      <path d="M63.5 31.62 A27 27 0 1 1 36.5 31.62" stroke="#122c56" stroke-width="10" stroke-linecap="round"></path>
+      <path d="M62 67 L75 80" stroke="#122c56" stroke-width="10" stroke-linecap="round"></path>
+      <path d="M50 13 L50 47" stroke="#2f89f5" stroke-width="10" stroke-linecap="round"></path>
+    </g>
+  </svg>
+</div>
+</x-dc>
+</body>
+</html>
