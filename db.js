@@ -84,6 +84,11 @@ try { db.exec('ALTER TABLE salespeople ADD COLUMN pin TEXT'); } catch (_) {}
 // gross_value = prêmio bruto digitado (com IOF); value = prêmio líquido, base da comissão
 try { db.exec('ALTER TABLE sales ADD COLUMN gross_value REAL'); } catch (_) {}
 try { db.exec('ALTER TABLE sales ADD COLUMN iof_pct REAL DEFAULT 0'); } catch (_) {}
+// De onde o contato chegou e quando — atribuição de PRIMEIRO toque: gravadas
+// uma vez, na primeira mensagem, e nunca sobrescritas. É o que responde "qual
+// canal trouxe essa pessoa"; ver ORIGENS em personas.js.
+try { db.exec('ALTER TABLE contact_persona ADD COLUMN origem TEXT'); } catch (_) {}
+try { db.exec("ALTER TABLE contact_persona ADD COLUMN created_at TEXT"); } catch (_) {}
 
 // Equipe da operação Quadrata × Piscinão Veículos
 const EQUIPE = ['Abraão', 'Marcelo', 'Léo', 'André', 'Fernanda', 'Wallace'];

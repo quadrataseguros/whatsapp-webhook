@@ -168,7 +168,34 @@ function systemPrompt(p) {
   return p.identidade + "\n" + corpoComum(p);
 }
 
+// ---------------------------------------------------------------------------
+// Origem — por qual porta o contato chegou. Serve para medir a captação: quem
+// veio de anúncio pago, quem veio do link da bio, quem caiu no direct e quem
+// simplesmente digitou o número.
+//
+// É gravada UMA VEZ, na primeira mensagem de cada contato, e nunca
+// sobrescrita (atribuição de primeiro toque). Quem chega pelo orgânico e
+// depois clica num anúncio continua contando como orgânico — foi o orgânico
+// que trouxe a pessoa; o anúncio só a reencontrou.
+const ORIGENS = {
+  anuncio: { rotulo: "Anúncio (Click to WhatsApp)", curto: "Anúncio" },
+  bio: { rotulo: "Link da bio", curto: "Bio" },
+  direct: { rotulo: "Direct do Instagram", curto: "Instagram" },
+  organico: { rotulo: "Direto no WhatsApp", curto: "WhatsApp" },
+};
+
+function detectarOrigem(msg) {
+  if (!msg) return "organico";
+  if (msg.platform === "instagram") return "direct";
+  if (msg.referral) return "anuncio";
+  // O texto que o link /fale já abre digitado é a assinatura da bio.
+  if (porTexto(msg.text)) return "bio";
+  return "organico";
+}
+
 module.exports = {
+  ORIGENS,
+  detectarOrigem,
   PERSONAS,
   MARIANA,
   FABRICIO,

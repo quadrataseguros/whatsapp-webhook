@@ -108,6 +108,35 @@ o link de bio de cada uma.
 
 ---
 
+## Captação: de onde vêm os contatos
+
+O canal digital existe para testar se capta sozinho — sem apoio da carteira
+existente. Para medir isso, cada contato novo é gravado com a **porta em que
+entrou**:
+
+| Origem | Como é reconhecida |
+|---|---|
+| **Anúncio** | a mensagem traz `referral` (Click to WhatsApp) |
+| **Link da bio** | o texto que o `/fale` já abre digitado |
+| **Direct do Instagram** | a mensagem caiu numa conta de Instagram configurada |
+| **Direto no WhatsApp** | nenhuma das anteriores — a pessoa digitou o número |
+
+A origem é **atribuição de primeiro toque**: gravada uma vez, na primeira
+mensagem, e nunca sobrescrita. Quem chega pelo orgânico e depois clica num
+anúncio segue contando como orgânico — foi o orgânico que trouxe a pessoa; o
+anúncio só a reencontrou. A persona pode trocar depois; a origem, não.
+
+Veja em **`/admin/captacao`** (senha do painel): total de pessoas que puxaram
+conversa, quebra por origem com a divisão entre MarIAna e FabrícIO, e as
+últimas 12 semanas. Os mesmos números em JSON no `GET /api/captacao`.
+
+Conta **pessoas, não mensagens** — cada linha de `contact_persona` é um contato
+único. Contatos anteriores a esta mudança aparecem sem origem até mandarem uma
+mensagem nova; a partir daí entram como "Direto no WhatsApp", já que o sinal da
+porta original se perdeu.
+
+---
+
 ## Perfil comercial do WhatsApp (foto e textos)
 
 O número é um só para as duas personas, então a foto e os textos do perfil têm

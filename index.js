@@ -213,12 +213,18 @@ function extractInstagramMessage(body) {
 // MarIAna e chega pelo link do Fabricio passa a ser atendido por ele. Nesse
 // caso a conversa recomeça do zero, para o novo atendente não responder em
 // cima das falas do outro.
-const lerPersona = db.prepare("SELECT persona FROM contact_persona WHERE chave = ?");
+const lerPersona = db.prepare("SELECT persona, origem FROM contact_persona WHERE chave = ?");
+// A origem e a data entram só no INSERT: no conflito o UPDATE não as toca, e é
+// isso que faz a atribuição ser de primeiro toque. COALESCE cobre as linhas
+// gravadas antes destas colunas existirem.
 const gravarPersona = db.prepare(
-  `INSERT INTO contact_persona (chave, persona, updated_at)
-   VALUES (?, ?, datetime('now', 'localtime'))
+  `INSERT INTO contact_persona (chave, persona, origem, created_at, updated_at)
+   VALUES (?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))
    ON CONFLICT(chave) DO UPDATE SET
-     persona = excluded.persona, updated_at = excluded.updated_at`
+     persona    = excluded.persona,
+     origem     = COALESCE(contact_persona.origem, excluded.origem),
+     created_at = COALESCE(contact_persona.created_at, excluded.created_at),
+     updated_at = excluded.updated_at`
 );
 
 function resolverPersona(msg) {
@@ -228,19 +234,26 @@ function resolverPersona(msg) {
       : personas.porReferral(msg.referral) || personas.porTexto(msg.text);
 
   let salva = null;
+  let origemSalva = null;
   try {
-    salva = personas.porId(lerPersona.get(msg.chave)?.persona);
+    const linha = lerPersona.get(msg.chave);
+    salva = personas.porId(linha?.persona);
+    origemSalva = linha?.origem || null;
   } catch (e) {
     console.error("Falha ao ler a persona do contato:", e.message);
   }
 
   const escolhida = explicita || salva || personas.padrao();
-  if (!salva || salva.id !== escolhida.id) {
+  // Grava quando a persona muda OU quando o contato ainda não tem origem
+  // (linha antiga, de antes desta coluna existir).
+  if (!salva || salva.id !== escolhida.id || !origemSalva) {
+    const origem = origemSalva || personas.detectarOrigem(msg);
     try {
-      gravarPersona.run(msg.chave, escolhida.id);
+      gravarPersona.run(msg.chave, escolhida.id, origem);
     } catch (e) {
       console.error("Falha ao gravar a persona do contato:", e.message);
     }
+    if (!origemSalva) console.log(`  Origem: ${personas.ORIGENS[origem]?.rotulo || origem}`);
     // Trocou de atendente no meio do caminho: zera o histórico.
     if (salva) {
       console.log(`  Troca de atendente: ${salva.nome} → ${escolhida.nome} (conversa zerada)`);
@@ -1278,6 +1291,180 @@ img{width:96px;height:96px;border-radius:50%;vertical-align:middle;margin-right:
 const out=document.getElementById('out');
 async function chamar(m,q){out.textContent='…';const r=await fetch('/api/whatsapp/perfil'+(q||''),{method:m,headers:{'x-admin-password':document.getElementById('s').value}});out.textContent=JSON.stringify(await r.json(),null,2)}
 function ver(){chamar('GET')}function aplicar(f){if(confirm(f?'Trocar a foto e os textos do perfil do WhatsApp?':'Aplicar só os textos?'))chamar('POST',f?'':'?foto=nao')}
+</script></body></html>`);
+});
+
+// ─── Captação: de onde vêm os contatos ───────────────────────────────────────
+// Responde a pergunta que o canal digital existe para testar: ele capta
+// sozinho? E, se sim, por qual porta. Conta CONTATOS ÚNICOS (pessoas), não
+// mensagens — cada linha de contact_persona é uma pessoa que puxou conversa.
+
+const qCaptacaoTotal = db.prepare(`
+  SELECT COALESCE(origem, 'organico') AS origem, persona, COUNT(*) AS n
+    FROM contact_persona
+   GROUP BY origem, persona
+`);
+
+const qCaptacaoSemana = db.prepare(`
+  SELECT strftime('%Y-%W', created_at) AS semana,
+         date(created_at, 'weekday 0', '-6 days') AS inicio,
+         COALESCE(origem, 'organico') AS origem,
+         COUNT(*) AS n
+    FROM contact_persona
+   WHERE created_at IS NOT NULL
+   GROUP BY semana, origem
+   ORDER BY semana DESC
+`);
+
+app.get("/api/captacao", requireAdmin, (_req, res) => {
+  try {
+    const origens = {};
+    let total = 0;
+    for (const [id, o] of Object.entries(personas.ORIGENS)) {
+      origens[id] = { id, rotulo: o.rotulo, curto: o.curto, total: 0, porPersona: {} };
+    }
+    for (const r of qCaptacaoTotal.all()) {
+      const o = (origens[r.origem] ||= { id: r.origem, rotulo: r.origem, curto: r.origem, total: 0, porPersona: {} });
+      o.total += r.n;
+      o.porPersona[r.persona] = (o.porPersona[r.persona] || 0) + r.n;
+      total += r.n;
+    }
+
+    // Semanas mais recentes primeiro, no máximo 12.
+    const semanas = [];
+    for (const r of qCaptacaoSemana.all()) {
+      let s = semanas.find((x) => x.semana === r.semana);
+      if (!s) {
+        if (semanas.length >= 12) continue;
+        s = { semana: r.semana, inicio: r.inicio, total: 0, porOrigem: {} };
+        semanas.push(s);
+      }
+      s.porOrigem[r.origem] = r.n;
+      s.total += r.n;
+    }
+
+    res.json({
+      total,
+      origens: Object.values(origens).sort((a, b) => b.total - a.total),
+      semanas,
+      personas: Object.values(personas.PERSONAS).map((p) => ({ id: p.id, nome: p.nome })),
+    });
+  } catch (e) {
+    console.error("Falha ao apurar a captação:", e.message);
+    res.status(500).json({ erro: e.message });
+  }
+});
+
+// Painel da captação — números por origem e por semana.
+app.get(["/admin/captacao", "/captacao"], (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.type("html").send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Captação — Quadrata Seguros</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f1f5f9;--card:#fff;--linha:#e2e8f0;--t1:#122c56;--t2:#475569;--t3:#94a3b8;--azul:#2f89f5}
+body{background:var(--bg);color:var(--t1);font-family:'Inter',system-ui,sans-serif;font-size:15px;line-height:1.5;
+     padding:32px 20px 80px}
+.wrap{max-width:720px;margin:0 auto}
+h1{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.sub{font-size:13px;color:var(--t3);margin-top:2px}
+.card{background:var(--card);border:1px solid var(--linha);border-radius:14px;padding:22px;margin-top:18px}
+.hero{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.hero-lbl{font-size:13px;color:var(--t2);margin-top:6px}
+h2{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:14px}
+.linha-org{display:grid;grid-template-columns:1fr auto;gap:4px 14px;align-items:baseline;margin-bottom:14px}
+.linha-org:last-child{margin-bottom:0}
+.rot{font-size:14px;font-weight:500}
+.val{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.trilho{grid-column:1/-1;height:8px;background:#eef2f7;border-radius:4px;overflow:hidden}
+.barra{height:100%;background:var(--azul);border-radius:4px;min-width:2px}
+.quebra{grid-column:1/-1;font-size:12px;color:var(--t3);font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px 10px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--linha)}
+th:first-child,td:first-child{text-align:left;font-variant-numeric:normal}
+th{font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em}
+tbody tr:last-child td{border-bottom:0}
+.tot{font-weight:700}
+.vazio{color:var(--t2);font-size:14px;line-height:1.65}
+.vazio strong{color:var(--t1)}
+label{display:block;font-size:13px;color:var(--t2);margin-bottom:6px}
+input{width:100%;max-width:260px;padding:9px 11px;font-size:15px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit}
+button{margin-top:12px;padding:9px 18px;font-size:14px;font-weight:600;border:0;border-radius:8px;cursor:pointer;
+       background:var(--azul);color:#fff;font-family:inherit}
+.erro{color:#b91c1c;font-size:14px;margin-top:12px}
+</style></head><body><div class="wrap">
+<h1>Captação</h1>
+<div class="sub">Contatos únicos que puxaram conversa, pela porta em que entraram</div>
+
+<div class="card" id="login">
+  <label for="s">Senha do painel</label>
+  <input id="s" type="password" autocomplete="current-password">
+  <button onclick="carregar()">Ver números</button>
+  <div class="erro" id="erro" hidden></div>
+</div>
+
+<div id="painel" hidden></div>
+</div>
+<script>
+const $=(id)=>document.getElementById(id);
+const N=(n)=>n.toLocaleString('pt-BR');
+
+async function carregar(){
+  const senha=$('s').value; const erro=$('erro'); erro.hidden=true;
+  let d;
+  try{
+    const r=await fetch('/api/captacao',{headers:{'x-admin-password':senha}});
+    d=await r.json();
+    if(!r.ok){erro.textContent=d.erro||d.error||'Não foi possível carregar.';erro.hidden=false;return}
+  }catch(e){erro.textContent='Falha de rede: '+e.message;erro.hidden=false;return}
+  $('login').hidden=true; $('painel').hidden=false; desenhar(d);
+}
+
+function desenhar(d){
+  const nomes={}; d.personas.forEach(p=>nomes[p.id]=p.nome);
+  let html='';
+
+  if(!d.total){
+    html+='<div class="card"><h2>Ainda sem contatos</h2><p class="vazio">'
+       +'Nenhuma conversa foi iniciada ainda — ou o servidor subiu depois das que houve.<br><br>'
+       +'A partir de agora, cada pessoa nova que puxar conversa é registrada aqui com a porta '
+       +'em que entrou: <strong>anúncio</strong>, <strong>link da bio</strong>, '
+       +'<strong>direct do Instagram</strong> ou <strong>direto no WhatsApp</strong>.</p></div>';
+    $('painel').innerHTML=html; return;
+  }
+
+  html+='<div class="card"><div class="hero">'+N(d.total)+'</div>'
+     +'<div class="hero-lbl">'+(d.total===1?'pessoa iniciou':'pessoas iniciaram')+' conversa</div></div>';
+
+  const maior=Math.max(...d.origens.map(o=>o.total),1);
+  html+='<div class="card"><h2>Por origem</h2>';
+  d.origens.forEach(o=>{
+    const pct=d.total?Math.round(o.total/d.total*100):0;
+    const quebra=Object.entries(o.porPersona).map(([id,n])=>(nomes[id]||id)+' '+N(n)).join(' · ');
+    html+='<div class="linha-org" title="'+o.rotulo+': '+N(o.total)+' de '+N(d.total)+'">'
+       +'<span class="rot">'+o.rotulo+'</span>'
+       +'<span class="val">'+N(o.total)+' <span style="color:var(--t3);font-weight:500">· '+pct+'%</span></span>'
+       +'<div class="trilho"><div class="barra" style="width:'+(o.total/maior*100)+'%"></div></div>'
+       +'<div class="quebra">'+(quebra||'—')+'</div></div>';
+  });
+  html+='</div>';
+
+  if(d.semanas.length){
+    const cols=d.origens.filter(o=>o.total>0);
+    html+='<div class="card"><h2>Por semana</h2><table><thead><tr><th>Semana de</th>'
+       +cols.map(o=>'<th>'+o.curto+'</th>').join('')+'<th>Total</th></tr></thead><tbody>';
+    d.semanas.forEach(s=>{
+      const dia=s.inicio?s.inicio.split('-').reverse().slice(0,2).join('/'):s.semana;
+      html+='<tr><td>'+dia+'</td>'
+         +cols.map(o=>'<td>'+(s.porOrigem[o.id]?N(s.porOrigem[o.id]):'<span style="color:var(--t3)">—</span>')+'</td>').join('')
+         +'<td class="tot">'+N(s.total)+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+  $('painel').innerHTML=html;
+}
+$('s').addEventListener('keydown',e=>{if(e.key==='Enter')carregar()});
 </script></body></html>`);
 });
 
