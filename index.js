@@ -7,6 +7,7 @@ const fs = require("fs");
 const db = require("./db");
 const ADMIN_HTML = require("./admin-page");
 const personas = require("./personas");
+const agradecimentos = require("./agradecimentos");
 
 const app = express();
 app.use(express.json());
@@ -1933,6 +1934,28 @@ app.get("/api/daily-stats", (req, res) => {
   }).filter((ds) => ds.data.some((v) => v > 0));
 
   res.json({ dates, datasets, period });
+});
+
+// ─── Agradecimentos via WhatsApp ──────────────────────────────────────────────
+
+app.get("/agradecimentos", async (_req, res) => {
+  try {
+    const html = await agradecimentos.gerarPaginaPreview();
+    res.type("html").send(html);
+  } catch (err) {
+    console.error("Erro ao gerar página:", err);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+app.post("/api/agradecimentos/enviar", async (req, res) => {
+  try {
+    const resultados = await agradecimentos.enviarAgradecimentosTodos();
+    res.json(resultados);
+  } catch (err) {
+    console.error("Erro ao enviar agradecimentos:", err);
+    res.status(500).json({ erro: err.message });
+  }
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
