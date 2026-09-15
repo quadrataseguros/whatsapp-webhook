@@ -50,11 +50,7 @@ function validarTelefone(telefone) {
  * Cria mensagem personalizada de agradecimento
  */
 function criarMensagem(nome, incluirTempo = false) {
-  const saudacao = incluirTempo ? "Boa noite" : "Olá";
-  return `${saudacao} ${nome}! 👋\n\n` +
-    `Muito obrigado por sua participação no sorteio de brindes da QUADRATA SEGUROS! 🎁\n\n` +
-    `Sua presença foi importante e especial para nós. Esperamos encontrá-lo em breve!\n\n` +
-    `Abraços,\nEquipe QUADRATA 🏢`;
+  return `Olá ${nome}, sou Fabricio da Quadrata Seguros e estou passando para te agradecer. O evento de ontem foi sensacional. Minha equipe e eu estamos a inteira disposição e em breve vamos agendar uma nova conversa com aprofundamento nas garantias de aluguéis, seguros de responsabilidade civil e operacional e consórcio. Conto com sua presença`;
 }
 
 /**
