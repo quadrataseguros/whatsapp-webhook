@@ -197,10 +197,44 @@ async function enviarAgradecimentosTodos() {
 }
 
 /**
+ * Pergunta à Meta de qual número o WA_PHONE_NUMBER_ID configurado realmente
+ * dispara. O número de origem não se escolhe no código: ele é o que estiver
+ * amarrado a esse id na conta comercial. Conferir antes de um envio em massa
+ * evita agradecer a lista inteira pelo número errado.
+ */
+async function conferirRemetente() {
+  if (!WA_PHONE_NUMBER_ID || !WA_ACCESS_TOKEN)
+    return { ok: false, erro: "WA_PHONE_NUMBER_ID ou WA_ACCESS_TOKEN faltando" };
+
+  try {
+    const { data } = await axios.get(
+      `https://graph.facebook.com/${GRAPH_VERSION}/${WA_PHONE_NUMBER_ID}`,
+      {
+        params: { fields: "display_phone_number,verified_name,quality_rating,platform_type" },
+        headers: { Authorization: `Bearer ${WA_ACCESS_TOKEN}` },
+      }
+    );
+    return {
+      ok: true,
+      numero: data.display_phone_number || null,
+      nome: data.verified_name || null,
+      qualidade: data.quality_rating || null,
+      plataforma: data.platform_type || null,
+    };
+  } catch (error) {
+    const meta = error.response?.data?.error;
+    return { ok: false, erro: meta?.message || error.message };
+  }
+}
+
+/**
  * Participantes com o telefone já normalizado, para a tabela do painel.
  */
 async function listarParaPainel() {
-  const participantes = await buscarParticipantes();
+  const [participantes, remetente] = await Promise.all([
+    buscarParticipantes(),
+    conferirRemetente(),
+  ]);
   const vistos = new Set();
 
   const lista = participantes.map((p) => {
@@ -222,6 +256,7 @@ async function listarParaPainel() {
     total: lista.length,
     enviaveis: lista.filter((p) => p.numero && !p.repetido).length,
     modo: MODO,
+    remetente,
     template: MODO === "template" ? TEMPLATE_NOME : null,
     exemplo: criarMensagem("João Silva"),
     participantes: lista,
@@ -256,6 +291,7 @@ input{width:100%;max-width:280px;padding:10px;border:1px solid #d1d5db;border-ra
 .stat-l{color:#666;font-size:13px}
 .msg{background:#f0f0f0;padding:18px;border-radius:8px;border-left:4px solid var(--azul);white-space:pre-wrap;font-size:14px;line-height:1.5}
 .aviso{background:#FEF3C7;border-left:4px solid #D97706;padding:14px 18px;border-radius:8px;font-size:14px;line-height:1.5;margin-bottom:20px}
+.aviso.ok{background:#DCFCE7;border-left-color:#16A34A}
 table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:14px}
 th{background:var(--azul);color:#fff;padding:11px;text-align:left;font-weight:600}
 td{padding:11px;border-bottom:1px solid #eee}
@@ -333,6 +369,15 @@ function desenhar(d){
       box.appendChild(num); box.appendChild(lab); stats.appendChild(box);
     });
   painel.appendChild(stats);
+
+  const remetente = document.createElement('div');
+  remetente.className = d.remetente.ok ? 'aviso ok' : 'aviso';
+  remetente.textContent = d.remetente.ok
+    ? 'As mensagens saem de ' + (d.remetente.numero || 'número não informado')
+      + (d.remetente.nome ? ' (' + d.remetente.nome + ')' : '')
+      + '. Confira se é o número certo antes de disparar.'
+    : 'Não deu para confirmar de qual número as mensagens sairão: ' + d.remetente.erro;
+  painel.appendChild(remetente);
 
   const aviso = document.createElement('div');
   aviso.className = 'aviso';
@@ -453,6 +498,7 @@ $('s').addEventListener('keydown', (e) => { if (e.key === 'Enter') entrar(); });
 
 module.exports = {
   buscarParticipantes,
+  conferirRemetente,
   criarMensagem,
   enviarAgradecimento,
   enviarAgradecimentosTodos,
