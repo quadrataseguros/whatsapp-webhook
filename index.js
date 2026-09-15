@@ -1938,22 +1938,26 @@ app.get("/api/daily-stats", (req, res) => {
 
 // ─── Agradecimentos via WhatsApp ──────────────────────────────────────────────
 
-app.get("/agradecimentos", async (_req, res) => {
+// A página é só o esqueleto: a lista de participantes e o disparo ficam atrás
+// da senha do painel, porque são dados pessoais e um envio em massa.
+app.get("/agradecimentos", (_req, res) => {
+  res.type("html").send(agradecimentos.gerarPaginaPreview());
+});
+
+app.get("/api/agradecimentos/participantes", requireAdmin, async (_req, res) => {
   try {
-    const html = await agradecimentos.gerarPaginaPreview();
-    res.type("html").send(html);
+    res.json(await agradecimentos.listarParaPainel());
   } catch (err) {
-    console.error("Erro ao gerar página:", err);
+    console.error("Erro ao listar participantes:", err.message);
     res.status(500).json({ erro: err.message });
   }
 });
 
-app.post("/api/agradecimentos/enviar", async (req, res) => {
+app.post("/api/agradecimentos/enviar", requireAdmin, async (_req, res) => {
   try {
-    const resultados = await agradecimentos.enviarAgradecimentosTodos();
-    res.json(resultados);
+    res.json(await agradecimentos.enviarAgradecimentosTodos());
   } catch (err) {
-    console.error("Erro ao enviar agradecimentos:", err);
+    console.error("Erro ao enviar agradecimentos:", err.message);
     res.status(500).json({ erro: err.message });
   }
 });
