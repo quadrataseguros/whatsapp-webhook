@@ -35,10 +35,10 @@ const INTERVALO_MS = Number(process.env.AGRADECIMENTO_INTERVALO_MS) || 1000;
 
 const TEXTO_AGRADECIMENTO =
   "sou Fabricio da Quadrata Seguros e estou passando para te agradecer. O " +
-  "evento de ontem foi sensacional. Minha equipe e eu estamos a inteira " +
+  "encontro dessa semana foi sensacional. Minha equipe e eu estamos a inteira " +
   "disposição e em breve vamos agendar uma nova conversa com aprofundamento " +
-  "nas garantias de aluguéis, seguros de responsabilidade civil e operacional " +
-  "e consórcio. Conto com sua presença";
+  "nas garantias de aluguéis, seguros de responsabilidade e consórcio. " +
+  "Estamos ansiosos para um novo encontro, esperamos você lá!";
 
 const espera = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
