@@ -200,21 +200,50 @@ Explorer está resolvendo outro problema.
    ```
 
 7. Cole as duas variáveis que ele imprime no Railway e faça o redeploy.
-   Confira em `/admin/personas`: a persona sai de *NAO configurado* para
+   Confira em `/health`: a persona sai de *NAO configurado* para
    *configurado*.
 
-### O token vence em 60 dias
+### O token de 60 dias se renova sozinho
 
-Não há renovação automática. Quando vencer, o FabrícIO simplesmente para de
-responder direct — sem erro visível para o cliente. Renove antes, de qualquer
-máquina:
+O token vale 60 dias e, vencido, a persona para de responder direct **sem erro
+visível para o cliente** — que só acha que ninguém atendeu. Depender de alguém
+lembrar a cada dois meses é depender de esquecer.
+
+O servidor renova sozinho (`instagram-token.js`): uma verificação um minuto
+depois de subir e a cada 12 horas. Quando faltam 20 dias ou menos, ele chama a
+Meta e **guarda o token novo no SQLite** — a variável de ambiente ele não
+consegue reescrever. A margem de 20 dias existe para o servidor poder passar
+semanas fora do ar e ainda achar a janela.
+
+Quem manda, nessa ordem:
+
+1. **A variável de ambiente, se mudou.** Trocou `IG_ACCESS_TOKEN_FABRICIO` no
+   Railway (reautenticou, mudou de conta)? É mão humana: a cadeia recomeça
+   dali e o que estava no banco é ignorado.
+2. **O token do banco**, que é o mais novo da cadeia.
+
+Ou seja: o ambiente é a **semente**, não a verdade. Para saber qual está
+valendo, `/health` mostra o prazo de cada persona (mascarado, sem expor o
+token):
+
+```json
+"instagramToken": { "configurado": true, "renovadoAutomaticamente": true,
+                    "diasRestantes": 58, "ultimaRenovacao": "2026-09-17 09:12:04" }
+```
+
+O mesmo prazo aparece no log a cada boot.
+
+**Renovar à mão** continua possível — útil se o servidor ficou meses parado e
+o token venceu de vez, ou para renovar de outra máquina:
 
 ```bash
 node instagram-setup.js renovar <token-longo> --persona=fabricio
 ```
 
-O token renovado vale 60 dias contados do dia da renovação, e só pode ser
-renovado depois de 24h de vida. Todos os comandos aceitam
+A Meta só renova token com **mais de 24h de vida** e que ainda não venceu.
+Logo depois de uma troca manual o servidor tenta, leva a recusa e registra sem
+alarme — no ciclo seguinte já passa. Vencido de vez não há renovação: é gerar
+outro pelo login, como acima. Todos os comandos aceitam
 `--persona=fabricio|mariana`; o padrão é `fabricio`.
 
 ### O que a API faz e o que não faz
@@ -298,6 +327,12 @@ npm start
 Verificar saúde:
 ```bash
 curl http://localhost:3000/health
+```
+
+Testes (`teste-instagram-token.js` — a política de renovação do token do
+Instagram, em banco temporário e com a rede fingida):
+```bash
+npm test
 ```
 
 ---
