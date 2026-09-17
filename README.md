@@ -163,6 +163,70 @@ Chromium headless.
 
 ---
 
+## Ligar o Instagram de uma persona
+
+Sem `IG_USER_ID*` e `IG_ACCESS_TOKEN*` a persona atende só no WhatsApp: o
+direct do Instagram chega e ninguém responde.
+
+**O caminho é o Business Login for Instagram, não o Graph API Explorer.** O
+servidor fala com `graph.instagram.com` (ver `sendInstagramReply`), onde o
+token pertence à **conta do Instagram**. O Explorer entrega token de **Página
+do Facebook**, para `graph.facebook.com` — parece certo, valida em qualquer
+teste de Página e falha no endpoint de mensagens. Tutorial que manda usar o
+Explorer está resolvendo outro problema.
+
+1. **Conta profissional.** Instagram → Configurações → Tipo de conta:
+   *Business* ou *Creator*. Pessoal não tem API.
+2. **App na Meta.** `developers.facebook.com` → Criar app → adicione o produto
+   **Instagram** → *API setup with Instagram login*.
+3. **Permissões.** `instagram_business_basic`,
+   `instagram_business_manage_messages` (direct) e
+   `instagram_business_content_publish` (publicar post).
+4. **Vincule a conta** em *Business login settings* e gere o token pelo botão
+   **Generate token** — o login abre, você entra com o @ da persona e autoriza.
+5. **Descubra o id e valide**, na sua máquina (o token é segredo — não cole em
+   chat, não commite):
+
+   ```bash
+   node instagram-setup.js diagnostico <token>
+   ```
+
+6. **Troque pelo token de 60 dias.** O da etapa 4 vale **uma hora** — colocar
+   ele no Railway é ligar o canal por uma hora e não perceber quando cair. O
+   app secret está em *Configurações → Básico*.
+
+   ```bash
+   node instagram-setup.js trocar <token-curto> <app-secret>
+   ```
+
+7. Cole as duas variáveis que ele imprime no Railway e faça o redeploy.
+   Confira em `/admin/personas`: a persona sai de *NAO configurado* para
+   *configurado*.
+
+### O token vence em 60 dias
+
+Não há renovação automática. Quando vencer, o FabrícIO simplesmente para de
+responder direct — sem erro visível para o cliente. Renove antes, de qualquer
+máquina:
+
+```bash
+node instagram-setup.js renovar <token-longo> --persona=fabricio
+```
+
+O token renovado vale 60 dias contados do dia da renovação, e só pode ser
+renovado depois de 24h de vida. Todos os comandos aceitam
+`--persona=fabricio|mariana`; o padrão é `fabricio`.
+
+### O que a API faz e o que não faz
+
+| | |
+|---|---|
+| Responder direct | **Pronto** — já está no código, roteando pela conta que recebeu |
+| Publicar post e carrossel | **Dá** — dois passos (`/media`, depois `/media_publish`), ainda não implementado aqui |
+| Editar bio, nome, foto, categoria | **Não existe endpoint.** É à mão no app, com os textos de `marca/fabricio/perfil-instagram.html` |
+
+---
+
 ## Configurar a IA
 
 A IA roda direto pela API da Anthropic — nada para manter ligado, sem servidor
