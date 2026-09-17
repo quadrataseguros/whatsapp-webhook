@@ -36,6 +36,7 @@ saída de build, remontada a partir destes arquivos.
 | `perfil-instagram.html` | Nome, @, bio, link, categoria, destaques e a legenda do post fixado |
 | `lancamento/Main..Post5.dc.html` | Carrossel do post fixado (1080×1350) |
 | `lancamento/Dest1..Dest5.dc.html` | Capas dos destaques (1080×1920, recortadas em círculo) |
+| `conteudo/` | O que publicar: prompts adaptados e a pauta inicial |
 
 Os campos do perfil (nome, bio, link, foto, categoria) são preenchidos **à mão
 no app**: a API oficial da Meta expõe esses campos só para leitura. O que a API
