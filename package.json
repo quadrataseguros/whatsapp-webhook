@@ -4,7 +4,8 @@
   "description": "Webhook para WhatsApp Business API integrado ao Make",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node teste-instagram-token.js"
   },
   "engines": {
     "node": ">=20"

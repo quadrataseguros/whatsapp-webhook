@@ -7,6 +7,7 @@ const fs = require("fs");
 const db = require("./db");
 const ADMIN_HTML = require("./admin-page");
 const personas = require("./personas");
+const igToken = require("./instagram-token");
 
 const app = express();
 app.use(express.json());
@@ -73,6 +74,9 @@ app.get("/health", (_req, res) => {
       nome: p.nome,
       padrao: p.id === personas.padrao().id,
       instagram: p.igUserId && p.igAccessToken ? "configurado" : "NAO configurado",
+      // Validade do token do Instagram — é o que avisa antes de a persona
+      // emudecer no direct. Sem token no meio, só o prazo.
+      instagramToken: igToken.estado(p),
       link: p.id === personas.padrao().id ? "/fale" : `/fale/${p.id}`,
     })),
     // Diagnóstico do espelho de conversas (sem expor tokens/URLs). Se vier
@@ -698,7 +702,10 @@ async function handleWhatsAppMenu(msg, persona) {
 
 async function sendInstagramReply(to, text, persona) {
   const p = persona || personas.padrao();
-  if (!p.igAccessToken || !p.igUserId) {
+  // O token do ambiente é só a semente: o que vale agora pode ser uma
+  // renovação guardada no banco. Ver instagram-token.js.
+  const token = igToken.tokenDe(p);
+  if (!token || !p.igUserId) {
     console.log(`Instagram: ${p.nome} sem IG_USER_ID/IG_ACCESS_TOKEN configurado`);
     return;
   }
@@ -712,7 +719,7 @@ async function sendInstagramReply(to, text, persona) {
     },
     {
       headers: {
-        Authorization: `Bearer ${p.igAccessToken}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     }
@@ -1943,10 +1950,16 @@ app.listen(PORT, () => {
   console.log(`Modelo: ${MARIANA_MODEL}`);
   console.log(`Modo: ${anthropic ? "ia" : MAKE_WEBHOOK_URL ? "make" : "só menu"}`);
   for (const p of Object.values(personas.PERSONAS)) {
-    const ig = p.igUserId && p.igAccessToken ? "Instagram ok" : "sem Instagram";
+    const t = igToken.estado(p);
+    const ig = t.configurado
+      ? `Instagram ok${t.diasRestantes !== null ? ` (token vence em ${t.diasRestantes} dias)` : ""}`
+      : "sem Instagram";
     const link = p.id === personas.padrao().id ? "/fale" : `/fale/${p.id}`;
     console.log(`Persona: ${p.nome} — ${link} — ${ig}`);
   }
+  // Renovação do token do Instagram: sem isso a persona emudece no direct a
+  // cada 60 dias.
+  igToken.iniciar();
   console.log(`>>> VERSAO: ${SERVER_VERSION} <<<`);
   console.log(`>>> Admin: http://localhost:${PORT}/admin.html`);
   console.log(`>>> Senha admin: ${ADMIN_PASSWORD === "admin123" ? "admin123 (padrao)" : "(custom via .env)"}`);
