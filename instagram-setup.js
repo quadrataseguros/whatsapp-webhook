@@ -142,11 +142,14 @@ const pegar = (url, token) =>
 // Responde as três perguntas que importam antes de salvar qualquer coisa:
 // o token é válido, é da conta certa, e dá para publicar com ele.
 async function diagnostico(token) {
+  let id = flags.id || null;
   if (!token) {
-    try {
-      token = fs.readFileSync(ARQUIVO_CURTO, "utf8").trim();
-      if (token) console.log(`\n  Token lido de ${ARQUIVO_CURTO}`);
-    } catch (_) {}
+    const guardado = lerTokenCurto();
+    if (guardado) {
+      token = guardado.token;
+      id = id || guardado.id;
+      console.log(`\n  Token lido de ${ARQUIVO_CURTO}`);
+    }
   }
   if (!token) {
     console.error("\nSem token. Passe um, ou rode `codigo` primeiro.\n");
@@ -155,10 +158,20 @@ async function diagnostico(token) {
   }
   console.log("\nConsultando a conta…\n");
 
-  const eu = await tentarFormas("/me", {
-    params: new URLSearchParams({ fields: "id,user_id,username,name,account_type" }),
-    token,
+  // "me" é atalho, e atalho pode não existir. O servidor sempre usa o caminho
+  // numérico — é o que se sabe que esta API aceita, porque é assim que a
+  // MarIAna responde direct. Então se /me não for reconhecido, tenta o id.
+  const campos = new URLSearchParams({
+    fields: "id,user_id,username,name,account_type",
   });
+  let eu;
+  try {
+    eu = await tentarFormas("/me", { params: campos, token });
+  } catch (err) {
+    if (!id) throw err;
+    console.log(`  (/me não foi reconhecido — tentando pelo id ${id})`);
+    eu = await tentarFormas(`/${id}`, { params: campos, token });
+  }
 
   console.log(`  Conta      @${eu.username}`);
   if (eu.name) console.log(`  Nome       ${eu.name}`);
@@ -213,10 +226,11 @@ async function diagnostico(token) {
 // --- troca pelo token de 60 dias ------------------------------------------
 async function trocar(curto, segredo) {
   if (!curto) {
-    try {
-      curto = fs.readFileSync(ARQUIVO_CURTO, "utf8").trim();
-      if (curto) console.log(`\n  Token curto lido de ${ARQUIVO_CURTO}`);
-    } catch (_) {}
+    const guardado = lerTokenCurto();
+    if (guardado) {
+      curto = guardado.token;
+      console.log(`\n  Token curto lido de ${ARQUIVO_CURTO}`);
+    }
   }
   if (!segredo) {
     const ficha = lerFicha();
@@ -347,6 +361,24 @@ const ARQUIVO_CURTO = path.join(__dirname, "token-curto.txt");
 // Formato: uma coisa por linha, "rotulo = valor". Linha começando com # é
 // comentário. Uma linha que seja só a URL do callback também é entendida,
 // para quem colar e não reparar no rótulo.
+// Lê o token curto guardado. Aceita o formato novo (JSON com id) e o antigo
+// (só o token), para não invalidar o que já estava no disco.
+function lerTokenCurto() {
+  let bruto;
+  try {
+    bruto = fs.readFileSync(ARQUIVO_CURTO, "utf8").trim();
+  } catch {
+    return null;
+  }
+  if (!bruto) return null;
+  try {
+    const j = JSON.parse(bruto);
+    return { token: j.token, id: j.id || null };
+  } catch {
+    return { token: bruto, id: null };
+  }
+}
+
 function lerFicha() {
   let bruto;
   try {
@@ -592,7 +624,13 @@ async function codigo(code, appId, segredo, retorno) {
   // aqui é o que permite tentar de novo a etapa seguinte sem outra volta no
   // navegador — e é justamente a etapa que mais deu trabalho.
   try {
-    fs.writeFileSync(ARQUIVO_CURTO, dados.access_token, "utf8");
+    // Guarda o id junto: sem ele não dá para consultar a conta por caminho
+    // numérico, que é como o servidor fala com esta API.
+    fs.writeFileSync(
+      ARQUIVO_CURTO,
+      JSON.stringify({ token: dados.access_token, id: dados.user_id || "" }),
+      "utf8"
+    );
   } catch (_) {}
 
   // Confirmar de quem é o token ANTES da troca: se a troca falhar, pelo menos
