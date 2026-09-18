@@ -8,6 +8,7 @@ node_modules/
 # Chave secreta do app do Instagram, quando passada por arquivo ao
 # instagram-setup.js em vez de digitada (ver README)
 segredo.txt
+instagram.txt
 
 # Logs
 *.log
