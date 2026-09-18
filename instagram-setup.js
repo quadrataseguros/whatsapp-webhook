@@ -134,6 +134,41 @@ async function diagnostico(token) {
   );
 }
 
+// A Meta documenta GET para trocar e renovar token, mas o endpoint às vezes
+// responde "Unsupported request - method type: get". Em vez de apostar num
+// método, tenta o documentado e cai para POST quando a recusa é essa — e só
+// essa: qualquer outro erro sobe como veio, sem mascarar o problema real.
+async function chamarComFallback(url, params) {
+  try {
+    return await pegar(`${url}?${params.toString()}`);
+  } catch (err) {
+    if (!/Unsupported request|method type/i.test(err.message)) throw err;
+    console.log("  (o endpoint recusou GET — repetindo como POST)");
+    let r;
+    try {
+      r = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params,
+      });
+    } catch (e) {
+      throw new Error(`rede: não cheguei em ${url} (${e.message})`);
+    }
+    const texto = await r.text();
+    let corpo;
+    try {
+      corpo = JSON.parse(texto);
+    } catch {
+      throw new Error(`${r.status}: resposta não-JSON — ${texto.slice(0, 200)}`);
+    }
+    if (!r.ok || corpo.error) {
+      const e = corpo.error || {};
+      throw new Error(`${r.status} ${e.type || "erro"}: ${e.message || texto.slice(0, 200)}`);
+    }
+    return corpo;
+  }
+}
+
 // --- troca pelo token de 60 dias ------------------------------------------
 async function trocar(curto, segredo) {
   if (!curto) {
@@ -151,10 +186,13 @@ async function trocar(curto, segredo) {
     return;
   }
   console.log("\nTrocando pelo token de 60 dias…\n");
-  const r = await pegar(
-    `${API}/access_token?grant_type=ig_exchange_token` +
-      `&client_secret=${encodeURIComponent(segredo)}` +
-      `&access_token=${encodeURIComponent(curto)}`
+  const r = await chamarComFallback(
+    `${API}/access_token`,
+    new URLSearchParams({
+      grant_type: "ig_exchange_token",
+      client_secret: segredo,
+      access_token: curto,
+    })
   );
   const eu = await pegar(
     `${API}/${VERSAO}/me?fields=id,user_id,username&access_token=${r.access_token}`
@@ -186,9 +224,9 @@ async function renovar(longo) {
     return;
   }
   console.log("\nRenovando…\n");
-  const r = await pegar(
-    `${API}/refresh_access_token?grant_type=ig_refresh_token` +
-      `&access_token=${encodeURIComponent(longo)}`
+  const r = await chamarComFallback(
+    `${API}/refresh_access_token`,
+    new URLSearchParams({ grant_type: "ig_refresh_token", access_token: longo })
   );
   console.log(`  Validade   ${dias(r.expires_in)} dias\n`);
   console.log("Atualize no Railway:\n");
