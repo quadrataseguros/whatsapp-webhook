@@ -135,6 +135,38 @@ const responder = (status, corpo) => {
   const r12 = await ig.renovarPersona(F);
   ok(r12.renovado === false && r12.erro !== true, "sobrevive e tenta de novo depois");
 
+  console.log("\n13. A Meta recusa GET e aceita POST");
+  gravar({ persona: "fabricio", token: "TOKEN_PRA_RENOVAR", origem_env: "ENV_TOKEN_ORIGINAL",
+           expira_em: daquiA(5), updated_at: horasAtras(48) });
+  const metodos = [];
+  global.fetch = async (url, opcoes) => {
+    metodos.push(opcoes?.method || "GET");
+    if (!opcoes || opcoes.method !== "POST") {
+      return { ok: false, status: 400, text: async () => JSON.stringify({
+        error: { message: "Unsupported request - method type: get", code: 100 } }) };
+    }
+    return { ok: true, status: 200, text: async () => JSON.stringify({
+      access_token: "TOKEN_VIA_POST", token_type: "bearer", expires_in: 5184000 }) };
+  };
+  const r13 = await ig.renovarPersona(F);
+  ok(r13.renovado === true, "renova mesmo assim, caindo para POST");
+  ok(metodos.join(">") === "GET>POST", `tenta GET e depois POST (${metodos.join(">")})`);
+  ok(ig.tokenDe(F) === "TOKEN_VIA_POST", "guarda o token que veio do POST");
+
+  console.log("\n14. Recusa que não é de método não vira POST");
+  // O 13 acabou de renovar: sem voltar o relógio, o 14 nem chegaria a chamar.
+  gravar({ persona: "fabricio", token: "TOKEN_PRA_RENOVAR", origem_env: "ENV_TOKEN_ORIGINAL",
+           expira_em: daquiA(5), updated_at: horasAtras(48) });
+  global.fetch = async (url, opcoes) => ({
+    ok: false, status: 400,
+    text: async () => JSON.stringify({ error: { message: "Invalid OAuth access token", code: 190 } }),
+  });
+  const chamadas = [];
+  const originalFetch = global.fetch;
+  global.fetch = async (u, o) => { chamadas.push(o?.method || "GET"); return originalFetch(u, o); };
+  const r14 = await ig.renovarPersona(F);
+  ok(r14.renovado === false && chamadas.length === 1, "tenta uma vez só e reporta o erro de verdade");
+
   console.log(falhas ? `\n${falhas} falha(s)\n` : "\nTudo passou\n");
   process.exit(falhas ? 1 : 0);
 })();

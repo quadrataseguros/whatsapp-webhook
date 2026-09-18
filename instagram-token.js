@@ -84,13 +84,27 @@ function estado(persona) {
   };
 }
 
-async function chamarRenovacao(token) {
+// A Meta documenta GET aqui, mas o endpoint às vezes responde "Unsupported
+// request - method type: get" — visto na prática ao ligar a conta do FabrícIO.
+// Se a renovação automática apostasse só no método documentado, o token
+// venceria em silêncio no dia em que a Meta mudasse de ideia.
+async function chamarRenovacao(token, metodo = "GET") {
+  const params = new URLSearchParams({
+    grant_type: "ig_refresh_token",
+    access_token: token,
+  });
+  const url = `${API}/refresh_access_token`;
+
   let r;
   try {
-    r = await fetch(
-      `${API}/refresh_access_token?grant_type=ig_refresh_token` +
-        `&access_token=${encodeURIComponent(token)}`
-    );
+    r =
+      metodo === "GET"
+        ? await fetch(`${url}?${params.toString()}`)
+        : await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: params,
+          });
   } catch (err) {
     // DNS, socket, Meta fora do ar — não chegou a haver resposta.
     throw new Error(`rede: não cheguei em ${API} (${err.message})`);
@@ -104,7 +118,11 @@ async function chamarRenovacao(token) {
   }
   if (!r.ok || corpo.error) {
     const e = corpo.error || {};
-    throw new Error(`${e.message || texto} (código ${e.code ?? r.status})`);
+    const msg = e.message || texto;
+    if (metodo === "GET" && /Unsupported request|method type/i.test(msg)) {
+      return chamarRenovacao(token, "POST");
+    }
+    throw new Error(`${msg} (código ${e.code ?? r.status})`);
   }
   return corpo; // { access_token, token_type, expires_in }
 }
