@@ -9,6 +9,7 @@ node_modules/
 # instagram-setup.js em vez de digitada (ver README)
 segredo.txt
 instagram.txt
+token-curto.txt
 
 # Logs
 *.log

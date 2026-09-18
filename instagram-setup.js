@@ -134,46 +134,85 @@ async function diagnostico(token) {
   );
 }
 
-// A Meta documenta GET para trocar e renovar token, mas o endpoint às vezes
-// responde "Unsupported request - method type: get". Em vez de apostar num
-// método, tenta o documentado e cai para POST quando a recusa é essa — e só
-// essa: qualquer outro erro sobe como veio, sem mascarar o problema real.
-async function chamarComFallback(url, params) {
-  try {
-    return await pegar(`${url}?${params.toString()}`);
-  } catch (err) {
-    if (!/Unsupported request|method type/i.test(err.message)) throw err;
-    console.log("  (o endpoint recusou GET — repetindo como POST)");
-    let r;
-    try {
-      r = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params,
-      });
-    } catch (e) {
-      throw new Error(`rede: não cheguei em ${url} (${e.message})`);
+// "Unsupported request" é o que a Meta responde quando a ROTA não existe — o
+// método é só o que ela cita na mensagem. A documentação diz GET em
+// graph.instagram.com/access_token, e essa rota recusou GET e POST na conta
+// do FabrícIO. Em vez de apostar numa variante por vez, a cada tentativa
+// custando um código novo e uma volta no navegador, tenta as conhecidas em
+// sequência e diz qual funcionou.
+async function chamarVariantes(caminho, params, { verboso = true } = {}) {
+  const bases = [API, `${API}/${VERSAO}`];
+  const tentativas = [];
+  for (const base of bases) {
+    for (const metodo of ["GET", "POST"]) {
+      tentativas.push({ url: `${base}${caminho}`, metodo });
     }
-    const texto = await r.text();
-    let corpo;
-    try {
-      corpo = JSON.parse(texto);
-    } catch {
-      throw new Error(`${r.status}: resposta não-JSON — ${texto.slice(0, 200)}`);
-    }
-    if (!r.ok || corpo.error) {
-      const e = corpo.error || {};
-      throw new Error(`${r.status} ${e.type || "erro"}: ${e.message || texto.slice(0, 200)}`);
-    }
-    return corpo;
   }
+
+  const erros = [];
+  for (const { url, metodo } of tentativas) {
+    try {
+      const corpo =
+        metodo === "GET"
+          ? await pegar(`${url}?${params.toString()}`)
+          : await postar(url, params);
+      if (verboso && erros.length) console.log(`  (funcionou em ${metodo} ${url})`);
+      return corpo;
+    } catch (err) {
+      // Rota ou método errados: vale tentar a próxima forma. Qualquer outro
+      // erro é resposta de verdade da Meta — credencial inválida, token
+      // vencido — e insistir só esconderia o motivo.
+      if (!/Unsupported request|method type|Unknown path|does not exist/i.test(err.message)) {
+        throw err;
+      }
+      erros.push(`${metodo} ${url}: ${err.message}`);
+    }
+  }
+  throw new Error(
+    `nenhuma rota conhecida aceitou a chamada:\n    ${erros.join("\n    ")}`
+  );
+}
+
+async function postar(url, params) {
+  let r;
+  try {
+    r = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: params,
+    });
+  } catch (e) {
+    throw new Error(`rede: não cheguei em ${url} (${e.message})`);
+  }
+  const texto = await r.text();
+  let corpo;
+  try {
+    corpo = JSON.parse(texto);
+  } catch {
+    throw new Error(`${r.status}: resposta não-JSON — ${texto.slice(0, 200)}`);
+  }
+  if (!r.ok || corpo.error) {
+    const e = corpo.error || {};
+    throw new Error(`${r.status} ${e.type || "erro"}: ${e.message || texto.slice(0, 200)}`);
+  }
+  return corpo;
 }
 
 // --- troca pelo token de 60 dias ------------------------------------------
 async function trocar(curto, segredo) {
   if (!curto) {
+    try {
+      curto = fs.readFileSync(ARQUIVO_CURTO, "utf8").trim();
+      if (curto) console.log(`\n  Token curto lido de ${ARQUIVO_CURTO}`);
+    } catch (_) {}
+  }
+  if (!segredo) {
+    const ficha = lerFicha();
+    segredo = (ficha && ficha.chave) || segredoDoArquivo() || null;
+  }
+  if (!curto) {
     curto = await perguntar("Token curto: ", { oculto: true });
-    segredo = await perguntar("Chave secreta do app do Instagram: ", { oculto: true });
+    if (!segredo) segredo = await perguntar("Chave secreta do app do Instagram: ", { oculto: true });
     fecharPerguntas();
   }
   if (!curto || !segredo) {
@@ -186,8 +225,8 @@ async function trocar(curto, segredo) {
     return;
   }
   console.log("\nTrocando pelo token de 60 dias…\n");
-  const r = await chamarComFallback(
-    `${API}/access_token`,
+  const r = await chamarVariantes(
+    "/access_token",
     new URLSearchParams({
       grant_type: "ig_exchange_token",
       client_secret: segredo,
@@ -224,8 +263,8 @@ async function renovar(longo) {
     return;
   }
   console.log("\nRenovando…\n");
-  const r = await chamarComFallback(
-    `${API}/refresh_access_token`,
+  const r = await chamarVariantes(
+    "/refresh_access_token",
     new URLSearchParams({ grant_type: "ig_refresh_token", access_token: longo })
   );
   console.log(`  Validade   ${dias(r.expires_in)} dias\n`);
@@ -276,6 +315,7 @@ function fecharPerguntas() {
 // Um arquivo resolve os dois — escrever no Bloco de Notas todo mundo sabe.
 const ARQUIVO_SEGREDO = path.join(__dirname, "segredo.txt");
 const FICHA = path.join(__dirname, "instagram.txt");
+const ARQUIVO_CURTO = path.join(__dirname, "token-curto.txt");
 
 // Ficha preenchida no Bloco de Notas. Existe porque colar no terminal do
 // Windows falha de formas variadas — e digitar um código de 200 caracteres à
@@ -517,9 +557,39 @@ async function codigo(code, appId, segredo, retorno) {
     );
   }
 
-  console.log(`  Token curto obtido — conta ${dados.user_id}\n`);
+  // O token curto vale uma hora e o código que o gerou já morreu. Guardar
+  // aqui é o que permite tentar de novo a etapa seguinte sem outra volta no
+  // navegador — e é justamente a etapa que mais deu trabalho.
+  try {
+    fs.writeFileSync(ARQUIVO_CURTO, dados.access_token, "utf8");
+  } catch (_) {}
+
+  // Confirmar de quem é o token ANTES da troca: se a troca falhar, pelo menos
+  // já se sabe se a conta é a certa — que é a pergunta que mais importa.
+  try {
+    const eu = await pegar(
+      `${API}/${VERSAO}/me?fields=id,user_id,username,account_type&access_token=${dados.access_token}`
+    );
+    console.log(`  Token curto obtido — @${eu.username} (${eu.account_type || "tipo não informado"})`);
+    console.log(`  ID da conta ${eu.user_id || "(não veio)"} · app-scoped ${eu.id}\n`);
+  } catch (err) {
+    console.log(`  Token curto obtido — conta ${dados.user_id}`);
+    console.log(`  (não consegui confirmar o @: ${err.message})\n`);
+  }
+
   console.log("Emendando na troca pelo token de 60 dias…");
-  await trocar(dados.access_token, segredo);
+  try {
+    await trocar(dados.access_token, segredo);
+  } catch (err) {
+    console.error(`\nFalhou na troca: ${err.message}\n`);
+    console.error(
+      "O token curto FOI obtido e está guardado em\n" +
+        `  ${ARQUIVO_CURTO}\n\n` +
+        "Ele vale uma hora. Para tentar a troca de novo sem passar pelo\n" +
+        "navegador outra vez:\n\n  node instagram-setup.js trocar\n"
+    );
+    process.exitCode = 1;
+  }
 }
 
 const ajuda = `
