@@ -25,6 +25,8 @@
 // para as variáveis do Railway, nunca para dentro do repositório.
 // ---------------------------------------------------------------------------
 
+const readline = require("readline");
+
 const API = "https://graph.instagram.com";
 const VERSAO = "v21.0";
 
@@ -132,10 +134,16 @@ async function diagnostico(token) {
 
 // --- troca pelo token de 60 dias ------------------------------------------
 async function trocar(curto, segredo) {
-  if (!segredo) {
+  if (!curto) {
+    curto = await perguntar("Token curto (não aparece na tela): ", { oculto: true });
+    segredo = await perguntar("Chave secreta do app do Instagram: ", { oculto: true });
+    fecharPerguntas();
+  }
+  if (!curto || !segredo) {
     console.error(
-      "Falta o app secret. Ele está em developers.facebook.com → seu app →\n" +
-        "Configurações → Básico → Chave Secreta do App (Instagram App Secret).\n"
+      "\nFalta o token ou o app secret. Rode sem argumento nenhum que eu\n" +
+        "pergunto, e aí nada disso fica no histórico do terminal:\n\n" +
+        "  node instagram-setup.js trocar\n"
     );
     process.exitCode = 1;
     return;
@@ -166,6 +174,15 @@ async function trocar(curto, segredo) {
 // Vale para token com mais de 24h de vida e que ainda não venceu. Renovado,
 // volta a valer 60 dias contados de hoje.
 async function renovar(longo) {
+  if (!longo) {
+    longo = await perguntar("Token de 60 dias (não aparece na tela): ", { oculto: true });
+    fecharPerguntas();
+  }
+  if (!longo) {
+    console.error("\nSem token não há o que renovar.\n");
+    process.exitCode = 1;
+    return;
+  }
   console.log("\nRenovando…\n");
   const r = await pegar(
     `${API}/refresh_access_token?grant_type=ig_refresh_token` +
@@ -174,6 +191,43 @@ async function renovar(longo) {
   console.log(`  Validade   ${dias(r.expires_in)} dias\n`);
   console.log("Atualize no Railway:\n");
   console.log(`  ${VARS.token}=${r.access_token}\n`);
+}
+
+// --- perguntar em vez de receber por argumento -------------------------------
+// Segredo em linha de comando fica no histórico do terminal, aparece em print e
+// acaba colado em conversa. E quatro argumentos posicionais trocam de lugar
+// sozinhos: a Meta responde a qualquer engano com o mesmo "bad request", que
+// não diz qual campo está errado. Perguntar um de cada vez resolve os dois.
+// Uma interface só para todas as perguntas: uma por pergunta funciona no
+// terminal e falha quando a entrada vem de arquivo ou pipe — a primeira
+// consome o buffer inteiro e as seguintes não veem nada.
+let leitor = null;
+function perguntar(rotulo, { oculto = false } = {}) {
+  leitor =
+    leitor || readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    const escrever = leitor._writeToOutput.bind(leitor);
+    if (oculto) leitor._writeToOutput = (t) => (t.includes(rotulo) ? escrever(t) : undefined);
+    leitor.question(rotulo, (resposta) => {
+      if (oculto) {
+        leitor._writeToOutput = escrever;
+        process.stdout.write("\n");
+      }
+      resolve(String(resposta).trim());
+    });
+  });
+}
+function fecharPerguntas() {
+  if (leitor) leitor.close();
+  leitor = null;
+}
+
+// Aceita o código solto OU a URL inteira da barra de endereços — extrair o
+// pedaço certo de uma URL é trabalho de máquina, não de gente.
+function extrairCodigo(entrada) {
+  const t = String(entrada).trim().replace(/#_$/, "");
+  const m = t.match(/[?&]code=([^&#\s]+)/);
+  return m ? decodeURIComponent(m[1]) : t;
 }
 
 // --- login pela URL de autorização ------------------------------------------
@@ -228,18 +282,33 @@ function autorizar(appId, retorno) {
 // código vale uma vez só e expira rápido, então não há motivo para parar no
 // meio.
 async function codigo(code, appId, segredo, retorno) {
+  // Sem argumentos, pergunta. É o modo recomendado: o secret não fica no
+  // histórico e não há ordem para errar.
+  if (!code) {
+    console.log(
+      "\nCole a URL INTEIRA da barra de endereços (aquela que deu erro 404,\n" +
+        "com o code= no fim) — eu tiro o código dela:\n"
+    );
+    code = await perguntar("URL ou código: ");
+    if (!appId) appId = await perguntar("ID do app do Instagram: ");
+    if (!retorno) retorno = await perguntar("URL de retorno cadastrada no app: ");
+    if (!segredo) {
+      console.log("\nA chave secreta não vai aparecer na tela enquanto você cola.");
+      segredo = await perguntar("Chave secreta do app do Instagram: ", { oculto: true });
+    }
+    fecharPerguntas();
+  }
   if (!code || !appId || !segredo || !retorno) {
     console.error(
-      "\n  node instagram-setup.js codigo <code> <ig-app-id> <app-secret> <url-de-retorno>\n\n" +
-        "A URL de retorno tem que ser IDÊNTICA à usada em `autorizar` — a Meta\n" +
-        "compara caractere a caractere, barra final inclusive.\n"
+      "\nFaltou alguma coisa. Rode sem argumento nenhum que eu pergunto:\n\n" +
+        "  node instagram-setup.js codigo\n"
     );
     process.exitCode = 1;
     return;
   }
-  // O Instagram devolve o código com "#_" grudado no fim. Some sozinho aqui
-  // para ninguém perder tempo com um "código inválido" que é só lixo colado.
-  const limpo = String(code).replace(/#_$/, "").trim();
+  // O Instagram devolve o código com "#_" grudado no fim, e quem cola costuma
+  // trazer a URL inteira junto. As duas coisas se resolvem aqui.
+  const limpo = extrairCodigo(code);
 
   // Os quatro argumentos são fáceis de trocar de lugar, e a Meta responde a
   // todos os enganos com o mesmo "Invalid authorization code", que não diz
@@ -308,13 +377,17 @@ async function codigo(code, appId, segredo, retorno) {
 const ajuda = `
 instagram-setup.js — token do Instagram das personas
 
-  node instagram-setup.js diagnostico <token>                  de quem é esse token
-  node instagram-setup.js trocar <token-curto> <app-secret>    1 hora → 60 dias
-  node instagram-setup.js renovar <token-longo>                mais 60 dias
+  node instagram-setup.js diagnostico <token>    de quem é esse token
+  node instagram-setup.js codigo                 login do Instagram → token de 60 dias
+  node instagram-setup.js trocar                 token de 1 hora → 60 dias
+  node instagram-setup.js renovar                mais 60 dias
 
-  Quando o "Adicionar conta" do painel não coopera:
+  Os três últimos perguntam o que precisam, um de cada vez, e não mostram a
+  chave secreta na tela. Rode sem argumento: assim nada sensível fica no
+  histórico do terminal nem aparece em print.
+
   node instagram-setup.js autorizar <ig-app-id> <url-de-retorno>
-  node instagram-setup.js codigo <code> <ig-app-id> <app-secret> <url-de-retorno>
+        monta a URL de autorização, para quando o botão do painel não coopera
 
   --persona=fabricio | mariana   (padrão: fabricio)
 `;
@@ -323,8 +396,8 @@ instagram-setup.js — token do Instagram das personas
   const [comando, a, b, c, d] = args;
   try {
     if (comando === "diagnostico" && a) await diagnostico(a);
-    else if (comando === "trocar" && a) await trocar(a, b);
-    else if (comando === "renovar" && a) await renovar(a);
+    else if (comando === "trocar") await trocar(a, b);
+    else if (comando === "renovar") await renovar(a);
     else if (comando === "autorizar") autorizar(a, b);
     else if (comando === "codigo") await codigo(a, b, c, d);
     else console.log(ajuda);
