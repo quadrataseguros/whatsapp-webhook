@@ -26,6 +26,8 @@
 // ---------------------------------------------------------------------------
 
 const readline = require("readline");
+const fs = require("fs");
+const path = require("path");
 
 const API = "https://graph.instagram.com";
 const VERSAO = "v21.0";
@@ -135,7 +137,7 @@ async function diagnostico(token) {
 // --- troca pelo token de 60 dias ------------------------------------------
 async function trocar(curto, segredo) {
   if (!curto) {
-    curto = await perguntar("Token curto (não aparece na tela): ", { oculto: true });
+    curto = await perguntar("Token curto: ", { oculto: true });
     segredo = await perguntar("Chave secreta do app do Instagram: ", { oculto: true });
     fecharPerguntas();
   }
@@ -207,7 +209,16 @@ function perguntar(rotulo, { oculto = false } = {}) {
     leitor || readline.createInterface({ input: process.stdin, output: process.stdout });
   return new Promise((resolve) => {
     const escrever = leitor._writeToOutput.bind(leitor);
-    if (oculto) leitor._writeToOutput = (t) => (t.includes(rotulo) ? escrever(t) : undefined);
+    // Esconder por completo o que se digita faz a colagem parecer que não
+    // funcionou — a tela não muda e a pessoa desiste. Um asterisco por
+    // caractere mostra que entrou, sem mostrar o quê.
+    if (oculto) {
+      leitor._writeToOutput = () => {
+        readline.clearLine(process.stdout, 0);
+        readline.cursorTo(process.stdout, 0);
+        process.stdout.write(rotulo + "*".repeat(leitor.line.length));
+      };
+    }
     leitor.question(rotulo, (resposta) => {
       if (oculto) {
         leitor._writeToOutput = escrever;
@@ -220,6 +231,33 @@ function perguntar(rotulo, { oculto = false } = {}) {
 function fecharPerguntas() {
   if (leitor) leitor.close();
   leitor = null;
+}
+
+// Colar no terminal do Windows é fonte de tropeço: no campo sem eco parece que
+// nada aconteceu, e num campo com eco o segredo fica na tela e no histórico.
+// Um arquivo resolve os dois — escrever no Bloco de Notas todo mundo sabe.
+const ARQUIVO_SEGREDO = path.join(__dirname, "segredo.txt");
+function segredoDoArquivo() {
+  try {
+    const bruto = fs.readFileSync(ARQUIVO_SEGREDO, "utf8").trim();
+    if (!bruto) return null;
+    console.log(`\n  Chave secreta lida de ${ARQUIVO_SEGREDO}`);
+    return bruto;
+  } catch {
+    return null;
+  }
+}
+
+// Pede a chave: arquivo primeiro, pergunta depois.
+async function pedirSegredo() {
+  const doArquivo = segredoDoArquivo();
+  if (doArquivo) return doArquivo;
+  console.log(
+    "\nA chave secreta aparece como *** enquanto você cola.\n" +
+      "Se colar no terminal não funcionar: abra o Bloco de Notas, cole a chave,\n" +
+      `salve como ${ARQUIVO_SEGREDO} e rode este comando de novo.\n`
+  );
+  return perguntar("Chave secreta do app do Instagram: ", { oculto: true });
 }
 
 // Aceita o código solto OU a URL inteira da barra de endereços — extrair o
@@ -292,10 +330,7 @@ async function codigo(code, appId, segredo, retorno) {
     code = await perguntar("URL ou código: ");
     if (!appId) appId = await perguntar("ID do app do Instagram: ");
     if (!retorno) retorno = await perguntar("URL de retorno cadastrada no app: ");
-    if (!segredo) {
-      console.log("\nA chave secreta não vai aparecer na tela enquanto você cola.");
-      segredo = await perguntar("Chave secreta do app do Instagram: ", { oculto: true });
-    }
+    if (!segredo) segredo = await pedirSegredo();
     fecharPerguntas();
   }
   if (!code || !appId || !segredo || !retorno) {

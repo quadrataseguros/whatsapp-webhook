@@ -5,6 +5,10 @@ node_modules/
 .env
 .env.local
 
+# Chave secreta do app do Instagram, quando passada por arquivo ao
+# instagram-setup.js em vez de digitada (ver README)
+segredo.txt
+
 # Logs
 *.log
 npm-debug.log*

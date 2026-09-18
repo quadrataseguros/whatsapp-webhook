@@ -208,7 +208,10 @@ Explorer está resolvendo outro problema.
    digita, emenda na troca de 60 dias e imprime as duas variáveis prontas.
 
    Nenhum segredo vai em linha de comando: ali ele ficaria no histórico do
-   terminal e apareceria em qualquer print.
+   terminal e apareceria em qualquer print. Se colar a chave no terminal não
+   funcionar (acontece no Windows), escreva-a no Bloco de Notas e salve como
+   `segredo.txt` na raiz do projeto — o comando lê de lá sozinho. O arquivo
+   está no `.gitignore`; apague depois de usar.
 
 6. **Troque pelo token de 60 dias.** O da etapa 4 vale **uma hora** — colocar
    ele no Railway é ligar o canal por uma hora e não perceber quando cair. O
