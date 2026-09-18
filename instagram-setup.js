@@ -201,7 +201,12 @@ function autorizar(appId, retorno) {
   }
   const url =
     "https://www.instagram.com/oauth/authorize" +
-    `?client_id=${encodeURIComponent(appId)}` +
+    // force_reauth pede a senha de novo em vez de aproveitar a sessão aberta.
+    // Sem isso o Instagram autoriza a conta que já está logada no navegador,
+    // sem perguntar — e sai um token válido, da conta errada, que só se
+    // descobre quando o direct da outra persona não é respondido.
+    "?force_reauth=true" +
+    `&client_id=${encodeURIComponent(appId)}` +
     `&redirect_uri=${encodeURIComponent(retorno)}` +
     `&scope=${encodeURIComponent(ESCOPOS)}` +
     "&response_type=code";
