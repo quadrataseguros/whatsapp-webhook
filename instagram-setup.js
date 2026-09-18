@@ -137,7 +137,8 @@ async function trocar(curto, segredo) {
       "Falta o app secret. Ele está em developers.facebook.com → seu app →\n" +
         "Configurações → Básico → Chave Secreta do App (Instagram App Secret).\n"
     );
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
   console.log("\nTrocando pelo token de 60 dias…\n");
   const r = await pegar(
@@ -197,7 +198,8 @@ function autorizar(appId, retorno) {
         "O ID do app do Instagram está em Configuração da API com login do\n" +
         "Instagram, no campo 'ID do app do Instagram'. NÃO é o ID do app da Meta.\n"
     );
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
   const url =
     "https://www.instagram.com/oauth/authorize" +
@@ -232,11 +234,38 @@ async function codigo(code, appId, segredo, retorno) {
         "A URL de retorno tem que ser IDÊNTICA à usada em `autorizar` — a Meta\n" +
         "compara caractere a caractere, barra final inclusive.\n"
     );
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
   // O Instagram devolve o código com "#_" grudado no fim. Some sozinho aqui
   // para ninguém perder tempo com um "código inválido" que é só lixo colado.
   const limpo = String(code).replace(/#_$/, "").trim();
+
+  // Os quatro argumentos são fáceis de trocar de lugar, e a Meta responde a
+  // todos os enganos com o mesmo "Invalid authorization code", que não diz
+  // nada. Estes dois erros têm cara própria e dá para reconhecer antes de
+  // mandar — inclusive o pior deles, que é o secret ir no lugar do código e
+  // acabar em histórico de terminal, print ou conversa.
+  if (/^[0-9a-f]{32}$/i.test(limpo)) {
+    console.error(
+      "\nIsso não é um código de autorização — são 32 caracteres hexadecimais,\n" +
+        "a cara de um app secret. Confira a ordem:\n\n" +
+        "  codigo <CÓDIGO> <APP-ID> <APP-SECRET> <URL>\n\n" +
+        "O código é longo e começa com AQ. Se o secret foi digitado aqui por\n" +
+        "engano, troque a chave no painel: ela ficou no histórico do terminal.\n"
+    );
+    process.exitCode = 1;
+    return;
+  }
+  if (/^(SEGREDO|SEU_APP_SECRET|APP_SECRET|<app-secret>)$/i.test(String(segredo).trim())) {
+    console.error(
+      "\nO app secret ainda está com o texto de exemplo. Troque pela chave de\n" +
+        "verdade — em Configuração da API com login do Instagram, no campo\n" +
+        "'Chave secreta do app do Instagram', botão Mostrar.\n"
+    );
+    process.exitCode = 1;
+    return;
+  }
 
   console.log("\nTrocando o código pelo token…\n");
   const corpo = new URLSearchParams({
@@ -301,13 +330,24 @@ instagram-setup.js — token do Instagram das personas
     else console.log(ajuda);
   } catch (err) {
     console.error(`\nFalhou: ${err.message}\n`);
-    if (/OAuth|190|inválid|invalid/i.test(err.message)) {
+    // A dica só vale para token; num código inválido ela manda a pessoa
+    // refazer o login que ela acabou de fazer.
+    if (comando !== "codigo" && /OAuth|190|inválid|invalid/i.test(err.message)) {
       console.error(
         "Token vencido ou de outro tipo. Os tokens que o Graph API Explorer\n" +
           "gera são de Página (graph.facebook.com) e NÃO servem aqui — refaça\n" +
           "pelo Business Login for Instagram, como está no README.\n"
       );
     }
-    process.exit(1);
+    if (comando === "codigo") {
+      console.error(
+        "O código vale UMA vez e expira em minutos. Pegue outro abrindo a URL\n" +
+          "de autorização de novo — não adianta repetir com o mesmo.\n"
+      );
+    }
+    // process.exit() no meio de uma conexão que ainda está fechando derruba o
+    // libuv no Windows ("Assertion failed... UV_HANDLE_CLOSING"). Marcar o
+    // código de saída deixa o Node terminar sozinho, sem susto no fim.
+    process.exitCode = 1;
   }
 })();
