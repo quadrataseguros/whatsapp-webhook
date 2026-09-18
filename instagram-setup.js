@@ -142,6 +142,17 @@ const pegar = (url, token) =>
 // Responde as três perguntas que importam antes de salvar qualquer coisa:
 // o token é válido, é da conta certa, e dá para publicar com ele.
 async function diagnostico(token) {
+  if (!token) {
+    try {
+      token = fs.readFileSync(ARQUIVO_CURTO, "utf8").trim();
+      if (token) console.log(`\n  Token lido de ${ARQUIVO_CURTO}`);
+    } catch (_) {}
+  }
+  if (!token) {
+    console.error("\nSem token. Passe um, ou rode `codigo` primeiro.\n");
+    process.exitCode = 1;
+    return;
+  }
   console.log("\nConsultando a conta…\n");
 
   const eu = await tentarFormas("/me", {
@@ -248,6 +259,17 @@ async function trocar(curto, segredo) {
       Date.now() + r.expires_in * 1000
     ).toLocaleDateString("pt-BR")} com\n  node instagram-setup.js renovar <este token> --persona=${PERSONA}\n`
   );
+}
+
+// Imprime as variáveis prontas para o Railway a partir de um token já válido.
+async function mostrarVariaveis(token) {
+  const eu = await tentarFormas("/me", {
+    params: new URLSearchParams({ fields: "id,user_id,username" }),
+    token,
+  });
+  console.log("Cole estas duas no Railway (Variables) e faça o redeploy:\n");
+  console.log(`  ${VARS.id}=${eu.user_id || eu.id}`);
+  console.log(`  ${VARS.token}=${token}\n`);
 }
 
 // --- renovação ------------------------------------------------------------
@@ -558,6 +580,14 @@ async function codigo(code, appId, segredo, retorno) {
     );
   }
 
+  // A resposta do login traz mais do que o token, e o que vem nela responde a
+  // pergunta seguinte: se já vier validade longa, não há troca a fazer.
+  const extras = Object.entries(dados)
+    .filter(([k]) => k !== "access_token")
+    .map(([k, v]) => `${k}=${Array.isArray(v) ? v.join("|") : v}`)
+    .join(" · ");
+  if (extras) console.log(`  Resposta do login: ${extras}`);
+
   // O token curto vale uma hora e o código que o gerou já morreu. Guardar
   // aqui é o que permite tentar de novo a etapa seguinte sem outra volta no
   // navegador — e é justamente a etapa que mais deu trabalho.
@@ -577,6 +607,18 @@ async function codigo(code, appId, segredo, retorno) {
   } catch (err) {
     console.log(`  Token curto obtido — conta ${dados.user_id}`);
     console.log(`  (não consegui confirmar o @: ${err.message})\n`);
+  }
+
+  // Se o login já devolveu um token de validade longa, trocar não faz sentido
+  // — e era a troca que vinha falhando.
+  const validade = Number(dados.expires_in || 0);
+  if (validade > 7 * 86400) {
+    console.log(
+      `\nO login já devolveu um token de ${Math.round(validade / 86400)} dias — ` +
+        "não há troca a fazer.\n"
+    );
+    await mostrarVariaveis(dados.access_token);
+    return;
   }
 
   console.log("Emendando na troca pelo token de 60 dias…");
@@ -619,7 +661,7 @@ instagram-setup.js — token do Instagram das personas
 (async () => {
   const [comando, a, b, c, d] = args;
   try {
-    if (comando === "diagnostico" && a) await diagnostico(a);
+    if (comando === "diagnostico") await diagnostico(a);
     else if (comando === "trocar") await trocar(a, b);
     else if (comando === "renovar") await renovar(a);
     else if (comando === "autorizar") autorizar(a, b);
