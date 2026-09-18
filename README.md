@@ -199,12 +199,16 @@ Explorer está resolvendo outro problema.
 
    ```bash
    node instagram-setup.js autorizar <ig-app-id> <url-de-retorno>
-   node instagram-setup.js codigo <code> <ig-app-id> <app-secret> <url-de-retorno>
+   node instagram-setup.js codigo
    ```
 
    O `<ig-app-id>` é o **ID do app do Instagram**, na mesma tela — não o ID do
-   app da Meta. O `codigo` já emenda na troca de 60 dias e imprime as duas
-   variáveis prontas.
+   app da Meta. O `codigo` pergunta o que precisa (aceita a URL inteira da
+   barra de endereços, não só o código), esconde a chave secreta enquanto você
+   digita, emenda na troca de 60 dias e imprime as duas variáveis prontas.
+
+   Nenhum segredo vai em linha de comando: ali ele ficaria no histórico do
+   terminal e apareceria em qualquer print.
 
 6. **Troque pelo token de 60 dias.** O da etapa 4 vale **uma hora** — colocar
    ele no Railway é ligar o canal por uma hora e não perceber quando cair. O
