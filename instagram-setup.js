@@ -175,6 +175,102 @@ async function renovar(longo) {
   console.log(`  ${VARS.token}=${r.access_token}\n`);
 }
 
+// --- login pela URL de autorização ------------------------------------------
+// Quando o botão "Adicionar conta" do painel não coopera, o caminho de baixo é
+// o mesmo que ele usaria: abrir a URL de autorização, autorizar com o @ certo e
+// trocar o código que volta na barra de endereços.
+//
+// A URL de retorno precisa estar cadastrada no app (bloco "Configurar o login
+// da empresa no Instagram"). Ela NÃO precisa existir de verdade: o navegador
+// para nela com ?code=... na barra, e é só isso que a gente quer.
+const ESCOPOS = [
+  "instagram_business_basic",
+  "instagram_business_manage_messages",
+  "instagram_business_content_publish",
+].join(",");
+
+function autorizar(appId, retorno) {
+  if (!appId || !retorno) {
+    console.error(
+      "\nFaltou o ID do app do Instagram e/ou a URL de retorno.\n\n" +
+        "  node instagram-setup.js autorizar <ig-app-id> <url-de-retorno>\n\n" +
+        "O ID do app do Instagram está em Configuração da API com login do\n" +
+        "Instagram, no campo 'ID do app do Instagram'. NÃO é o ID do app da Meta.\n"
+    );
+    process.exit(1);
+  }
+  const url =
+    "https://www.instagram.com/oauth/authorize" +
+    `?client_id=${encodeURIComponent(appId)}` +
+    `&redirect_uri=${encodeURIComponent(retorno)}` +
+    `&scope=${encodeURIComponent(ESCOPOS)}` +
+    "&response_type=code";
+
+  console.log("\nAbra esta URL em uma JANELA ANÔNIMA e entre com a conta certa:\n");
+  console.log(url + "\n");
+  console.log(
+    "Autorizando, o navegador para na URL de retorno. A página pode dar erro\n" +
+      "ou 404 — não importa. O que importa é a barra de endereços:\n\n" +
+      "  ...?code=AQB...#_\n\n" +
+      "Copie o code (sem o #_ do final) e rode:\n\n" +
+      `  node instagram-setup.js codigo <code> ${appId} <app-secret> ${retorno}\n`
+  );
+}
+
+// Troca o código pelo token curto e já emenda na troca pelo de 60 dias: o
+// código vale uma vez só e expira rápido, então não há motivo para parar no
+// meio.
+async function codigo(code, appId, segredo, retorno) {
+  if (!code || !appId || !segredo || !retorno) {
+    console.error(
+      "\n  node instagram-setup.js codigo <code> <ig-app-id> <app-secret> <url-de-retorno>\n\n" +
+        "A URL de retorno tem que ser IDÊNTICA à usada em `autorizar` — a Meta\n" +
+        "compara caractere a caractere, barra final inclusive.\n"
+    );
+    process.exit(1);
+  }
+  // O Instagram devolve o código com "#_" grudado no fim. Some sozinho aqui
+  // para ninguém perder tempo com um "código inválido" que é só lixo colado.
+  const limpo = String(code).replace(/#_$/, "").trim();
+
+  console.log("\nTrocando o código pelo token…\n");
+  const corpo = new URLSearchParams({
+    client_id: appId,
+    client_secret: segredo,
+    grant_type: "authorization_code",
+    redirect_uri: retorno,
+    code: limpo,
+  });
+
+  let r;
+  try {
+    r = await fetch("https://api.instagram.com/oauth/access_token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: corpo,
+    });
+  } catch (err) {
+    throw new Error(`rede: não cheguei em api.instagram.com (${err.message})`);
+  }
+
+  const texto = await r.text();
+  let dados;
+  try {
+    dados = JSON.parse(texto);
+  } catch {
+    throw new Error(`${r.status}: resposta não-JSON — ${texto.slice(0, 200)}`);
+  }
+  if (!r.ok || dados.error_type || dados.error) {
+    throw new Error(
+      dados.error_message || dados.error?.message || `${r.status}: ${texto.slice(0, 200)}`
+    );
+  }
+
+  console.log(`  Token curto obtido — conta ${dados.user_id}\n`);
+  console.log("Emendando na troca pelo token de 60 dias…");
+  await trocar(dados.access_token, segredo);
+}
+
 const ajuda = `
 instagram-setup.js — token do Instagram das personas
 
@@ -182,15 +278,21 @@ instagram-setup.js — token do Instagram das personas
   node instagram-setup.js trocar <token-curto> <app-secret>    1 hora → 60 dias
   node instagram-setup.js renovar <token-longo>                mais 60 dias
 
+  Quando o "Adicionar conta" do painel não coopera:
+  node instagram-setup.js autorizar <ig-app-id> <url-de-retorno>
+  node instagram-setup.js codigo <code> <ig-app-id> <app-secret> <url-de-retorno>
+
   --persona=fabricio | mariana   (padrão: fabricio)
 `;
 
 (async () => {
-  const [comando, a, b] = args;
+  const [comando, a, b, c, d] = args;
   try {
     if (comando === "diagnostico" && a) await diagnostico(a);
     else if (comando === "trocar" && a) await trocar(a, b);
     else if (comando === "renovar" && a) await renovar(a);
+    else if (comando === "autorizar") autorizar(a, b);
+    else if (comando === "codigo") await codigo(a, b, c, d);
     else console.log(ajuda);
   } catch (err) {
     console.error(`\nFalhou: ${err.message}\n`);

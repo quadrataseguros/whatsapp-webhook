@@ -191,6 +191,21 @@ Explorer está resolvendo outro problema.
    node instagram-setup.js diagnostico <token>
    ```
 
+   Se o botão **Adicionar conta** não abrir o login do Instagram — ele às
+   vezes cai no seletor de pessoas do Facebook, que nunca aceita um @ do
+   Instagram —, faça o mesmo login por fora. Cadastre uma URL de retorno em
+   *Configurar o login da empresa no Instagram* (ela não precisa existir: o
+   navegador para nela com `?code=…` na barra, e é só disso que se precisa) e:
+
+   ```bash
+   node instagram-setup.js autorizar <ig-app-id> <url-de-retorno>
+   node instagram-setup.js codigo <code> <ig-app-id> <app-secret> <url-de-retorno>
+   ```
+
+   O `<ig-app-id>` é o **ID do app do Instagram**, na mesma tela — não o ID do
+   app da Meta. O `codigo` já emenda na troca de 60 dias e imprime as duas
+   variáveis prontas.
+
 6. **Troque pelo token de 60 dias.** O da etapa 4 vale **uma hora** — colocar
    ele no Railway é ligar o canal por uma hora e não perceber quando cair. O
    app secret está em *Configurações → Básico*.
