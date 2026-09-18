@@ -237,6 +237,70 @@ function fecharPerguntas() {
 // nada aconteceu, e num campo com eco o segredo fica na tela e no histórico.
 // Um arquivo resolve os dois — escrever no Bloco de Notas todo mundo sabe.
 const ARQUIVO_SEGREDO = path.join(__dirname, "segredo.txt");
+const FICHA = path.join(__dirname, "instagram.txt");
+
+// Ficha preenchida no Bloco de Notas. Existe porque colar no terminal do
+// Windows falha de formas variadas — e digitar um código de 200 caracteres à
+// mão não é opção. No Bloco de Notas colar sempre funciona.
+//
+// Formato: uma coisa por linha, "rotulo = valor". Linha começando com # é
+// comentário. Uma linha que seja só a URL do callback também é entendida,
+// para quem colar e não reparar no rótulo.
+function lerFicha() {
+  let bruto;
+  try {
+    bruto = fs.readFileSync(FICHA, "utf8");
+  } catch {
+    return null;
+  }
+  const dados = {};
+  for (const linha of bruto.split(/\r?\n/)) {
+    const t = linha.trim();
+    if (!t || t.startsWith("#")) continue;
+    const m = t.match(/^([a-zA-ZÀ-ú]+)\s*=\s*(.+)$/);
+    if (m) {
+      const chave = m[1].toLowerCase();
+      const valor = m[2].trim();
+      if (!valor || /^<.*>$/.test(valor)) continue; // placeholder não preenchido
+      dados[chave] = valor;
+    } else if (/[?&]code=/.test(t)) {
+      dados.url = t;
+    }
+  }
+  return Object.keys(dados).length ? dados : null;
+}
+
+// Escreve a ficha já com o que não muda, para sobrar o mínimo a preencher.
+function criarFicha(appId, retorno) {
+  if (fs.existsSync(FICHA)) {
+    console.log(`\nA ficha já existe: ${FICHA}\nAbra no Bloco de Notas e preencha.\n`);
+    return;
+  }
+  fs.writeFileSync(
+    FICHA,
+    [
+      "# Ficha do instagram-setup.js — preencha no Bloco de Notas e salve.",
+      "# Depois rode:  node instagram-setup.js codigo",
+      "# Apague este arquivo quando terminar.",
+      "",
+      "# Cole aqui a URL INTEIRA da barra de endereços (a da página de erro 404):",
+      "url = <cole aqui>",
+      "",
+      "# Cole aqui a chave secreta do app do Instagram:",
+      "chave = <cole aqui>",
+      "",
+      `app = ${appId || "<ID do app do Instagram>"}`,
+      `retorno = ${retorno || "<URL de retorno cadastrada no app>"}`,
+      "",
+    ].join("\r\n"), // CRLF: o Bloco de Notas antigo não quebra linha sem isso
+    "utf8"
+  );
+  console.log(`\nCriei a ficha em:\n\n  ${FICHA}\n`);
+  console.log(
+    "Abra no Bloco de Notas, cole a URL e a chave nos dois lugares marcados,\n" +
+      "salve, e rode:\n\n  node instagram-setup.js codigo\n"
+  );
+}
 function segredoDoArquivo() {
   try {
     const bruto = fs.readFileSync(ARQUIVO_SEGREDO, "utf8").trim();
@@ -322,17 +386,28 @@ function autorizar(appId, retorno) {
 async function codigo(code, appId, segredo, retorno) {
   // Sem argumentos, pergunta. É o modo recomendado: o secret não fica no
   // histórico e não há ordem para errar.
+  const ficha = lerFicha();
+  if (ficha) {
+    console.log(`\n  Ficha lida de ${FICHA}`);
+    code = code || ficha.url || ficha.codigo;
+    appId = appId || ficha.app;
+    retorno = retorno || ficha.retorno;
+    segredo = segredo || ficha.chave;
+  }
+
   if (!code) {
     console.log(
       "\nCole a URL INTEIRA da barra de endereços (aquela que deu erro 404,\n" +
-        "com o code= no fim) — eu tiro o código dela:\n"
+        "com o code= no fim) — eu tiro o código dela.\n" +
+        "Se colar aqui não funcionar, rode `node instagram-setup.js ficha` e\n" +
+        "preencha pelo Bloco de Notas.\n"
     );
     code = await perguntar("URL ou código: ");
-    if (!appId) appId = await perguntar("ID do app do Instagram: ");
-    if (!retorno) retorno = await perguntar("URL de retorno cadastrada no app: ");
-    if (!segredo) segredo = await pedirSegredo();
-    fecharPerguntas();
   }
+  if (!appId) appId = await perguntar("ID do app do Instagram: ");
+  if (!retorno) retorno = await perguntar("URL de retorno cadastrada no app: ");
+  if (!segredo) segredo = await pedirSegredo();
+  fecharPerguntas();
   if (!code || !appId || !segredo || !retorno) {
     console.error(
       "\nFaltou alguma coisa. Rode sem argumento nenhum que eu pergunto:\n\n" +
@@ -424,6 +499,10 @@ instagram-setup.js — token do Instagram das personas
   node instagram-setup.js autorizar <ig-app-id> <url-de-retorno>
         monta a URL de autorização, para quando o botão do painel não coopera
 
+  node instagram-setup.js ficha <ig-app-id> <url-de-retorno>
+        cria instagram.txt para preencher no Bloco de Notas — o caminho de
+        quem não consegue colar no terminal
+
   --persona=fabricio | mariana   (padrão: fabricio)
 `;
 
@@ -434,6 +513,7 @@ instagram-setup.js — token do Instagram das personas
     else if (comando === "trocar") await trocar(a, b);
     else if (comando === "renovar") await renovar(a);
     else if (comando === "autorizar") autorizar(a, b);
+    else if (comando === "ficha") criarFicha(a, b);
     else if (comando === "codigo") await codigo(a, b, c, d);
     else console.log(ajuda);
   } catch (err) {

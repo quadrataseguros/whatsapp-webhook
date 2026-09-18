@@ -208,10 +208,21 @@ Explorer está resolvendo outro problema.
    digita, emenda na troca de 60 dias e imprime as duas variáveis prontas.
 
    Nenhum segredo vai em linha de comando: ali ele ficaria no histórico do
-   terminal e apareceria em qualquer print. Se colar a chave no terminal não
-   funcionar (acontece no Windows), escreva-a no Bloco de Notas e salve como
-   `segredo.txt` na raiz do projeto — o comando lê de lá sozinho. O arquivo
-   está no `.gitignore`; apague depois de usar.
+   terminal e apareceria em qualquer print.
+
+   **Se colar no terminal não funcionar** — o `cmd` do Windows recusa colagem
+   de várias formas, e o código tem 200 caracteres para digitar à mão — use a
+   ficha:
+
+   ```bash
+   node instagram-setup.js ficha <ig-app-id> <url-de-retorno>
+   ```
+
+   Ela cria um `instagram.txt` já com o que não muda. Abra no Bloco de Notas,
+   onde colar sempre funciona, cole a URL e a chave nos dois lugares marcados,
+   salve, e rode `node instagram-setup.js codigo`: ele lê tudo de lá e não
+   pergunta nada. `instagram.txt` e `segredo.txt` estão no `.gitignore`;
+   apague os dois quando terminar.
 
 6. **Troque pelo token de 60 dias.** O da etapa 4 vale **uma hora** — colocar
    ele no Railway é ligar o canal por uma hora e não perceber quando cair. O
