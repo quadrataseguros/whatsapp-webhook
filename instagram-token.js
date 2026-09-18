@@ -24,6 +24,8 @@ const db = require("./db");
 const personas = require("./personas");
 
 const API = "https://graph.instagram.com";
+// Mesma versão que o envio de mensagem usa em index.js.
+const VERSAO = "v21.0";
 
 // Renova quando faltam menos de 20 dias. Sobra margem para o servidor ficar
 // fora do ar semanas seguidas (Railway dormindo, deploy parado) e ainda
@@ -84,47 +86,63 @@ function estado(persona) {
   };
 }
 
-// A Meta documenta GET aqui, mas o endpoint às vezes responde "Unsupported
-// request - method type: get" — visto na prática ao ligar a conta do FabrícIO.
-// Se a renovação automática apostasse só no método documentado, o token
-// venceria em silêncio no dia em que a Meta mudasse de ideia.
-async function chamarRenovacao(token, metodo = "GET") {
-  const params = new URLSearchParams({
-    grant_type: "ig_refresh_token",
-    access_token: token,
-  });
-  const url = `${API}/refresh_access_token`;
+// Como o token viaja importa mais do que o método. A documentação mostra
+// ?access_token= na query; com a query, a Meta responde "Unsupported request",
+// que soa como rota errada e é ela não reconhecendo a autenticação. O que
+// funciona nesta API, e é o que sendInstagramReply já faz, é o cabeçalho
+// Authorization: Bearer. Tenta-se o que se sabe que funciona e, se não for
+// aceito, as outras formas — se a Meta mudar de ideia, a renovação segue de pé
+// em vez de o token vencer em silêncio.
+async function chamarRenovacao(token) {
+  const formas = [];
+  for (const base of [API, `${API}/${VERSAO}`]) {
+    for (const auth of ["header", "query"]) {
+      for (const metodo of ["GET", "POST"]) formas.push({ base, auth, metodo });
+    }
+  }
 
-  let r;
-  try {
-    r =
-      metodo === "GET"
-        ? await fetch(`${url}?${params.toString()}`)
-        : await fetch(url, {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: params,
-          });
-  } catch (err) {
-    // DNS, socket, Meta fora do ar — não chegou a haver resposta.
-    throw new Error(`rede: não cheguei em ${API} (${err.message})`);
-  }
-  const texto = await r.text();
-  let corpo;
-  try {
-    corpo = JSON.parse(texto);
-  } catch {
-    throw new Error(`resposta não-JSON (${r.status}) — algo no caminho, não a Meta`);
-  }
-  if (!r.ok || corpo.error) {
+  const erros = [];
+  for (const { base, auth, metodo } of formas) {
+    const params = new URLSearchParams({ grant_type: "ig_refresh_token" });
+    const headers = {};
+    if (auth === "header") headers.Authorization = `Bearer ${token}`;
+    else params.set("access_token", token);
+
+    const url = `${base}/refresh_access_token`;
+    const opcoes = { method: metodo, headers };
+    if (metodo === "POST") {
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+      opcoes.body = params;
+    }
+
+    let r;
+    try {
+      r = await fetch(metodo === "GET" ? `${url}?${params.toString()}` : url, opcoes);
+    } catch (err) {
+      // Sem resposta: é rede, e nenhuma outra forma vai adiantar.
+      throw new Error(`rede: não cheguei em ${API} (${err.message})`);
+    }
+    const texto = await r.text();
+    let corpo;
+    try {
+      corpo = JSON.parse(texto);
+    } catch {
+      throw new Error(`resposta não-JSON (${r.status}) — algo no caminho, não a Meta`);
+    }
+    if (r.ok && !corpo.error) {
+      if (erros.length) console.log(`[IG] Renovação aceita em ${metodo} ${url} (token no ${auth})`);
+      return corpo; // { access_token, token_type, expires_in }
+    }
     const e = corpo.error || {};
     const msg = e.message || texto;
-    if (metodo === "GET" && /Unsupported request|method type/i.test(msg)) {
-      return chamarRenovacao(token, "POST");
+    // Só forma não reconhecida autoriza tentar a próxima. Credencial recusada
+    // sobe na hora: insistir esconderia o motivo e gastaria chamada à toa.
+    if (!/Unsupported request|method type|Unknown path|does not exist/i.test(msg)) {
+      throw new Error(`${msg} (código ${e.code ?? r.status})`);
     }
-    throw new Error(`${msg} (código ${e.code ?? r.status})`);
+    erros.push(`${metodo} ${url} (${auth}): ${msg}`);
   }
-  return corpo; // { access_token, token_type, expires_in }
+  throw new Error(`nenhuma forma conhecida foi aceita — ${erros[0]}`);
 }
 
 // Precisa renovar? Sim quando não sabemos a validade (token novo, vindo do

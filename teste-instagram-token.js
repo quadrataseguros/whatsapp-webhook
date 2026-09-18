@@ -167,6 +167,21 @@ const responder = (status, corpo) => {
   const r14 = await ig.renovarPersona(F);
   ok(r14.renovado === false && chamadas.length === 1, "tenta uma vez só e reporta o erro de verdade");
 
+  console.log("\n15. O token vai no cabeçalho, não na query");
+  gravar({ persona: "fabricio", token: "TOKEN_PRA_RENOVAR", origem_env: "ENV_TOKEN_ORIGINAL",
+           expira_em: daquiA(5), updated_at: horasAtras(48) });
+  let primeira = null;
+  global.fetch = async (url, opcoes) => {
+    primeira = primeira || { url: String(url), headers: opcoes?.headers || {} };
+    return { ok: true, status: 200, text: async () => JSON.stringify({
+      access_token: "TOKEN_OK", token_type: "bearer", expires_in: 5184000 }) };
+  };
+  await ig.renovarPersona(F);
+  ok(primeira.headers.Authorization === "Bearer TOKEN_PRA_RENOVAR",
+     "primeira tentativa manda Authorization: Bearer");
+  ok(!primeira.url.includes("access_token="),
+     "e não repete o token na query, onde a Meta recusa");
+
   console.log(falhas ? `\n${falhas} falha(s)\n` : "\nTudo passou\n");
   process.exit(falhas ? 1 : 0);
 })();
