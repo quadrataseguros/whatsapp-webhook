@@ -49,12 +49,36 @@ const VARS =
 const mascarar = (t) => (t.length > 14 ? `${t.slice(0, 8)}…${t.slice(-4)}` : "…");
 const dias = (segundos) => Math.round(segundos / 86400);
 
-async function pegar(url) {
+// Como o token viaja: no cabeçalho (Bearer) ou na query (?access_token=).
+//
+// A documentação mostra a query. Mas o servidor conversa com a mesma API há
+// meses pelo cabeçalho — é o que sendInstagramReply faz, e é o que atende a
+// MarIAna em produção. Com a query, tanto /me quanto a troca de token
+// respondem "Unsupported request - method type: get", que soa como rota
+// errada e é, na verdade, a Meta não reconhecendo a autenticação.
+//
+// Então tenta-se o cabeçalho primeiro, por ser o que se sabe que funciona
+// aqui, e a query depois, por ser o que a documentação promete.
+async function chamar({ url, params = new URLSearchParams(), token, metodo = "GET", auth = "header" }) {
+  const query = new URLSearchParams(params);
+  const headers = {};
+  if (token) {
+    if (auth === "header") headers.Authorization = `Bearer ${token}`;
+    else query.set("access_token", token);
+  }
+
+  const alvo = metodo === "GET" ? `${url}?${query.toString()}` : url;
+  const opcoes = { method: metodo, headers };
+  if (metodo === "POST") {
+    opcoes.headers["Content-Type"] = "application/x-www-form-urlencoded";
+    opcoes.body = query;
+  }
+
   let r;
   try {
-    r = await fetch(url);
+    r = await fetch(alvo, opcoes);
   } catch (err) {
-    throw new Error(`rede: não consegui falar com ${API} (${err.message})`);
+    throw new Error(`rede: não consegui falar com ${url} (${err.message})`);
   }
 
   const texto = await r.text();
@@ -78,15 +102,52 @@ async function pegar(url) {
   return corpo;
 }
 
+// Percorre as formas conhecidas até uma ser aceita. "Unsupported request" é o
+// que a Meta responde quando não reconhece a rota OU a autenticação, então é
+// o único erro que autoriza tentar a próxima: credencial inválida e token
+// vencido sobem na hora, porque insistir ali esconderia o motivo.
+async function tentarFormas(caminho, { params, token } = {}) {
+  const formas = [];
+  for (const base of [API, `${API}/${VERSAO}`]) {
+    for (const auth of ["header", "query"]) {
+      for (const metodo of ["GET", "POST"]) {
+        formas.push({ url: `${base}${caminho}`, auth, metodo });
+      }
+    }
+  }
+
+  const erros = [];
+  for (const forma of formas) {
+    try {
+      const corpo = await chamar({ ...forma, params, token });
+      if (erros.length) {
+        console.log(`  (aceito em ${forma.metodo} ${forma.url}, token no ${forma.auth})`);
+      }
+      return corpo;
+    } catch (err) {
+      if (!/Unsupported request|method type|Unknown path|does not exist/i.test(err.message)) {
+        throw err;
+      }
+      erros.push(`${forma.metodo} ${forma.url} (token no ${forma.auth}): ${err.message}`);
+    }
+  }
+  throw new Error(`nenhuma forma conhecida foi aceita:\n    ${erros.join("\n    ")}`);
+}
+
+// Atalho para as leituras simples, que já sabem a forma.
+const pegar = (url, token) =>
+  token ? chamar({ url, token }) : chamar({ url });
+
 // --- diagnóstico ----------------------------------------------------------
 // Responde as três perguntas que importam antes de salvar qualquer coisa:
 // o token é válido, é da conta certa, e dá para publicar com ele.
 async function diagnostico(token) {
   console.log("\nConsultando a conta…\n");
 
-  const eu = await pegar(
-    `${API}/${VERSAO}/me?fields=id,user_id,username,name,account_type&access_token=${token}`
-  );
+  const eu = await tentarFormas("/me", {
+    params: new URLSearchParams({ fields: "id,user_id,username,name,account_type" }),
+    token,
+  });
 
   console.log(`  Conta      @${eu.username}`);
   if (eu.name) console.log(`  Nome       ${eu.name}`);
@@ -106,7 +167,10 @@ async function diagnostico(token) {
   // Meta responde com erro de permissão em vez de lista vazia.
   let publicar = "não testado";
   try {
-    await pegar(`${API}/${VERSAO}/${eu.id}/media?limit=1&access_token=${token}`);
+    await tentarFormas(`/${eu.id}/media`, {
+      params: new URLSearchParams({ limit: "1" }),
+      token,
+    });
     publicar = "ok — o token enxerga a mídia da conta";
   } catch (err) {
     publicar = `NÃO — ${err.message}`;
@@ -134,69 +198,6 @@ async function diagnostico(token) {
   );
 }
 
-// "Unsupported request" é o que a Meta responde quando a ROTA não existe — o
-// método é só o que ela cita na mensagem. A documentação diz GET em
-// graph.instagram.com/access_token, e essa rota recusou GET e POST na conta
-// do FabrícIO. Em vez de apostar numa variante por vez, a cada tentativa
-// custando um código novo e uma volta no navegador, tenta as conhecidas em
-// sequência e diz qual funcionou.
-async function chamarVariantes(caminho, params, { verboso = true } = {}) {
-  const bases = [API, `${API}/${VERSAO}`];
-  const tentativas = [];
-  for (const base of bases) {
-    for (const metodo of ["GET", "POST"]) {
-      tentativas.push({ url: `${base}${caminho}`, metodo });
-    }
-  }
-
-  const erros = [];
-  for (const { url, metodo } of tentativas) {
-    try {
-      const corpo =
-        metodo === "GET"
-          ? await pegar(`${url}?${params.toString()}`)
-          : await postar(url, params);
-      if (verboso && erros.length) console.log(`  (funcionou em ${metodo} ${url})`);
-      return corpo;
-    } catch (err) {
-      // Rota ou método errados: vale tentar a próxima forma. Qualquer outro
-      // erro é resposta de verdade da Meta — credencial inválida, token
-      // vencido — e insistir só esconderia o motivo.
-      if (!/Unsupported request|method type|Unknown path|does not exist/i.test(err.message)) {
-        throw err;
-      }
-      erros.push(`${metodo} ${url}: ${err.message}`);
-    }
-  }
-  throw new Error(
-    `nenhuma rota conhecida aceitou a chamada:\n    ${erros.join("\n    ")}`
-  );
-}
-
-async function postar(url, params) {
-  let r;
-  try {
-    r = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params,
-    });
-  } catch (e) {
-    throw new Error(`rede: não cheguei em ${url} (${e.message})`);
-  }
-  const texto = await r.text();
-  let corpo;
-  try {
-    corpo = JSON.parse(texto);
-  } catch {
-    throw new Error(`${r.status}: resposta não-JSON — ${texto.slice(0, 200)}`);
-  }
-  if (!r.ok || corpo.error) {
-    const e = corpo.error || {};
-    throw new Error(`${r.status} ${e.type || "erro"}: ${e.message || texto.slice(0, 200)}`);
-  }
-  return corpo;
-}
 
 // --- troca pelo token de 60 dias ------------------------------------------
 async function trocar(curto, segredo) {
@@ -225,17 +226,17 @@ async function trocar(curto, segredo) {
     return;
   }
   console.log("\nTrocando pelo token de 60 dias…\n");
-  const r = await chamarVariantes(
-    "/access_token",
-    new URLSearchParams({
+  const r = await tentarFormas("/access_token", {
+    params: new URLSearchParams({
       grant_type: "ig_exchange_token",
       client_secret: segredo,
-      access_token: curto,
-    })
-  );
-  const eu = await pegar(
-    `${API}/${VERSAO}/me?fields=id,user_id,username&access_token=${r.access_token}`
-  );
+    }),
+    token: curto,
+  });
+  const eu = await tentarFormas("/me", {
+    params: new URLSearchParams({ fields: "id,user_id,username" }),
+    token: r.access_token,
+  });
 
   console.log(`  Conta      @${eu.username}`);
   console.log(`  Validade   ${dias(r.expires_in)} dias\n`);
@@ -263,10 +264,10 @@ async function renovar(longo) {
     return;
   }
   console.log("\nRenovando…\n");
-  const r = await chamarVariantes(
-    "/refresh_access_token",
-    new URLSearchParams({ grant_type: "ig_refresh_token", access_token: longo })
-  );
+  const r = await tentarFormas("/refresh_access_token", {
+    params: new URLSearchParams({ grant_type: "ig_refresh_token" }),
+    token: longo,
+  });
   console.log(`  Validade   ${dias(r.expires_in)} dias\n`);
   console.log("Atualize no Railway:\n");
   console.log(`  ${VARS.token}=${r.access_token}\n`);
@@ -567,9 +568,10 @@ async function codigo(code, appId, segredo, retorno) {
   // Confirmar de quem é o token ANTES da troca: se a troca falhar, pelo menos
   // já se sabe se a conta é a certa — que é a pergunta que mais importa.
   try {
-    const eu = await pegar(
-      `${API}/${VERSAO}/me?fields=id,user_id,username,account_type&access_token=${dados.access_token}`
-    );
+    const eu = await tentarFormas("/me", {
+      params: new URLSearchParams({ fields: "id,user_id,username,account_type" }),
+      token: dados.access_token,
+    });
     console.log(`  Token curto obtido — @${eu.username} (${eu.account_type || "tipo não informado"})`);
     console.log(`  ID da conta ${eu.user_id || "(não veio)"} · app-scoped ${eu.id}\n`);
   } catch (err) {
