@@ -183,8 +183,8 @@ async function diagnostico(token) {
   // `id` é o app-scoped, específico da relação conta↔app. Pôr o errado na
   // variável não dá erro nenhum: o webhook chega, porInstagram() não
   // reconhece a conta e o direct fica sem resposta, calado.
-  console.log(`  ID da conta      ${eu.user_id || "(não veio)"}   ← o do painel`);
-  console.log(`  ID app-scoped    ${eu.id}`);
+  console.log(`  ID da conta      ${eu.user_id || "(não veio)"}   (o que o painel mostra)`);
+  console.log(`  ID app-scoped    ${eu.id}   ← é este que vai na variável`);
 
   // O escopo de publicação não aparece no /me. O jeito honesto de saber é
   // tentar ler a lista de mídia: se o token não tem o escopo de conteúdo, a
@@ -209,13 +209,8 @@ async function diagnostico(token) {
   }
 
   console.log("\nSe é essa a conta, as variáveis são:\n");
-  console.log(`  ${VARS.id}=${eu.user_id || eu.id}`);
+  console.log(`  ${VARS.id}=${eu.id}`);
   console.log(`  ${VARS.token}=<o token longo, saído de "trocar">\n`);
-  console.log(
-    "Confira o ID contra o que já funciona: o valor de IG_USER_ID da MarIAna,\n" +
-      "no Railway, diz qual das duas formas este servidor espera. Se lá estiver\n" +
-      "um 17841…, use o ID da conta; se for o outro formato, use o app-scoped.\n"
-  );
   console.log(
     "Este token ainda é o curto (1 hora). Rode `trocar` antes de colocar no\n" +
       "Railway — senão o FabrícIO para de responder direct em uma hora.\n"
@@ -266,7 +261,7 @@ async function trocar(curto, segredo) {
   console.log(`  Conta      @${eu.username}`);
   console.log(`  Validade   ${dias(r.expires_in)} dias\n`);
   console.log("Cole estas duas no Railway (Variables) e faça o redeploy:\n");
-  console.log(`  ${VARS.id}=${eu.user_id || eu.id}`);
+  console.log(`  ${VARS.id}=${eu.id}`);
   console.log(`  ${VARS.token}=${r.access_token}\n`);
   console.log(
     `Marque no calendário: renove até ${new Date(
@@ -282,7 +277,7 @@ async function mostrarVariaveis(token) {
     token,
   });
   console.log("Cole estas duas no Railway (Variables) e faça o redeploy:\n");
-  console.log(`  ${VARS.id}=${eu.user_id || eu.id}`);
+  console.log(`  ${VARS.id}=${eu.id}`);
   console.log(`  ${VARS.token}=${token}\n`);
 }
 
