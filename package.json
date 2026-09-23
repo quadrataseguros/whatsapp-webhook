@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node teste-instagram-token.js"
+    "test": "node teste-instagram-token.js && node teste-publicador.js",
+    "validar-posts": "node validar-publicacoes.js"
   },
   "engines": {
     "node": ">=20"

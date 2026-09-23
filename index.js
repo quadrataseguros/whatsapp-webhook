@@ -9,6 +9,7 @@ const db = require("./db");
 const ADMIN_HTML = require("./admin-page");
 const personas = require("./personas");
 const igToken = require("./instagram-token");
+const publicador = require("./publicador");
 
 const app = express();
 app.use(express.json());
@@ -189,6 +190,14 @@ function extractInstagramMessage(body) {
     const entry = body.entry?.[0];
     const messaging = entry?.messaging?.[0];
     if (!messaging?.message?.text) return null;
+    // Eco: o Instagram avisa também das mensagens que a PRÓPRIA conta enviou —
+    // inclusive as respostas da persona. Tratá-las como mensagem de cliente
+    // faz o servidor responder a si mesmo ("The requested user cannot be
+    // found"), gastando uma chamada de IA a cada resposta enviada. O sinal
+    // oficial é is_echo; o remetente igual à conta que recebeu cobre quem
+    // escreve pelo próprio perfil da persona, que também não é cliente.
+    if (messaging.message.is_echo) return null;
+    if (entry?.id && String(messaging.sender?.id) === String(entry.id)) return null;
     return {
       platform: "instagram",
       // Conta que RECEBEU a mensagem — é o que diz se o direct caiu no perfil
@@ -1485,6 +1494,102 @@ $('s').addEventListener('keydown',e=>{if(e.key==='Enter')carregar()});
 </script></body></html>`);
 });
 
+// ─── Publicações: imagens públicas e painel da fila ───────────────────────────
+//
+// A Meta não recebe arquivo: ela busca a imagem numa URL. /midia é essa URL.
+// Só serve JPEG de pastas de post válidas — nada de listar diretório, nada de
+// caminho com "..", nada de pasta de rascunho (_ ou .).
+app.get("/midia/:post/:arquivo", (req, res) => {
+  const { post, arquivo } = req.params;
+  const nomeOk = (n) => /^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(n) && !n.includes("..");
+  if (!nomeOk(post) || !nomeOk(arquivo) || !/\.jpe?g$/i.test(arquivo)) {
+    return res.status(404).end();
+  }
+  res.setHeader("Cache-Control", "public, max-age=3600");
+  res.sendFile(path.join(post, arquivo), { root: publicador.PASTA }, (err) => {
+    if (err && !res.headersSent) res.status(404).end();
+  });
+});
+
+const escaparHtml = (t) =>
+  String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// Painel da fila: o que vai sair, quando, e o que já saiu. Mostra a arte e a
+// legenda como vão ao ar, para quem decide ver o mesmo que o seguidor verá.
+app.get("/admin/publicacoes", (req, res) => {
+  const senha = String(req.query.senha || "");
+  const ok = senha === getAdminPassword();
+  const automatico = process.env.PUBLICACAO_AUTOMATICA === "1";
+  const cor = { publicado: "#16a34a", agendado: "#2f89f5", pendente: "#d97706", publicando: "#d97706",
+                falhou: "#dc2626", invalido: "#dc2626", atrasado: "#6b7280" };
+  const quando = (iso) => {
+    const d = new Date(iso);
+    return Number.isNaN(+d) ? escaparHtml(iso) :
+      d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
+  };
+  const cartoes = ok ? publicador.estadoFila().map((p) => `
+    <div class="post">
+      <div class="topo">
+        <span class="st" style="background:${cor[p.status] || "#6b7280"}">${escaparHtml(p.status)}</span>
+        <strong>${escaparHtml(p.slug)}</strong>
+        <span class="meta">${escaparHtml(p.persona)} · ${escaparHtml(p.tipo)} · ${quando(p.quando)}</span>
+      </div>
+      <div class="imgs">${p.imagens.map((u) => `<img src="${escaparHtml(u)}" loading="lazy">`).join("")}</div>
+      <pre>${escaparHtml(p.legenda)}</pre>
+      ${p.erros.length ? `<p class="erro">${p.erros.map(escaparHtml).join("<br>")}</p>` : ""}
+      ${p.erro ? `<p class="erro">${escaparHtml(p.erro)}</p>` : ""}
+      ${p.permalink ? `<p><a href="${escaparHtml(p.permalink)}" target="_blank">Ver no Instagram</a></p>` : ""}
+      ${!["publicado", "invalido", "publicando"].includes(p.status) ? `
+        <form method="post" action="/admin/publicacoes/publicar"
+              onsubmit="return confirm('Publicar ${escaparHtml(p.slug)} AGORA no Instagram?')">
+          <input type="hidden" name="senha" value="${escaparHtml(senha)}">
+          <input type="hidden" name="slug" value="${escaparHtml(p.slug)}">
+          <button>Publicar agora</button>
+        </form>` : ""}
+    </div>`).join("") : "";
+
+  res.setHeader("Cache-Control", "no-store");
+  res.type("html").send(`<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Publicações — Quadrata</title>
+<style>
+ body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#122c56;margin:0;padding:28px 16px 60px;line-height:1.5}
+ .c{max-width:760px;margin:0 auto} h1{font-size:22px;margin:0 0 4px}
+ .aviso{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 16px;margin:14px 0;font-size:14px}
+ .post{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:16px;margin:14px 0}
+ .topo{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+ .st{color:#fff;font-size:12px;font-weight:700;padding:2px 9px;border-radius:99px;text-transform:uppercase}
+ .meta{color:#64748b;font-size:13px}
+ .imgs{display:flex;gap:8px;overflow-x:auto;margin:12px 0}
+ .imgs img{height:220px;border-radius:8px;border:1px solid #e2e8f0}
+ pre{white-space:pre-wrap;font-family:inherit;font-size:14px;background:#f8fafc;padding:12px;border-radius:8px;margin:0}
+ .erro{color:#991b1b;background:#fef2f2;border:1px solid #fecaca;padding:10px;border-radius:8px;font-size:13px}
+ button{background:#2f89f5;color:#fff;border:0;border-radius:9px;padding:9px 16px;font-weight:600;cursor:pointer;margin-top:10px}
+ input[type=password]{padding:10px;border:1px solid #cbd5e1;border-radius:9px;font-size:15px}
+</style>
+<div class="c">
+<h1>Publicações</h1>
+${ok ? `
+  <div class="aviso">Publicação automática: <strong>${automatico ? "LIGADA" : "desligada"}</strong>.
+  ${automatico ? "Os posts agendados saem sozinhos no horário." :
+    "Nada sai sozinho. Para ligar, defina <code>PUBLICACAO_AUTOMATICA=1</code> no ambiente. Enquanto isso, publique à mão aqui."}</div>
+  ${cartoes || '<div class="aviso">Nenhum post na fila. Os posts ficam em <code>publicacoes/</code> no repositório.</div>'}` : `
+  <form method="get"><p>Senha do painel:</p>
+  <input type="password" name="senha" autofocus> <button>Entrar</button></form>`}
+</div>`);
+});
+
+app.post("/admin/publicacoes/publicar", express.urlencoded({ extended: false }), async (req, res) => {
+  const senha = String(req.body.senha || "");
+  if (senha !== getAdminPassword()) return res.status(401).send("Senha incorreta.");
+  try {
+    await publicador.publicarAgora(String(req.body.slug || ""));
+  } catch (err) {
+    console.error("[POST] Publicar agora falhou:", err.message);
+  }
+  res.redirect(303, `/admin/publicacoes?senha=${encodeURIComponent(senha)}`);
+});
+
 // ─── Ligar uma conta do Instagram pelo navegador ──────────────────────────────
 //
 // Sem isto, ligar uma persona ao Instagram é: gerar código no navegador, colar
@@ -2128,6 +2233,8 @@ app.listen(PORT, () => {
   // Renovação do token do Instagram: sem isso a persona emudece no direct a
   // cada 60 dias.
   igToken.iniciar();
+  // Fila de posts do Instagram (publicacoes/).
+  publicador.iniciar();
   console.log(`>>> VERSAO: ${SERVER_VERSION} <<<`);
   console.log(`>>> Admin: http://localhost:${PORT}/admin.html`);
   console.log(`>>> Senha admin: ${ADMIN_PASSWORD === "admin123" ? "admin123 (padrao)" : "(custom via .env)"}`);
