@@ -180,7 +180,7 @@ const responder = (status, corpo) => {
   ok(primeira.headers.Authorization === "Bearer TOKEN_PRA_RENOVAR",
      "primeira tentativa manda Authorization: Bearer");
   ok(!primeira.url.includes("access_token="),
-     "e não repete o token na query, onde a Meta recusa");
+     "e não repete o token na query na mesma tentativa");
 
   console.log(falhas ? `\n${falhas} falha(s)\n` : "\nTudo passou\n");
   process.exit(falhas ? 1 : 0);

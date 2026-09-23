@@ -185,7 +185,7 @@ async function chamarRenovacao(token) {
     const msg = e.message || texto;
     // Só forma não reconhecida autoriza tentar a próxima. Credencial recusada
     // sobe na hora: insistir esconderia o motivo e gastaria chamada à toa.
-    if (!/Unsupported request|method type|Unknown path|does not exist/i.test(msg)) {
+    if (!/Unsupported request|method type|Unknown path|does not exist|access_token is required/i.test(msg)) {
       throw new Error(`${msg} (código ${e.code ?? r.status})`);
     }
     erros.push(`${metodo} ${url} (${auth}): ${msg}`);
@@ -284,11 +284,13 @@ async function ligarPeloCodigo({ code, appId, appSecret, redirectUri, persona })
   );
 
   // O token de uma hora não serve para um servidor que atende 24h.
+  // Aqui o token vai na query: com ele só no cabeçalho a Meta responde "The
+  // parameter access_token is required" — visto na primeira troca de verdade.
   const longo = await responder(
     await fetch(
       `${API}/access_token?grant_type=ig_exchange_token` +
-        `&client_secret=${encodeURIComponent(appSecret)}`,
-      { headers: { Authorization: `Bearer ${curto.access_token}` } }
+        `&client_secret=${encodeURIComponent(appSecret)}` +
+        `&access_token=${encodeURIComponent(curto.access_token)}`
     )
   );
 
@@ -315,13 +317,17 @@ async function ligarPeloCodigo({ code, appId, appSecret, redirectUri, persona })
     token,
     expiraEm,
     // O id que casa com o entry[0].id do webhook é o app-scoped.
-    igId: eu.id || curto.user_id,
+    // Nunca curto.user_id: ele chega como número JSON maior que 2^53 e o
+    // parse arredonda os últimos dígitos — um id errado que não dá erro,
+    // só faz o webhook não reconhecer a conta. O /me devolve o id como texto.
+    igId: eu.id,
     username: eu.username,
   });
 
+  if (!eu.id) throw new Error("token obtido, mas não consegui confirmar a conta pelo /me");
   return {
-    username: eu.username || String(curto.user_id),
-    id: eu.id || curto.user_id,
+    username: eu.username,
+    id: eu.id,
     dias: Math.round((longo.expires_in || 0) / 86400) || 1,
   };
 }

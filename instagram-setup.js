@@ -125,7 +125,9 @@ async function tentarFormas(caminho, { params, token } = {}) {
       }
       return corpo;
     } catch (err) {
-      if (!/Unsupported request|method type|Unknown path|does not exist/i.test(err.message)) {
+      // "access_token is required" é a Meta dizendo que, nesta rota, o token
+      // tem de ir na query e não no cabeçalho — a troca de token é assim.
+      if (!/Unsupported request|method type|Unknown path|does not exist|access_token is required/i.test(err.message)) {
         throw err;
       }
       erros.push(`${forma.metodo} ${forma.url} (token no ${forma.auth}): ${err.message}`);
