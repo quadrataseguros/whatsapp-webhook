@@ -189,6 +189,14 @@ function extractInstagramMessage(body) {
     const entry = body.entry?.[0];
     const messaging = entry?.messaging?.[0];
     if (!messaging?.message?.text) return null;
+    // Eco: o Instagram avisa também das mensagens que a PRÓPRIA conta enviou —
+    // inclusive as respostas da persona. Tratá-las como mensagem de cliente
+    // faz o servidor responder a si mesmo ("The requested user cannot be
+    // found"), gastando uma chamada de IA a cada resposta enviada. O sinal
+    // oficial é is_echo; o remetente igual à conta que recebeu cobre quem
+    // escreve pelo próprio perfil da persona, que também não é cliente.
+    if (messaging.message.is_echo) return null;
+    if (entry?.id && String(messaging.sender?.id) === String(entry.id)) return null;
     return {
       platform: "instagram",
       // Conta que RECEBEU a mensagem — é o que diz se o direct caiu no perfil
