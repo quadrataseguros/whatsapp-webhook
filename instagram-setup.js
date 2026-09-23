@@ -262,7 +262,7 @@ async function trocar(curto, segredo) {
 
   console.log(`  Conta      @${eu.username}`);
   console.log(`  Validade   ${dias(r.expires_in)} dias\n`);
-  console.log("Cole estas duas no Railway (Variables) e faça o redeploy:\n");
+  console.log("Cole estas duas nas variáveis de ambiente do servidor (Render → Environment) e salve:\n");
   console.log(`  ${VARS.id}=${eu.id}`);
   console.log(`  ${VARS.token}=${r.access_token}\n`);
   console.log(
@@ -278,7 +278,7 @@ async function mostrarVariaveis(token) {
     params: new URLSearchParams({ fields: "id,user_id,username" }),
     token,
   });
-  console.log("Cole estas duas no Railway (Variables) e faça o redeploy:\n");
+  console.log("Cole estas duas nas variáveis de ambiente do servidor (Render → Environment) e salve:\n");
   console.log(`  ${VARS.id}=${eu.id}`);
   console.log(`  ${VARS.token}=${token}\n`);
 }
@@ -302,7 +302,7 @@ async function renovar(longo) {
     token: longo,
   });
   console.log(`  Validade   ${dias(r.expires_in)} dias\n`);
-  console.log("Atualize no Railway:\n");
+  console.log("Atualize nas variáveis de ambiente do servidor (Render → Environment):\n");
   console.log(`  ${VARS.token}=${r.access_token}\n`);
 }
 
