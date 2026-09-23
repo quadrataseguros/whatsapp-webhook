@@ -109,10 +109,16 @@ function porId(id) {
 
 // Instagram: o webhook diz em qual CONTA a mensagem caiu (entry[0].id).
 // É o sinal mais confiável que existe — não depende do que o cliente digitou.
+// O id pode vir do ambiente ou da conta ligada pelo navegador — quem sabe
+// dizer qual vale é o instagram-token. Carregado aqui dentro para os dois
+// módulos poderem se exigir sem laço na inicialização.
 function porInstagram(igAccountId) {
   if (!igAccountId) return null;
   const alvo = String(igAccountId);
-  return Object.values(PERSONAS).find((p) => p.igUserId && p.igUserId === alvo) || null;
+  const igToken = require("./instagram-token");
+  return (
+    Object.values(PERSONAS).find((p) => igToken.idsDe(p).includes(alvo)) || null
+  );
 }
 
 // WhatsApp: o cliente chega pelo link /fale da bio, que já vem com o texto

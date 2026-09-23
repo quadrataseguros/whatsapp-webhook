@@ -4,9 +4,11 @@ const axios = require("axios");
 const Anthropic = require("@anthropic-ai/sdk");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 const db = require("./db");
 const ADMIN_HTML = require("./admin-page");
 const personas = require("./personas");
+const igToken = require("./instagram-token");
 
 const app = express();
 app.use(express.json());
@@ -72,7 +74,10 @@ app.get("/health", (_req, res) => {
       id: p.id,
       nome: p.nome,
       padrao: p.id === personas.padrao().id,
-      instagram: p.igUserId && p.igAccessToken ? "configurado" : "NAO configurado",
+      instagram: igToken.idDe(p) && igToken.tokenDe(p) ? "configurado" : "NAO configurado",
+      // Validade do token do Instagram — é o que avisa antes de a persona
+      // emudecer no direct. Sem token no meio, só o prazo.
+      instagramToken: igToken.estado(p),
       link: p.id === personas.padrao().id ? "/fale" : `/fale/${p.id}`,
     })),
     // Diagnóstico do espelho de conversas (sem expor tokens/URLs). Se vier
@@ -698,13 +703,17 @@ async function handleWhatsAppMenu(msg, persona) {
 
 async function sendInstagramReply(to, text, persona) {
   const p = persona || personas.padrao();
-  if (!p.igAccessToken || !p.igUserId) {
-    console.log(`Instagram: ${p.nome} sem IG_USER_ID/IG_ACCESS_TOKEN configurado`);
+  // O token do ambiente é só a semente: o que vale agora pode ser uma
+  // renovação guardada no banco. Ver instagram-token.js.
+  const token = igToken.tokenDe(p);
+  const igId = igToken.idDe(p);
+  if (!token || !igId) {
+    console.log(`Instagram: ${p.nome} sem conta ligada (veja /admin/instagram)`);
     return;
   }
-  console.log('[IG] Enviando para', to, 'como', p.nome, 'com user_id', p.igUserId);
+  console.log('[IG] Enviando para', to, 'como', p.nome, 'com user_id', igId);
   try { await axios.post(
-    `https://graph.instagram.com/v21.0/${p.igUserId}/messages`,
+    `https://graph.instagram.com/v21.0/${igId}/messages`,
     {
       recipient: { id: to },
       message: { text },
@@ -712,7 +721,7 @@ async function sendInstagramReply(to, text, persona) {
     },
     {
       headers: {
-        Authorization: `Bearer ${p.igAccessToken}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     }
@@ -957,7 +966,13 @@ async function runIA(inputText, chave, name, persona) {
   // de contexto.
   const conversaToda = [...historico.map((m) => m.content), inputText].join(" ");
   if (/cons[óo]rcio/i.test(conversaToda)) system += consorcioParaIA();
-  if (name && name !== from) system += `\n\nO nome do cliente é ${name}.`;
+  // Sem nome de perfil, o "nome" que chega é o próprio id do contato — não vale
+  // apresentar um número como nome. O id é a parte depois de "plataforma:".
+  // (Esta linha comparava com `from`, variável que deixou de existir quando a
+  // chave passou a ser "plataforma:id" — e o ReferenceError derrubava TODA
+  // resposta da IA, no WhatsApp e no Instagram, direto para o fallback.)
+  const idContato = String(chave || "").split(":").pop();
+  if (name && name !== idContato) system += `\n\nO nome do cliente é ${name}.`;
   if (!estaAberto()) {
     system += `\n\nATENÇÃO: no momento estamos FORA do horário de atendimento (${HORARIO}). Ao mencionar o retorno de um corretor, deixe claro que será assim que reabrirmos.`;
   }
@@ -996,7 +1011,9 @@ app.post("/webhook", async (req, res) => {
   }
 
   console.log(
-    `[${msg.platform}] Mensagem de ${msg.name} (${msg.from}): ${
+    `[${msg.platform}] Mensagem de ${msg.name} (${msg.from})${
+      msg.igAccountId ? ` na conta ${msg.igAccountId}` : ""
+    }: ${
       msg.interactiveId ? "[menu:" + msg.interactiveId + "] " : ""
     }${msg.text}`
   );
@@ -1466,6 +1483,164 @@ function desenhar(d){
 }
 $('s').addEventListener('keydown',e=>{if(e.key==='Enter')carregar()});
 </script></body></html>`);
+});
+
+// ─── Ligar uma conta do Instagram pelo navegador ──────────────────────────────
+//
+// Sem isto, ligar uma persona ao Instagram é: gerar código no navegador, colar
+// num terminal, trocar por token, copiar duas variáveis e reconfigurar o
+// deploy. Cinco passos manuais, cada um com sua chance de erro — e o pior
+// deles é a chave secreta passando por linha de comando, histórico e print.
+//
+// Aqui o servidor faz tudo: ele já tem a chave (variável de ambiente), recebe
+// o código direto do Instagram e guarda token e id no banco. Para quem liga,
+// são dois cliques.
+const IG_APP_ID = process.env.IG_APP_ID || "";
+const IG_APP_SECRET = process.env.IG_APP_SECRET || "";
+const IG_ESCOPOS = [
+  "instagram_business_basic",
+  "instagram_business_manage_messages",
+  "instagram_business_manage_comments",
+  "instagram_business_content_publish",
+].join(",");
+
+// state guarda qual persona está sendo ligada e prova que o retorno veio de um
+// pedido nosso. Vive em memória: o fluxo dura um minuto e não sobrevive a um
+// restart de propósito — código antigo não deve valer depois.
+const ligacoesEmCurso = new Map();
+
+const urlCallback = (req) =>
+  `${req.protocol}://${req.get("host")}/instagram/callback`;
+
+app.get("/admin/instagram", (req, res) => {
+  const persona = personas.porId(req.query.persona) || personas.padrao();
+  const senhaOk = req.query.senha === getAdminPassword();
+  const falta = [];
+  if (!IG_APP_ID) falta.push("IG_APP_ID");
+  if (!IG_APP_SECRET) falta.push("IG_APP_SECRET");
+
+  res.type("html").send(`<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ligar Instagram — Quadrata</title>
+<style>
+ body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#122c56;margin:0;
+      padding:40px 20px;line-height:1.5}
+ .c{max-width:520px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;
+    border-radius:14px;padding:28px}
+ h1{font-size:20px;margin:0 0 6px} p{margin:8px 0;color:#475569;font-size:15px}
+ a.b,button{display:inline-block;background:#2f89f5;color:#fff;border:0;
+   border-radius:9px;padding:11px 18px;font-size:15px;font-weight:600;
+   text-decoration:none;cursor:pointer;margin-top:14px}
+ input{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px;
+   font-size:15px;margin-top:14px;box-sizing:border-box}
+ .erro{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px;
+   border-radius:9px;font-size:14px}
+ code{background:#f1f5f9;padding:2px 6px;border-radius:5px;font-size:13px}
+</style>
+<div class="c">
+<h1>Ligar o Instagram do ${persona.nome}</h1>
+${
+  falta.length
+    ? `<p class="erro">Faltam as variáveis ${falta.join(" e ")} no ambiente.
+       São o <strong>ID do app do Instagram</strong> e a <strong>chave secreta</strong>,
+       da tela "Configuração da API com login do Instagram".</p>`
+    : senhaOk
+      ? `<p>Você vai entrar no Instagram e autorizar. O servidor guarda o
+         token sozinho — nada para copiar.</p>
+         <p><strong>Importante:</strong> entre com a conta
+         <code>${persona.id === "fabricio" ? "@fabricioquadrata" : "@marianaquadrata"}</code>,
+         não com outra.</p>
+         <a class="b" href="/admin/instagram/iniciar?persona=${persona.id}&senha=${encodeURIComponent(req.query.senha || "")}">Entrar no Instagram e autorizar</a>`
+      : `<p>Digite a senha do painel para continuar.</p>
+         <form method="get" action="/admin/instagram">
+           <input type="hidden" name="persona" value="${persona.id}">
+           <input type="password" name="senha" placeholder="Senha do painel" autofocus>
+           <button type="submit">Continuar</button>
+         </form>`
+}
+</div>`);
+});
+
+app.get("/admin/instagram/iniciar", (req, res) => {
+  if (req.query.senha !== getAdminPassword()) return res.status(401).send("Senha incorreta.");
+  const persona = personas.porId(req.query.persona) || personas.padrao();
+  if (!IG_APP_ID) return res.status(500).send("IG_APP_ID não configurado.");
+
+  const state = crypto.randomBytes(16).toString("hex");
+  ligacoesEmCurso.set(state, { persona: persona.id, em: Date.now() });
+  // Limpa pedidos que ficaram pelo caminho — ninguém volta depois de 15 min.
+  for (const [k, v] of ligacoesEmCurso) {
+    if (Date.now() - v.em > 15 * 60 * 1000) ligacoesEmCurso.delete(k);
+  }
+
+  const url =
+    "https://www.instagram.com/oauth/authorize" +
+    "?force_reauth=true" +
+    `&client_id=${encodeURIComponent(IG_APP_ID)}` +
+    `&redirect_uri=${encodeURIComponent(urlCallback(req))}` +
+    `&scope=${encodeURIComponent(IG_ESCOPOS)}` +
+    `&state=${state}` +
+    "&response_type=code";
+  res.redirect(302, url);
+});
+
+app.get("/instagram/callback", async (req, res) => {
+  const pagina = (titulo, corpo, cor = "#2f89f5") =>
+    res.type("html").send(`<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${titulo}</title>
+<style>body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#122c56;
+ margin:0;padding:40px 20px;line-height:1.55}
+ .c{max-width:520px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;
+ border-radius:14px;padding:28px;border-top:4px solid ${cor}}
+ h1{font-size:20px;margin:0 0 10px} p{color:#475569;font-size:15px}
+ code{background:#f1f5f9;padding:2px 6px;border-radius:5px;font-size:13px;
+ word-break:break-all}</style>
+<div class="c"><h1>${titulo}</h1>${corpo}</div>`);
+
+  if (req.query.error) {
+    return pagina(
+      "Autorização recusada",
+      `<p>O Instagram respondeu <code>${req.query.error}</code>.</p>
+       <p>${req.query.error_description || ""}</p>`,
+      "#dc2626"
+    );
+  }
+
+  const pedido = ligacoesEmCurso.get(String(req.query.state || ""));
+  if (!pedido) {
+    return pagina(
+      "Pedido não reconhecido",
+      `<p>Este retorno não corresponde a nenhum pedido recente. Comece de novo
+       por <code>/admin/instagram</code>.</p>`,
+      "#dc2626"
+    );
+  }
+  ligacoesEmCurso.delete(String(req.query.state));
+
+  const persona = personas.porId(pedido.persona) || personas.padrao();
+  const code = String(req.query.code || "").replace(/#_$/, "");
+  if (!code) return pagina("Faltou o código", "<p>O Instagram não devolveu código.</p>", "#dc2626");
+
+  try {
+    const troca = await igToken.ligarPeloCodigo({
+      code,
+      appId: IG_APP_ID,
+      appSecret: IG_APP_SECRET,
+      redirectUri: urlCallback(req),
+      persona: persona.id,
+    });
+    pagina(
+      "Pronto",
+      `<p>A conta <code>@${troca.username}</code> está ligada ao
+       <strong>${persona.nome}</strong>.</p>
+       <p>Token válido por ${troca.dias} dias, e o servidor renova sozinho antes
+       de vencer. Não há nada para copiar nem variável para configurar.</p>
+       <p>Confira em <code>/health</code>.</p>`
+    );
+  } catch (err) {
+    pagina("Não deu certo", `<p><code>${String(err.message)}</code></p>`, "#dc2626");
+  }
 });
 
 // ─── Dashboard API ────────────────────────────────────────────────────────────
@@ -1943,10 +2118,16 @@ app.listen(PORT, () => {
   console.log(`Modelo: ${MARIANA_MODEL}`);
   console.log(`Modo: ${anthropic ? "ia" : MAKE_WEBHOOK_URL ? "make" : "só menu"}`);
   for (const p of Object.values(personas.PERSONAS)) {
-    const ig = p.igUserId && p.igAccessToken ? "Instagram ok" : "sem Instagram";
+    const t = igToken.estado(p);
+    const ig = t.configurado
+      ? `Instagram ok${t.diasRestantes !== null ? ` (token vence em ${t.diasRestantes} dias)` : ""}`
+      : "sem Instagram";
     const link = p.id === personas.padrao().id ? "/fale" : `/fale/${p.id}`;
     console.log(`Persona: ${p.nome} — ${link} — ${ig}`);
   }
+  // Renovação do token do Instagram: sem isso a persona emudece no direct a
+  // cada 60 dias.
+  igToken.iniciar();
   console.log(`>>> VERSAO: ${SERVER_VERSION} <<<`);
   console.log(`>>> Admin: http://localhost:${PORT}/admin.html`);
   console.log(`>>> Senha admin: ${ADMIN_PASSWORD === "admin123" ? "admin123 (padrao)" : "(custom via .env)"}`);

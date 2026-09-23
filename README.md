@@ -36,8 +36,10 @@ Copie `.env.example` para `.env` e preencha:
 | `WA_ACCESS_TOKEN` | Token de acesso da Meta |
 | `ANTHROPIC_API_KEY` | Chave da API da Anthropic (crie em console.anthropic.com) — ativa a IA |
 | `MARIANA_MODEL` | Modelo do Claude (padrão: `claude-haiku-4-5`) |
-| `IG_USER_ID` · `IG_ACCESS_TOKEN` | Instagram da **MarIAna** |
-| `IG_USER_ID_FABRICIO` · `IG_ACCESS_TOKEN_FABRICIO` | Instagram do **FabrícIO** |
+| `IG_USER_ID` · `IG_ACCESS_TOKEN` | Instagram da **MarIAna** (dispensável se ligar por `/admin/instagram`) |
+| `IG_USER_ID_FABRICIO` · `IG_ACCESS_TOKEN_FABRICIO` | Instagram do **FabrícIO** (idem) |
+| | Os `IG_USER_ID*` aceitam **os dois ids da conta**, separados por vírgula: o app-scoped primeiro (é o que o envio usa) e o da conta profissional, `17841…`, depois (é o que o webhook manda). Com um só, o direct chega sem ser reconhecido e cai na persona padrão. |
+| `IG_APP_ID` · `IG_APP_SECRET` | App do Instagram — habilitam `/admin/instagram`, que liga a conta pelo navegador |
 | `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se `ANTHROPIC_API_KEY` não estiver configurada |
 | `WHATSAPP_NUMERO` | Opcional. Troca o número para onde os `/fale` mandam o cliente (é o mesmo para as duas personas). Padrão: `(11) 98678-0000` |
 
@@ -163,6 +165,143 @@ Chromium headless.
 
 ---
 
+## Ligar o Instagram de uma persona
+
+**O caminho curto: `/admin/instagram`.** Configure `IG_APP_ID` e
+`IG_APP_SECRET` no ambiente (o **ID do app do Instagram** e a **chave
+secreta**, na tela *Configuração da API com login do Instagram*), cadastre
+`https://<seu-dominio>/instagram/callback` como URL de retorno no app, e abra
+`/admin/instagram?persona=fabricio`. São dois cliques: você entra no Instagram,
+autoriza, e o servidor guarda token e id sozinho — sem terminal, sem copiar
+variável, sem a chave secreta passando por linha de comando.
+
+O resto desta seção é o caminho manual, útil para entender o que acontece por
+baixo ou para quando o servidor ainda não está no ar.
+
+Sem `IG_USER_ID*` e `IG_ACCESS_TOKEN*` a persona atende só no WhatsApp: o
+direct do Instagram chega e ninguém responde.
+
+**O caminho é o Business Login for Instagram, não o Graph API Explorer.** O
+servidor fala com `graph.instagram.com` (ver `sendInstagramReply`), onde o
+token pertence à **conta do Instagram**. O Explorer entrega token de **Página
+do Facebook**, para `graph.facebook.com` — parece certo, valida em qualquer
+teste de Página e falha no endpoint de mensagens. Tutorial que manda usar o
+Explorer está resolvendo outro problema.
+
+1. **Conta profissional.** Instagram → Configurações → Tipo de conta:
+   *Business* ou *Creator*. Pessoal não tem API.
+2. **App na Meta.** `developers.facebook.com` → Criar app → adicione o produto
+   **Instagram** → *API setup with Instagram login*.
+3. **Permissões.** `instagram_business_basic`,
+   `instagram_business_manage_messages` (direct) e
+   `instagram_business_content_publish` (publicar post).
+4. **Vincule a conta** em *Business login settings* e gere o token pelo botão
+   **Generate token** — o login abre, você entra com o @ da persona e autoriza.
+5. **Descubra o id e valide**, na sua máquina (o token é segredo — não cole em
+   chat, não commite):
+
+   ```bash
+   node instagram-setup.js diagnostico <token>
+   ```
+
+   Se o botão **Adicionar conta** não abrir o login do Instagram — ele às
+   vezes cai no seletor de pessoas do Facebook, que nunca aceita um @ do
+   Instagram —, faça o mesmo login por fora. Cadastre uma URL de retorno em
+   *Configurar o login da empresa no Instagram* (ela não precisa existir: o
+   navegador para nela com `?code=…` na barra, e é só disso que se precisa) e:
+
+   ```bash
+   node instagram-setup.js autorizar <ig-app-id> <url-de-retorno>
+   node instagram-setup.js codigo
+   ```
+
+   O `<ig-app-id>` é o **ID do app do Instagram**, na mesma tela — não o ID do
+   app da Meta. O `codigo` pergunta o que precisa (aceita a URL inteira da
+   barra de endereços, não só o código), esconde a chave secreta enquanto você
+   digita, emenda na troca de 60 dias e imprime as duas variáveis prontas.
+
+   Nenhum segredo vai em linha de comando: ali ele ficaria no histórico do
+   terminal e apareceria em qualquer print.
+
+   **Se colar no terminal não funcionar** — o `cmd` do Windows recusa colagem
+   de várias formas, e o código tem 200 caracteres para digitar à mão — use a
+   ficha:
+
+   ```bash
+   node instagram-setup.js ficha <ig-app-id> <url-de-retorno>
+   ```
+
+   Ela cria um `instagram.txt` já com o que não muda. Abra no Bloco de Notas,
+   onde colar sempre funciona, cole a URL e a chave nos dois lugares marcados,
+   salve, e rode `node instagram-setup.js codigo`: ele lê tudo de lá e não
+   pergunta nada. `instagram.txt` e `segredo.txt` estão no `.gitignore`;
+   apague os dois quando terminar.
+
+6. **Troque pelo token de 60 dias.** O da etapa 4 vale **uma hora** — colocar
+   ele no Railway é ligar o canal por uma hora e não perceber quando cair. O
+   app secret está em *Configurações → Básico*.
+
+   ```bash
+   node instagram-setup.js trocar <token-curto> <app-secret>
+   ```
+
+7. Cole as duas variáveis que ele imprime no Railway e faça o redeploy.
+   Confira em `/health`: a persona sai de *NAO configurado* para
+   *configurado*.
+
+### O token de 60 dias se renova sozinho
+
+O token vale 60 dias e, vencido, a persona para de responder direct **sem erro
+visível para o cliente** — que só acha que ninguém atendeu. Depender de alguém
+lembrar a cada dois meses é depender de esquecer.
+
+O servidor renova sozinho (`instagram-token.js`): uma verificação um minuto
+depois de subir e a cada 12 horas. Quando faltam 20 dias ou menos, ele chama a
+Meta e **guarda o token novo no SQLite** — a variável de ambiente ele não
+consegue reescrever. A margem de 20 dias existe para o servidor poder passar
+semanas fora do ar e ainda achar a janela.
+
+Quem manda, nessa ordem:
+
+1. **A variável de ambiente, se mudou.** Trocou `IG_ACCESS_TOKEN_FABRICIO` no
+   Railway (reautenticou, mudou de conta)? É mão humana: a cadeia recomeça
+   dali e o que estava no banco é ignorado.
+2. **O token do banco**, que é o mais novo da cadeia.
+
+Ou seja: o ambiente é a **semente**, não a verdade. Para saber qual está
+valendo, `/health` mostra o prazo de cada persona (mascarado, sem expor o
+token):
+
+```json
+"instagramToken": { "configurado": true, "renovadoAutomaticamente": true,
+                    "diasRestantes": 58, "ultimaRenovacao": "2026-09-17 09:12:04" }
+```
+
+O mesmo prazo aparece no log a cada boot.
+
+**Renovar à mão** continua possível — útil se o servidor ficou meses parado e
+o token venceu de vez, ou para renovar de outra máquina:
+
+```bash
+node instagram-setup.js renovar <token-longo> --persona=fabricio
+```
+
+A Meta só renova token com **mais de 24h de vida** e que ainda não venceu.
+Logo depois de uma troca manual o servidor tenta, leva a recusa e registra sem
+alarme — no ciclo seguinte já passa. Vencido de vez não há renovação: é gerar
+outro pelo login, como acima. Todos os comandos aceitam
+`--persona=fabricio|mariana`; o padrão é `fabricio`.
+
+### O que a API faz e o que não faz
+
+| | |
+|---|---|
+| Responder direct | **Pronto** — já está no código, roteando pela conta que recebeu |
+| Publicar post e carrossel | **Dá** — dois passos (`/media`, depois `/media_publish`), ainda não implementado aqui |
+| Editar bio, nome, foto, categoria | **Não existe endpoint.** É à mão no app, com os textos de `marca/fabricio/perfil-instagram.html` |
+
+---
+
 ## Configurar a IA
 
 A IA roda direto pela API da Anthropic — nada para manter ligado, sem servidor
@@ -234,6 +373,12 @@ npm start
 Verificar saúde:
 ```bash
 curl http://localhost:3000/health
+```
+
+Testes (`teste-instagram-token.js` — a política de renovação do token do
+Instagram, em banco temporário e com a rede fingida):
+```bash
+npm test
 ```
 
 ---
