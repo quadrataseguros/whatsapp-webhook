@@ -106,6 +106,11 @@ try { db.exec('ALTER TABLE sales ADD COLUMN iof_pct REAL DEFAULT 0'); } catch (_
 // canal trouxe essa pessoa"; ver ORIGENS em personas.js.
 try { db.exec('ALTER TABLE contact_persona ADD COLUMN origem TEXT'); } catch (_) {}
 try { db.exec("ALTER TABLE contact_persona ADD COLUMN created_at TEXT"); } catch (_) {}
+// Conta do Instagram ligada pelo próprio navegador (rota /admin/instagram): o
+// id vem junto do token, e com ele no banco o servidor atende a persona sem
+// depender de ninguém copiar variável de ambiente nenhuma.
+try { db.exec('ALTER TABLE ig_token ADD COLUMN ig_id TEXT'); } catch (_) {}
+try { db.exec('ALTER TABLE ig_token ADD COLUMN username TEXT'); } catch (_) {}
 
 // Equipe da operação Quadrata × Piscinão Veículos
 const EQUIPE = ['Abraão', 'Marcelo', 'Léo', 'André', 'Fernanda', 'Wallace'];

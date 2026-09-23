@@ -36,8 +36,9 @@ Copie `.env.example` para `.env` e preencha:
 | `WA_ACCESS_TOKEN` | Token de acesso da Meta |
 | `ANTHROPIC_API_KEY` | Chave da API da Anthropic (crie em console.anthropic.com) — ativa a IA |
 | `MARIANA_MODEL` | Modelo do Claude (padrão: `claude-haiku-4-5`) |
-| `IG_USER_ID` · `IG_ACCESS_TOKEN` | Instagram da **MarIAna** |
-| `IG_USER_ID_FABRICIO` · `IG_ACCESS_TOKEN_FABRICIO` | Instagram do **FabrícIO** |
+| `IG_USER_ID` · `IG_ACCESS_TOKEN` | Instagram da **MarIAna** (dispensável se ligar por `/admin/instagram`) |
+| `IG_USER_ID_FABRICIO` · `IG_ACCESS_TOKEN_FABRICIO` | Instagram do **FabrícIO** (idem) |
+| `IG_APP_ID` · `IG_APP_SECRET` | App do Instagram — habilitam `/admin/instagram`, que liga a conta pelo navegador |
 | `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se `ANTHROPIC_API_KEY` não estiver configurada |
 | `WHATSAPP_NUMERO` | Opcional. Troca o número para onde os `/fale` mandam o cliente (é o mesmo para as duas personas). Padrão: `(11) 98678-0000` |
 
@@ -164,6 +165,17 @@ Chromium headless.
 ---
 
 ## Ligar o Instagram de uma persona
+
+**O caminho curto: `/admin/instagram`.** Configure `IG_APP_ID` e
+`IG_APP_SECRET` no ambiente (o **ID do app do Instagram** e a **chave
+secreta**, na tela *Configuração da API com login do Instagram*), cadastre
+`https://<seu-dominio>/instagram/callback` como URL de retorno no app, e abra
+`/admin/instagram?persona=fabricio`. São dois cliques: você entra no Instagram,
+autoriza, e o servidor guarda token e id sozinho — sem terminal, sem copiar
+variável, sem a chave secreta passando por linha de comando.
+
+O resto desta seção é o caminho manual, útil para entender o que acontece por
+baixo ou para quando o servidor ainda não está no ar.
 
 Sem `IG_USER_ID*` e `IG_ACCESS_TOKEN*` a persona atende só no WhatsApp: o
 direct do Instagram chega e ninguém responde.
