@@ -86,6 +86,21 @@ db.exec(`
   -- origem_env é o token de ambiente que originou esta cadeia. Trocar a
   -- variável no Railway (reautenticação, conta nova) muda esse valor e a
   -- cadeia recomeça dali: mão humana sempre ganha da renovação automática.
+  -- Posts publicados pelo servidor (publicador.js). A chave é a pasta do post
+  -- em publicacoes/; é ela que garante que nada seja publicado duas vezes,
+  -- mesmo com o servidor reiniciando no meio do caminho.
+  CREATE TABLE IF NOT EXISTS publicacao (
+    slug         TEXT PRIMARY KEY,
+    persona      TEXT NOT NULL,
+    status       TEXT NOT NULL,
+    tentativas   INTEGER NOT NULL DEFAULT 0,
+    media_id     TEXT,
+    permalink    TEXT,
+    erro         TEXT,
+    publicado_em TEXT,
+    updated_at   TEXT DEFAULT (datetime('now', 'localtime'))
+  );
+
   CREATE TABLE IF NOT EXISTS ig_token (
     persona    TEXT PRIMARY KEY,
     token      TEXT NOT NULL,

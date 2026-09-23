@@ -302,6 +302,23 @@ outro pelo login, como acima. Todos os comandos aceitam
 
 ---
 
+## Publicar no Instagram
+
+Os posts ficam em [`publicacoes/`](publicacoes/README.md), um por pasta, com
+um `post.json` (persona, tipo, horário, legenda) e as imagens em JPEG. O
+servidor serve as imagens em `/midia/...`, porque a Meta só aceita URL, e
+publica cada post no horário.
+
+**A aprovação é o merge:** um post só existe para o servidor depois que o PR
+dele entra no `main`. Nada sai sozinho enquanto `PUBLICACAO_AUTOMATICA=1` não
+estiver no ambiente; até lá, o painel `/admin/publicacoes` mostra a fila (arte e
+legenda como vão ao ar) e publica à mão. Post atrasado mais de 12h não sai
+sozinho, e nada sai duas vezes.
+
+Antes de abrir o PR de um post: `npm run validar-posts`.
+
+---
+
 ## Configurar a IA
 
 A IA roda direto pela API da Anthropic — nada para manter ligado, sem servidor
