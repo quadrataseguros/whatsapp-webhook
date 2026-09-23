@@ -117,10 +117,7 @@ function porInstagram(igAccountId) {
   const alvo = String(igAccountId);
   const igToken = require("./instagram-token");
   return (
-    Object.values(PERSONAS).find((p) => {
-      const id = igToken.idDe(p);
-      return id && id === alvo;
-    }) || null
+    Object.values(PERSONAS).find((p) => igToken.idsDe(p).includes(alvo)) || null
   );
 }
 

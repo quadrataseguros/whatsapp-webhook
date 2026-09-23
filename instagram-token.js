@@ -84,14 +84,31 @@ function tokenDe(persona) {
 
 // Id da conta que vale agora. Mesma regra do token: o que foi ligado pelo
 // navegador manda, e o ambiente é a semente de quem ainda não ligou.
-function idDe(persona) {
+//
+// Uma conta do Instagram tem dois ids: o app-scoped (é o que o envio usa, e o
+// que a MarIAna tem em produção) e o da conta profissional, 17841… (é o que
+// chega no entry[0].id do webhook). A variável aceita os dois separados por
+// vírgula; o primeiro é o do envio, e qualquer um serve para reconhecer a
+// conta. Sem isso, o direct do FabrícIO chegava sem ser reconhecido, caía na
+// persona padrão e a MarIAna tentava responder por uma conta que não era a
+// dela — "The requested user cannot be found".
+function idsDe(persona) {
   const p = typeof persona === "string" ? personas.porId(persona) : persona;
-  if (!p) return "";
+  if (!p) return [];
   const linha = ler.get(p.id);
-  if (linha && linha.ig_id && linha.origem_env === LIGADO_PELO_NAVEGADOR) {
-    return linha.ig_id;
-  }
-  return p.igUserId || "";
+  const bruto =
+    linha && linha.ig_id && linha.origem_env === LIGADO_PELO_NAVEGADOR
+      ? linha.ig_id
+      : p.igUserId || "";
+  return String(bruto)
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+// O id que vai no caminho do envio: o primeiro da lista.
+function idDe(persona) {
+  return idsDe(persona)[0] || "";
 }
 
 // Marca a cadeia que nasceu do login pelo navegador, em vez de uma variável de
@@ -317,10 +334,10 @@ async function ligarPeloCodigo({ code, appId, appSecret, redirectUri, persona })
     token,
     expiraEm,
     // O id que casa com o entry[0].id do webhook é o app-scoped.
-    // Nunca curto.user_id: ele chega como número JSON maior que 2^53 e o
-    // parse arredonda os últimos dígitos — um id errado que não dá erro,
-    // só faz o webhook não reconhecer a conta. O /me devolve o id como texto.
-    igId: eu.id,
+    // Os dois ids, ambos do /me, que os devolve como texto — nunca o user_id
+    // do login, que chega como número maior que 2^53 e o parse arredonda. O
+    // app-scoped vai primeiro (envio); o da conta é o que chega no webhook.
+    igId: [eu.id, eu.user_id].filter(Boolean).join(","),
     username: eu.username,
   });
 
@@ -366,4 +383,4 @@ function iniciar() {
   setInterval(agenda, INTERVALO_MS).unref?.();
 }
 
-module.exports = { tokenDe, idDe, ligar, ligarPeloCodigo, estado, precisaRenovar, iniciar, verificarTodas, renovarPersona };
+module.exports = { tokenDe, idDe, idsDe, ligar, ligarPeloCodigo, estado, precisaRenovar, iniciar, verificarTodas, renovarPersona };

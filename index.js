@@ -966,7 +966,13 @@ async function runIA(inputText, chave, name, persona) {
   // de contexto.
   const conversaToda = [...historico.map((m) => m.content), inputText].join(" ");
   if (/cons[óo]rcio/i.test(conversaToda)) system += consorcioParaIA();
-  if (name && name !== from) system += `\n\nO nome do cliente é ${name}.`;
+  // Sem nome de perfil, o "nome" que chega é o próprio id do contato — não vale
+  // apresentar um número como nome. O id é a parte depois de "plataforma:".
+  // (Esta linha comparava com `from`, variável que deixou de existir quando a
+  // chave passou a ser "plataforma:id" — e o ReferenceError derrubava TODA
+  // resposta da IA, no WhatsApp e no Instagram, direto para o fallback.)
+  const idContato = String(chave || "").split(":").pop();
+  if (name && name !== idContato) system += `\n\nO nome do cliente é ${name}.`;
   if (!estaAberto()) {
     system += `\n\nATENÇÃO: no momento estamos FORA do horário de atendimento (${HORARIO}). Ao mencionar o retorno de um corretor, deixe claro que será assim que reabrirmos.`;
   }
@@ -1005,7 +1011,9 @@ app.post("/webhook", async (req, res) => {
   }
 
   console.log(
-    `[${msg.platform}] Mensagem de ${msg.name} (${msg.from}): ${
+    `[${msg.platform}] Mensagem de ${msg.name} (${msg.from})${
+      msg.igAccountId ? ` na conta ${msg.igAccountId}` : ""
+    }: ${
       msg.interactiveId ? "[menu:" + msg.interactiveId + "] " : ""
     }${msg.text}`
   );

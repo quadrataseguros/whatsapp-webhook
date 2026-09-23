@@ -38,6 +38,7 @@ Copie `.env.example` para `.env` e preencha:
 | `MARIANA_MODEL` | Modelo do Claude (padrão: `claude-haiku-4-5`) |
 | `IG_USER_ID` · `IG_ACCESS_TOKEN` | Instagram da **MarIAna** (dispensável se ligar por `/admin/instagram`) |
 | `IG_USER_ID_FABRICIO` · `IG_ACCESS_TOKEN_FABRICIO` | Instagram do **FabrícIO** (idem) |
+| | Os `IG_USER_ID*` aceitam **os dois ids da conta**, separados por vírgula: o app-scoped primeiro (é o que o envio usa) e o da conta profissional, `17841…`, depois (é o que o webhook manda). Com um só, o direct chega sem ser reconhecido e cai na persona padrão. |
 | `IG_APP_ID` · `IG_APP_SECRET` | App do Instagram — habilitam `/admin/instagram`, que liga a conta pelo navegador |
 | `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se `ANTHROPIC_API_KEY` não estiver configurada |
 | `WHATSAPP_NUMERO` | Opcional. Troca o número para onde os `/fale` mandam o cliente (é o mesmo para as duas personas). Padrão: `(11) 98678-0000` |
