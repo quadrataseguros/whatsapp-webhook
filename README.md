@@ -363,11 +363,20 @@ e não muda nada no atendimento: é só um painel de controle por conversa.
 | `enviar_texto` | Texto livre, só dentro da janela de 24h |
 | `servidor_saude` | `/health` e `/ia-status` do servidor no ar |
 | `captacao` | Contatos por origem e por semana (precisa de `ADMIN_PASSWORD`) |
+| `publicar_instagram` | Posta no feed da MarIAna ou do FabrícIO: 1 foto ou carrossel de até 10 (JPEG do computador ou link) |
 
 Usa o mesmo `.env` do webhook, mais `WA_BUSINESS_ACCOUNT_ID` (templates e
 status da conta) e, opcional, `SERVER_URL`. No Claude Code, o `.mcp.json` da
 raiz já registra o servidor: basta abrir o projeto e aprovar. Em outro cliente,
 aponte para `node /caminho/whatsapp-webhook/mcp-server.js`.
+
+**Fotos no Instagram.** Peça ao agente, por exemplo: *"publica no Instagram do
+FabrícIO as fotos ~/Fotos/evento1.jpg e evento2.jpg com a legenda …"*. Quem
+publica é o servidor no Render (rota `POST /api/instagram/publicar`, protegida
+pela senha do admin), com o token que ele já renova sozinho — por isso o MCP
+precisa de `ADMIN_PASSWORD` no `.env` local. A Meta só aceita **JPEG**; a foto
+fica em `/midia/…` por uma hora, só para a Meta baixar. Publicou, avisa no
+Telegram. A conta da persona precisa estar ligada em `/admin/instagram`.
 
 Para criar a conta, verificar o número e aceitar termos, use o **WhatsApp
 Business Tools MCP** oficial da Meta — este aqui cuida do dia a dia.

@@ -5,13 +5,17 @@
 //
 // Complementa o WhatsApp Business Tools MCP oficial da Meta: aquele cuida da
 // configuração da conta (criar WABA, verificar número, termos); este cuida do
-// dia a dia DESTE servidor — saúde do número, templates, envio e captação.
+// dia a dia DESTE servidor — saúde do número, templates, envio, captação e
+// posts no Instagram das personas.
 //
 // Roda por stdio, na máquina de quem usa o agente: `node mcp-server.js`.
 // Lê as mesmas variáveis do .env do webhook. Ver README, seção "Servidor MCP".
 //
 // Nada aqui escreve em stdout além do protocolo: log vai para stderr.
 require("dotenv").config({ path: require("path").join(__dirname, ".env"), quiet: true });
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const axios = require("axios");
 const { z } = require("zod");
 const { McpServer } = require("@modelcontextprotocol/sdk/server/mcp.js");
@@ -269,6 +273,42 @@ server.registerTool(
     const r = await axios.get(`${SERVER_URL}/api/captacao`, {
       headers: { "x-admin-password": ADMIN_PASSWORD },
       timeout: 60000,
+    });
+    return r.data;
+  })
+);
+
+server.registerTool(
+  "publicar_instagram",
+  {
+    title: "Publicar no Instagram",
+    description:
+      "Publica no feed do Instagram da MarIAna ou do FabrícIO: uma foto, ou um carrossel " +
+      "de 2 a 10. Cada imagem pode ser um arquivo JPEG deste computador ou um link público. " +
+      "Publica de verdade e na hora — confirme a legenda com o usuário antes.",
+    inputSchema: {
+      persona: z.enum(["mariana", "fabricio"]),
+      legenda: z.string().max(2200).default(""),
+      imagens: z.array(z.string()).min(1).max(10).describe("Caminhos de arquivos .jpg ou URLs https"),
+    },
+    annotations: { openWorldHint: true },
+  },
+  ferramenta(async ({ persona, legenda, imagens }) => {
+    exigir("ADMIN_PASSWORD");
+    const corpo = imagens.map((img) => {
+      if (/^https?:\/\//i.test(img)) return img;
+      const arquivo = path.resolve(img.replace(/^~(?=\/)/, os.homedir()));
+      if (!/\.jpe?g$/i.test(arquivo)) throw new Error(`${img}: o Instagram só aceita JPEG. Converta antes.`);
+      return { base64: fs.readFileSync(arquivo).toString("base64"), tipo: "image/jpeg" };
+    });
+    // O Render pode estar dormindo e a Meta processa cada imagem: pode levar minutos.
+    const r = await axios.post(
+      `${SERVER_URL}/api/instagram/publicar`,
+      { persona, legenda, imagens: corpo },
+      { headers: { "x-admin-password": ADMIN_PASSWORD }, timeout: 300000, maxBodyLength: Infinity }
+    ).catch((e) => {
+      if (e.response?.data?.erro) throw new Error(e.response.data.erro);
+      throw e;
     });
     return r.data;
   })
