@@ -41,6 +41,7 @@ Copie `.env.example` para `.env` e preencha:
 | | Os `IG_USER_ID*` aceitam **os dois ids da conta**, separados por vírgula: o app-scoped primeiro (é o que o envio usa) e o da conta profissional, `17841…`, depois (é o que o webhook manda). Com um só, o direct chega sem ser reconhecido e cai na persona padrão. |
 | `IG_APP_ID` · `IG_APP_SECRET` | App do Instagram — habilitam `/admin/instagram`, que liga a conta pelo navegador |
 | `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se `ANTHROPIC_API_KEY` não estiver configurada |
+| `WA_BUSINESS_ACCOUNT_ID` · `SERVER_URL` | Só para o [servidor MCP](#servidor-mcp-whatsapp-pelo-agente-de-ia) |
 | `WHATSAPP_NUMERO` | Opcional. Troca o número para onde os `/fale` mandam o cliente (é o mesmo para as duas personas). Padrão: `(11) 98678-0000` |
 
 ---
@@ -345,6 +346,31 @@ via QR Code.
 
 Os textos, telefones e o fluxo do menu ficam centralizados em `index.js`
 (constantes `RESPOSTAS`, `sendMainMenu`, `sendSeguradorasMenu`).
+
+---
+
+## Servidor MCP (WhatsApp pelo agente de IA)
+
+`mcp-server.js` deixa o Claude Code, Claude Desktop, Cursor ou Codex cuidar do
+WhatsApp Business conversando. Roda na **sua máquina** (stdio), não no Render,
+e não muda nada no atendimento: é só um painel de controle por conversa.
+
+| Ferramenta | O que faz |
+|------------|-----------|
+| `whatsapp_status` | Nome verificado, qualidade, limite de envio, verificação do negócio e se o webhook está inscrito |
+| `listar_templates` · `criar_template` · `apagar_template` | Templates de mensagem (criar manda para aprovação da Meta) |
+| `enviar_template` | Puxa conversa com quem não escreveu nas últimas 24h |
+| `enviar_texto` | Texto livre, só dentro da janela de 24h |
+| `servidor_saude` | `/health` e `/ia-status` do servidor no ar |
+| `captacao` | Contatos por origem e por semana (precisa de `ADMIN_PASSWORD`) |
+
+Usa o mesmo `.env` do webhook, mais `WA_BUSINESS_ACCOUNT_ID` (templates e
+status da conta) e, opcional, `SERVER_URL`. No Claude Code, o `.mcp.json` da
+raiz já registra o servidor: basta abrir o projeto e aprovar. Em outro cliente,
+aponte para `node /caminho/whatsapp-webhook/mcp-server.js`.
+
+Para criar a conta, verificar o número e aceitar termos, use o **WhatsApp
+Business Tools MCP** oficial da Meta — este aqui cuida do dia a dia.
 
 ---
 
