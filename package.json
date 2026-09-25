@@ -5,16 +5,19 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "node teste-instagram-token.js"
+    "test": "node teste-instagram-token.js",
+    "mcp": "node mcp-server.js"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",
+    "@modelcontextprotocol/sdk": "^1.30.1",
     "axios": "^1.6.0",
     "better-sqlite3": "^12.9.0",
     "dotenv": "^16.4.5",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "zod": "^3.25.76"
   }
 }

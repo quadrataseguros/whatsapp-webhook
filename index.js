@@ -9,9 +9,14 @@ const db = require("./db");
 const ADMIN_HTML = require("./admin-page");
 const personas = require("./personas");
 const igToken = require("./instagram-token");
+const igPublicar = require("./instagram-publicar");
 
 const app = express();
-app.use(express.json());
+// Fotos para o Instagram chegam em base64 e passam do limite padrão (100 KB);
+// só essa rota ganha folga, o resto (webhook incluso) segue como sempre foi.
+const jsonPadrao = express.json();
+const jsonGrande = express.json({ limit: "60mb" });
+app.use((req, res, next) => (req.path === "/api/instagram/publicar" ? jsonGrande : jsonPadrao)(req, res, next));
 
 // Versão do servidor (para confirmar que o código novo está rodando)
 const SERVER_VERSION = "v6-personas-2026-09-01";
@@ -1640,6 +1645,33 @@ app.get("/instagram/callback", async (req, res) => {
     );
   } catch (err) {
     pagina("Não deu certo", `<p><code>${String(err.message)}</code></p>`, "#dc2626");
+  }
+});
+
+// ─── Publicar no feed do Instagram ───────────────────────────────────────────
+// POST /api/instagram/publicar  { persona, legenda, imagens: [ "https://…" | { base64, tipo } ] }
+// É o que a ferramenta publicar_instagram do mcp-server.js chama.
+app.get("/midia/:id", igPublicar.servirMidia);
+
+app.post("/api/instagram/publicar", requireAdmin, async (req, res) => {
+  try {
+    const { persona, legenda, imagens = [] } = req.body || {};
+    // Atrás do Render o Express vê http; a Meta precisa buscar por https.
+    const proto = req.get("x-forwarded-proto")?.split(",")[0] || req.protocol;
+    const base = `${proto}://${req.get("host")}`;
+    const urls = imagens.map((img) => {
+      if (typeof img === "string") return img;
+      if (img?.tipo !== "image/jpeg") throw new Error("O Instagram só aceita JPEG.");
+      return `${base}/midia/${igPublicar.guardarMidia(img.base64, img.tipo)}`;
+    });
+    const post = await igPublicar.publicar({ persona, legenda, imagens: urls });
+    espelharTelegram(`📸 ${post.persona} publicou no Instagram\n${post.permalink || post.id}`);
+    res.json(post);
+  } catch (e) {
+    const d = e.response?.data?.error;
+    const erro = d ? `${d.message} (código ${d.code}${d.error_subcode ? "/" + d.error_subcode : ""})` : e.message;
+    console.error("Falha ao publicar no Instagram:", erro);
+    res.status(400).json({ erro });
   }
 });
 
