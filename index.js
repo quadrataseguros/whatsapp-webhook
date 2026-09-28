@@ -1680,6 +1680,116 @@ app.post("/api/instagram/publicar", requireAdmin, async (req, res) => {
   }
 });
 
+// Página para publicar no feed do Instagram pelo navegador, com a senha do
+// painel — sem precisar montar a chamada à API na mão. Chama a mesma rota
+// /api/instagram/publicar de cima.
+app.get("/admin/instagram/publicar", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.type("html").send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Publicar no Instagram — Quadrata</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:560px;margin:40px auto;padding:0 20px;color:#122c56;background:#f1f5f9}
+h1{font-size:20px}
+label{display:block;font-size:13px;color:#64748b;margin-top:16px}
+input,select,textarea{width:100%;padding:10px;font-size:15px;border:1px solid #cbd5e1;border-radius:8px;
+  box-sizing:border-box;font-family:inherit;background:#fff}
+textarea{min-height:90px;resize:vertical}
+button{margin-top:18px;padding:11px 18px;font-size:15px;font-weight:600;border:0;border-radius:9px;
+  cursor:pointer;background:#2f89f5;color:#fff}
+button:disabled{opacity:.6;cursor:wait}
+#previews{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+#previews img{width:76px;height:76px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0}
+#out{margin-top:18px;padding:14px;border-radius:9px;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+.erro{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+a.permalink{color:#2f89f5;font-weight:600}
+.dica{font-size:13px;color:#64748b;margin-top:6px}
+</style></head><body>
+<h1>Publicar no Instagram</h1>
+<p class="dica">Só JPEG. Uma foto vira post simples; de 2 a 10 viram carrossel, na ordem escolhida.</p>
+
+<label for="senha">Senha do painel</label>
+<input id="senha" type="password" autocomplete="current-password">
+
+<label for="persona">Conta</label>
+<select id="persona">
+  <option value="fabricio">FabrícIO — @fabricioquadrata</option>
+  <option value="mariana">MarIAna — @marianaquadrata</option>
+</select>
+
+<label for="fotos">Fotos (1 a 10, JPEG)</label>
+<input id="fotos" type="file" accept="image/jpeg" multiple>
+<div id="previews"></div>
+
+<label for="legenda">Legenda</label>
+<textarea id="legenda" placeholder="Escreva a legenda do post…"></textarea>
+
+<button id="btn" onclick="publicar()">Publicar</button>
+<div id="out" hidden></div>
+
+<script>
+const $=(id)=>document.getElementById(id);
+const out=$('out');
+
+$('fotos').addEventListener('change', () => {
+  const previews=$('previews'); previews.innerHTML='';
+  [...$('fotos').files].forEach(f => {
+    const img=document.createElement('img');
+    img.src=URL.createObjectURL(f);
+    previews.appendChild(img);
+  });
+});
+
+function lerComoBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',')[1]);
+    r.onerror = () => reject(new Error('Falha ao ler ' + file.name));
+    r.readAsDataURL(file);
+  });
+}
+
+function mostrar(texto, classe) {
+  out.hidden = false;
+  out.className = classe;
+  out.textContent = texto;
+}
+
+async function publicar() {
+  const senha = $('senha').value;
+  const persona = $('persona').value;
+  const legenda = $('legenda').value;
+  const arquivos = [...$('fotos').files];
+
+  if (!senha) return mostrar('Digite a senha do painel.', 'erro');
+  if (!arquivos.length) return mostrar('Escolha pelo menos uma foto.', 'erro');
+  if (arquivos.length > 10) return mostrar('No máximo 10 fotos (carrossel).', 'erro');
+  const naoJpeg = arquivos.find(f => f.type !== 'image/jpeg');
+  if (naoJpeg) return mostrar('"' + naoJpeg.name + '" não é JPEG — o Instagram só aceita esse formato.', 'erro');
+
+  const btn = $('btn'); btn.disabled = true; btn.textContent = 'Publicando…';
+  out.hidden = true;
+  try {
+    const imagens = await Promise.all(arquivos.map(async (f) => ({ base64: await lerComoBase64(f), tipo: f.type })));
+    const r = await fetch('/api/instagram/publicar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': senha },
+      body: JSON.stringify({ persona, legenda, imagens }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Falha ao publicar.');
+    mostrar('Publicado! ' + (d.permalink ? '' : ''), 'ok');
+    if (d.permalink) out.innerHTML = 'Publicado por ' + d.persona + '. <a class="permalink" href="' + d.permalink + '" target="_blank" rel="noopener">Ver no Instagram →</a>';
+  } catch (e) {
+    mostrar(e.message, 'erro');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Publicar';
+  }
+}
+</script>
+</body></html>`);
+});
+
 // ─── Dashboard API ────────────────────────────────────────────────────────────
 
 function getAdminPassword() {
