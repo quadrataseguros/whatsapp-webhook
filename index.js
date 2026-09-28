@@ -12,6 +12,11 @@ const igToken = require("./instagram-token");
 const igPublicar = require("./instagram-publicar");
 
 const app = express();
+// Render (e Railway) terminam o TLS e repassam a conexão como HTTP puro: sem
+// isso req.protocol sempre vem "http", e a URL de callback do Instagram
+// (urlCallback, abaixo) sai errada — a Meta recusa por redirect_uri não bater
+// com o https cadastrado no app.
+app.set("trust proxy", 1);
 // Fotos para o Instagram chegam em base64 e passam do limite padrão (100 KB);
 // só essa rota ganha folga, o resto (webhook incluso) segue como sempre foi.
 const jsonPadrao = express.json();
