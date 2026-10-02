@@ -277,7 +277,7 @@ const rays = (cx, cy, r1, r2, n) => {
   return d;
 };
 
-const TOTAL = 34;
+const TOTAL = 18.5;
 
 /* chuva na janela */
 const rainEl = $('rain');
@@ -350,11 +350,11 @@ const endArcs = endCols.map((c, i) => {
 const captions = []; // sem legendas
 
 function render(T) {
-  const t = T;
+  const t = T >= 2.0 ? T + 15.6 : T; // abertura curta e pulo direto para a astronave
   $('turb').setAttribute('seed', (Math.floor(t * 8) % 40) + 1);
 
   /* ---- reveal da memória ---- */
-  const r = 1250 * (ease(seg(t, 3.2, 5.0)) - ease(seg(t, 20.3, 22.0)));
+  const r = 1250 * (ease(seg(T, 2.0, 3.8)) - ease(seg(t, 20.3, 22.0)));
   $('revc').setAttribute('r', Math.max(0, r));
 
   /* ---- sala: estado triste -> aquecido ---- */
