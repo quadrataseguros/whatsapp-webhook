@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Memórias em aquarela</title>
+<style>
+  html,body{margin:0;background:#000}
+  svg{display:block}
+  text{font-family:Georgia,'DejaVu Serif','Liberation Serif',serif}
+</style>
+</head>
+<body>
+<svg id="s" width="720" height="1280" viewBox="0 0 720 1280" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <!-- contorno tremido, de aquarela/lápis, "ferve" a cada poucos quadros -->
+  <filter id="wc" x="-5%" y="-5%" width="110%" height="110%">
+    <feTurbulence id="turb" type="fractalNoise" baseFrequency="0.018" numOctaves="2" seed="1" result="n"/>
+    <feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+  <filter id="sat"><feColorMatrix id="satm" type="saturate" values="0.3"/></filter>
+  <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="28"/></filter>
+  <filter id="blob" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="14"/></filter>
+  <filter id="grain">
+    <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" seed="3"/>
+    <feColorMatrix type="matrix" values="0 0 0 0 0.35  0 0 0 0 0.30  0 0 0 0 0.25  0 0 0 0.9 -0.35"/>
+  </filter>
+  <linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#7fcdf2"/><stop offset="1" stop-color="#eaf7ff"/>
+  </linearGradient>
+  <linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#17174a"/><stop offset="0.6" stop-color="#4b3a8c"/><stop offset="1" stop-color="#e8799b"/>
+  </linearGradient>
+  <clipPath id="winclip"><rect x="396" y="236" width="268" height="488"/></clipPath>
+  <mask id="rev" maskUnits="userSpaceOnUse" x="0" y="0" width="720" height="1280">
+    <circle id="revc" cx="270" cy="570" r="0" fill="#fff" filter="url(#soft)"/>
+  </mask>
+</defs>
+
+<!-- ============ SALA (adulto, hoje) ============ -->
+<g filter="url(#sat)"><g id="roomwrap" filter="url(#wc)">
+  <rect id="wall" x="-80" y="-80" width="880" height="1440" fill="#9aa3b0"/>
+  <rect id="floor" x="-80" y="900" width="880" height="480" fill="#6f6a6a"/>
+  <!-- janela -->
+  <rect x="380" y="220" width="300" height="520" rx="6" fill="#d9d4cc"/>
+  <rect id="winbg" x="396" y="236" width="268" height="488" fill="#7d8aa0"/>
+  <g clip-path="url(#winclip)">
+    <circle id="winsun" cx="560" cy="380" r="70" fill="#ffe27a" opacity="0"/>
+    <g id="rain" stroke="#c9d6e8" stroke-width="3" stroke-linecap="round"></g>
+  </g>
+  <line x1="530" y1="236" x2="530" y2="724" stroke="#d9d4cc" stroke-width="10"/>
+  <line x1="396" y1="480" x2="664" y2="480" stroke="#d9d4cc" stroke-width="10"/>
+  <!-- quadro com o desenho de infância (aparece no fim) -->
+  <g id="frame" opacity="0">
+    <rect x="80" y="280" width="230" height="170" fill="#8a5a3b"/>
+    <rect x="92" y="292" width="206" height="146" fill="#fffdf6"/>
+    <circle cx="255" cy="332" r="20" fill="none" stroke="#f5b800" stroke-width="6"/>
+    <path d="M 125 410 L 125 360 L 195 360 L 195 410 Z" fill="#f8c9bd" stroke="#e04b3a" stroke-width="5"/>
+    <path d="M 117 364 L 160 326 L 203 364 Z" fill="#f4a261" stroke="#b8472a" stroke-width="5"/>
+    <path d="M 225 425 L 225 380" stroke="#3ea34a" stroke-width="5"/>
+    <circle cx="225" cy="372" r="12" fill="#f48fb1"/>
+  </g>
+  <!-- mesinha + barquinho de papel -->
+  <g id="table">
+    <rect x="20" y="860" width="130" height="16" fill="#7a5a3c"/>
+    <line x1="35" y1="876" x2="35" y2="960" stroke="#7a5a3c" stroke-width="8"/>
+    <line x1="135" y1="876" x2="135" y2="960" stroke="#7a5a3c" stroke-width="8"/>
+    <g id="boat0" opacity="0" transform="translate(85 855)">
+      <path d="M -28 0 L 28 0 L 18 16 L -18 16 Z" fill="#fff"/>
+      <path d="M 0 -32 L 0 0 L 20 0 Z" fill="#ff8a65"/>
+      <path d="M 0 -32 L -18 0 L 0 0 Z" fill="#ffd180"/>
+    </g>
+  </g>
+  <!-- poltrona -->
+  <rect x="150" y="640" width="30" height="230" rx="10" fill="#6b4a33"/>
+  <rect x="150" y="800" width="230" height="34" rx="10" fill="#7d5a40"/>
+  <line x1="170" y1="834" x2="170" y2="960" stroke="#5a3e2b" stroke-width="10"/>
+  <line x1="360" y1="834" x2="360" y2="960" stroke="#5a3e2b" stroke-width="10"/>
+  <!-- adulto -->
+  <g id="adult">
+    <path d="M 200 800 L 385 800 L 392 842 L 205 842 Z" fill="#3d4458"/>
+    <path d="M 362 800 L 394 800 L 394 960 L 362 960 Z" fill="#3d4458"/>
+    <path d="M 215 650 Q 265 625 302 655 L 332 800 L 200 800 Z" fill="#5b6c8f"/>
+    <circle cx="262" cy="574" r="46" fill="#e9c3a1"/>
+    <path d="M 216 572 Q 212 514 262 518 Q 312 520 308 562 Q 282 540 252 548 Q 236 556 232 592 Q 214 602 216 572 Z" fill="#4a3224"/>
+    <ellipse id="eye" cx="288" cy="568" rx="4.5" ry="4.5" fill="#2b2420"/>
+    <path id="brow" d="M 277 556 L 298 553" stroke="#4a3224" stroke-width="4" stroke-linecap="round"/>
+    <path id="mouth" d="M 276 590 Q 288 590 300 586" stroke="#8a4b3a" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse id="tear" cx="293" cy="578" rx="3" ry="5" fill="#bfe6ff" opacity="0"/>
+    <path d="M 278 672 Q 330 700 346 742" stroke="#5b6c8f" stroke-width="30" fill="none" stroke-linecap="round"/>
+    <rect x="334" y="722" width="32" height="36" rx="6" fill="#c9573a"/>
+    <circle cx="350" cy="744" r="14" fill="#e9c3a1"/>
+    <g id="steam" stroke="#e8e8f0" stroke-width="4" fill="none" stroke-linecap="round">
+      <path d="M 342 710 q -8 -12 0 -24 q 8 -12 0 -24"/>
+      <path d="M 358 710 q -8 -12 0 -24 q 8 -12 0 -24"/>
+    </g>
+  </g>
+</g></g>
+
+<!-- ============ MEMÓRIAS (infância, em aquarela) ============ -->
+<g id="memory" mask="url(#rev)"><g filter="url(#wc)">
+
+  <!-- M1: desenhando -->
+  <g id="m1">
+    <rect x="-80" y="-80" width="880" height="1440" fill="#fbe7b5"/>
+    <rect x="-80" y="760" width="880" height="620" fill="#a5d684"/>
+    <ellipse cx="120" cy="300" rx="190" ry="130" fill="#f6b3c4" opacity="0.35" filter="url(#blob)"/>
+    <ellipse cx="620" cy="220" rx="170" ry="120" fill="#9dd3f0" opacity="0.4" filter="url(#blob)"/>
+    <circle cx="600" cy="150" r="60" fill="#ffd84d"/>
+    <!-- criança -->
+    <path d="M 290 722 Q 360 700 432 722 L 452 880 L 268 880 Z" fill="#e8604c"/>
+    <path id="m1armL" d="M 300 770 Q 250 820 246 870" stroke="#e8604c" stroke-width="26" fill="none" stroke-linecap="round"/>
+    <circle cx="360" cy="652" r="64" fill="#f1c9a5"/>
+    <path d="M 294 650 Q 298 576 360 580 Q 424 576 428 650 Q 396 612 360 620 Q 326 612 294 650 Z" fill="#2f2118"/>
+    <circle cx="340" cy="668" r="5" fill="#2b2420"/><circle cx="382" cy="668" r="5" fill="#2b2420"/>
+    <circle cx="322" cy="690" r="10" fill="#f48a8a" opacity="0.5"/><circle cx="400" cy="690" r="10" fill="#f48a8a" opacity="0.5"/>
+    <path d="M 346 694 Q 361 708 376 694" stroke="#8a3b3b" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <!-- papel -->
+    <polygon points="120,830 650,810 690,1200 80,1225" fill="#fffdf6" stroke="#e4d7b5" stroke-width="4"/>
+    <g id="m1draw" fill="none" stroke-linecap="round" stroke-linejoin="round"></g>
+    <!-- braço que desenha -->
+    <path id="m1arm" d="M 410 770 Q 420 880 450 960" stroke="#e8604c" stroke-width="26" fill="none" stroke-linecap="round"/>
+    <circle id="m1hand" cx="450" cy="960" r="15" fill="#f1c9a5"/>
+    <line id="m1crayon" x1="450" y1="960" x2="440" y2="985" stroke="#e04b3a" stroke-width="9" stroke-linecap="round"/>
+  </g>
+
+  <!-- M2: barquinho de papel -->
+  <g id="m2" opacity="0">
+    <rect x="-80" y="-80" width="880" height="1440" fill="#cfeaf7"/>
+    <ellipse cx="520" cy="200" rx="200" ry="110" fill="#f6b3c4" opacity="0.30" filter="url(#blob)"/>
+    <ellipse cx="150" cy="420" rx="180" ry="110" fill="#fff" opacity="0.7" filter="url(#blob)"/>
+    <g id="rainbow" fill="none" stroke-width="22" stroke-linecap="butt"></g>
+    <path d="M -80 780 Q 150 690 320 760 Q 480 690 800 770 L 800 1000 L -80 1000 Z" fill="#a9d58d"/>
+    <rect x="-80" y="860" width="280" height="520" fill="#8cc667"/>
+    <path d="M 190 900 Q 400 860 800 905 L 800 1360 L 150 1360 Q 150 1250 150 1195 Z" fill="#5fb7d9"/>
+    <g id="waves" stroke="#cdeefa" stroke-width="5" fill="none" stroke-linecap="round"></g>
+    <g id="ripples" fill="none" stroke="#e8f8ff" stroke-width="4"></g>
+    <g id="boat" transform="translate(300 990)">
+      <path d="M -62 0 L 62 0 L 42 40 L -42 40 Z" fill="#fff" stroke="#e6dccb" stroke-width="3"/>
+      <path d="M 0 -76 L 0 0 L 48 0 Z" fill="#ff8a65"/>
+      <path d="M 0 -76 L -42 0 L 0 0 Z" fill="#ffd180"/>
+    </g>
+    <!-- criança de capa amarela -->
+    <rect x="70" y="835" width="22" height="70" fill="#d93c3c"/><rect x="118" y="835" width="22" height="70" fill="#d93c3c"/>
+    <path d="M 60 760 Q 105 735 150 760 L 165 850 L 45 850 Z" fill="#f7c23b"/>
+    <path id="m2arm" d="M 148 790 Q 210 790 240 820" stroke="#f7c23b" stroke-width="24" fill="none" stroke-linecap="round"/>
+    <circle cx="105" cy="690" r="56" fill="#e9b88f"/>
+    <path d="M 46 692 Q 44 618 105 624 Q 166 618 164 692 Q 150 650 105 656 Q 62 650 46 692 Z" fill="#f7c23b"/>
+    <circle cx="124" cy="700" r="5" fill="#2b2420"/>
+    <path d="M 108 722 Q 124 738 140 718" stroke="#8a3b3b" stroke-width="4" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- M3: pipa -->
+  <g id="m3" opacity="0">
+    <rect x="-80" y="-80" width="880" height="1440" fill="url(#sky3)"/>
+    <circle cx="600" cy="210" r="64" fill="#ffd84d"/>
+    <ellipse cx="620" cy="210" rx="150" ry="150" fill="#ffd84d" opacity="0.25" filter="url(#blob)"/>
+    <g id="clouds" fill="#fff" opacity="0.92"></g>
+    <path d="M -80 820 Q 200 730 420 800 Q 600 740 800 790 L 800 1360 L -80 1360 Z" fill="#9fd694"/>
+    <path d="M -80 960 Q 180 890 380 950 Q 560 900 800 960 L 800 1360 L -80 1360 Z" fill="#6fbf5a"/>
+    <path id="kstring" d="M 280 900 Q 380 700 500 480" stroke="#7a6a58" stroke-width="3" fill="none"/>
+    <g id="kite" transform="translate(500 370)">
+      <path id="ktail" d="M 0 110 Q 20 150 0 190 Q -20 230 0 270" stroke="#e6524a" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M 0 -80 L 55 0 L 0 0 Z" fill="#ff6b6b"/>
+      <path d="M 0 -80 L -55 0 L 0 0 Z" fill="#ffd54f"/>
+      <path d="M 0 0 L 55 0 L 0 110 Z" fill="#4dd0a8"/>
+      <path d="M 0 0 L -55 0 L 0 110 Z" fill="#6a8cff"/>
+      <path d="M 0 -80 L 0 110 M -55 0 L 55 0" stroke="#fff" stroke-width="3" opacity="0.8"/>
+    </g>
+    <!-- criança correndo -->
+    <g id="runner">
+      <path id="leg1" d="M 190 970 L 190 1050" stroke="#3f5ca8" stroke-width="26" stroke-linecap="round"/>
+      <path id="leg2" d="M 190 970 L 190 1050" stroke="#2f4a8c" stroke-width="26" stroke-linecap="round"/>
+      <path d="M 148 880 Q 190 862 232 880 L 244 975 L 136 975 Z" fill="#4aa3df"/>
+      <path id="m3arm" d="M 226 890 Q 260 860 280 905" stroke="#4aa3df" stroke-width="24" fill="none" stroke-linecap="round"/>
+      <circle cx="190" cy="824" r="50" fill="#e9b88f"/>
+      <path d="M 142 822 Q 144 764 192 768 Q 240 764 240 822 Q 214 790 190 796 Q 162 790 142 822 Z" fill="#3b2a1d"/>
+      <circle cx="212" cy="830" r="4.5" fill="#2b2420"/>
+      <path d="M 198 848 Q 212 862 226 846" stroke="#8a3b3b" stroke-width="4" fill="none" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- M4: astronave de papelão -->
+  <g id="m4" opacity="0">
+    <rect x="-80" y="-80" width="880" height="1440" fill="url(#sky4)"/>
+    <ellipse cx="560" cy="360" rx="220" ry="150" fill="#ff7bb0" opacity="0.28" filter="url(#blob)"/>
+    <ellipse cx="140" cy="900" rx="200" ry="140" fill="#6ec6ff" opacity="0.25" filter="url(#blob)"/>
+    <g id="stars" fill="#fff8d6"></g>
+    <g id="planet1" transform="translate(130 300)">
+      <ellipse cx="0" cy="0" rx="150" ry="28" fill="none" stroke="#ffd8a8" stroke-width="10" opacity="0.7" transform="rotate(-18)"/>
+      <circle cx="0" cy="0" r="86" fill="#f4a261"/>
+      <path d="M -70 -20 Q 0 10 70 -30" stroke="#e76f51" stroke-width="12" fill="none" opacity="0.6"/>
+    </g>
+    <circle cx="610" cy="860" r="58" fill="#5fd4b0"/>
+    <circle cx="590" cy="842" r="12" fill="#3fb592" opacity="0.7"/>
+    <g id="mems"></g>
+    <g id="shoots" stroke="#fff" stroke-width="4" stroke-linecap="round"></g>
+    <g id="trail" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="11"></g>
+    <g id="sparks"></g>
+    <g id="ship">
+      <path id="flame2" d="M -26 62 Q 0 150 26 62 Z" fill="#ff9f43"/>
+      <path id="flame1" d="M -14 62 Q 0 118 14 62 Z" fill="#ffe27a"/>
+      <path d="M -50 20 L -102 100 L -50 76 Z" fill="#e6524a"/>
+      <path d="M 50 20 L 102 100 L 50 76 Z" fill="#e6524a"/>
+      <path d="M -52 66 L -52 -60 Q -52 -140 0 -196 Q 52 -140 52 -60 L 52 66 Z" fill="#d9b382" stroke="#b98a5b" stroke-width="5"/>
+      <path d="M -42 -104 Q -30 -166 0 -196 Q 30 -166 42 -104 Z" fill="#e6524a"/>
+      <rect x="-52" y="14" width="104" height="26" fill="#f1dfbb" opacity="0.8"/>
+      <path d="M -36 -10 l 6 12 l 13 2 l -10 9 l 3 13 l -12 -7 l -12 7 l 3 -13 l -10 -9 l 13 -2 Z" fill="none" stroke="#3b7fd4" stroke-width="4" transform="translate(-4 8) scale(0.5)" opacity="0.001"/>
+      <circle cx="0" cy="-48" r="33" fill="#9fd8ff" stroke="#8a5a3b" stroke-width="8"/>
+      <circle cx="0" cy="-46" r="22" fill="#e9b88f"/>
+      <path d="M -24 -48 Q -22 -72 0 -70 Q 22 -72 24 -48 Q 10 -60 0 -58 Q -12 -60 -24 -48 Z" fill="#3b2a1d"/>
+      <circle cx="-8" cy="-44" r="3" fill="#2b2420"/><circle cx="9" cy="-44" r="3" fill="#2b2420"/>
+      <path d="M -8 -34 Q 0 -26 9 -34" stroke="#8a3b3b" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M -30 38 l 5 -5 m 8 0 l 5 5 m 8 0 l 5 -5" stroke="#8a5a3b" stroke-width="3" fill="none" opacity="0.8"/>
+    </g>
+  </g>
+
+</g></g>
+
+<g id="splash" filter="url(#blob)"></g>
+
+<!-- ============ LEGENDA ============ -->
+<g id="cap" opacity="0">
+  <rect id="caprect" x="60" y="1135" width="600" height="84" rx="30" fill="#fffaf0" opacity="0.88"/>
+  <text id="captext" x="360" y="1187" text-anchor="middle" font-size="31" font-style="italic" fill="#4a3b32"></text>
+</g>
+
+<g id="infocards"></g>
+
+<!-- ============ CARTÃO FINAL ============ -->
+<g id="end" opacity="0">
+  <rect width="720" height="1280" fill="#fff6e5"/>
+  <ellipse cx="130" cy="180" rx="220" ry="150" fill="#f6b3c4" opacity="0.5" filter="url(#blob)"/>
+  <ellipse cx="620" cy="240" rx="200" ry="140" fill="#9dd3f0" opacity="0.55" filter="url(#blob)"/>
+  <ellipse cx="360" cy="1180" rx="320" ry="150" fill="#ffd84d" opacity="0.40" filter="url(#blob)"/>
+  <g filter="url(#wc)">
+    <g id="endarc" fill="none" stroke-width="20" stroke-linecap="round"></g>
+  </g>
+  <g id="t1" opacity="0">
+    <text x="360" y="520" text-anchor="middle" font-size="58" font-weight="bold" fill="#3b2f2a">Proteja quem</text>
+    <text x="360" y="592" text-anchor="middle" font-size="58" font-weight="bold" fill="#3b2f2a">colore a sua vida.</text>
+  </g>
+  <g id="t2" opacity="0">
+    <text x="360" y="700" text-anchor="middle" font-size="31" fill="#5a4a40">Seguro de vida: para que o futuro</text>
+    <text x="360" y="745" text-anchor="middle" font-size="31" fill="#5a4a40">da sua família continue</text>
+    <text x="360" y="790" text-anchor="middle" font-size="31" fill="#5a4a40">cheio de cor.</text>
+  </g>
+  <g id="t3" opacity="0">
+    <rect x="70" y="880" width="580" height="86" rx="43" fill="#25a85a"/>
+    <text x="360" y="937" text-anchor="middle" font-size="31" font-weight="bold" fill="#fff">Fale com a gente no WhatsApp</text>
+  </g>
+  <g id="t4" opacity="0">
+    <text x="360" y="1080" text-anchor="middle" font-size="36" font-style="italic" fill="#3b2f2a">Quadrata Seguros</text>
+    <text x="360" y="1130" text-anchor="middle" font-size="22" fill="#8a7a6e">Coberturas e condições conforme apólice.</text>
+  </g>
+</g>
+
+<rect id="fadewhite" x="-80" y="-80" width="880" height="1440" fill="#fffdf6" opacity="0"/>
+<rect width="720" height="1280" filter="url(#grain)" opacity="0.22" pointer-events="none"/>
+</svg>
+
+<script>
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const ease = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const lerp = (a, b, x) => a + (b - a) * x;
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mix = (c1, c2, x) => {
+  const a = hex(c1), b = hex(c2);
+  return '#' + a.map((v, i) => Math.round(lerp(v, b[i], x)).toString(16).padStart(2, '0')).join('');
+};
+const mk = (tag, attrs, parent) => {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e);
+  return e;
+};
+const circ = (cx, cy, r) => `M ${cx - r} ${cy} a ${r} ${r} 0 1 1 ${2 * r} 0 a ${r} ${r} 0 1 1 ${-2 * r} 0`;
+const rays = (cx, cy, r1, r2, n) => {
+  let d = '';
+  for (let i = 0; i < n; i++) {
+    const a = i / n * Math.PI * 2;
+    d += `M ${cx + Math.cos(a) * r1} ${cy + Math.sin(a) * r1} L ${cx + Math.cos(a) * r2} ${cy + Math.sin(a) * r2} `;
+  }
+  return d;
+};
+
+const TOTAL = 44;
+
+/* chuva na janela */
+const rainEl = $('rain');
+const rainLines = [];
+for (let i = 0; i < 16; i++) rainLines.push(mk('line', {}, rainEl));
+
+/* desenho da criança (traços progressivos) */
+const strokes = [
+  { d: circ(540, 925, 40), c: '#f5b800', w: 10, a: 4.2, b: 5.0, fill: '#ffe27a' },
+  { d: rays(540, 925, 56, 82, 8), c: '#f5b800', w: 8, a: 5.0, b: 5.5 },
+  { d: 'M 280 1100 L 280 1010 L 420 1010 L 420 1100 Z', c: '#e04b3a', w: 9, a: 5.5, b: 6.4, fill: '#f8c9bd' },
+  { d: 'M 262 1014 L 350 945 L 438 1014 Z', c: '#b8472a', w: 9, a: 6.4, b: 6.9, fill: '#f4a261' },
+  { d: 'M 336 1100 L 336 1055 L 366 1055 L 366 1100', c: '#6a3b2a', w: 8, a: 6.9, b: 7.2 },
+  { d: 'M 530 1160 L 530 1075', c: '#7a4b2a', w: 10, a: 7.2, b: 7.5 },
+  { d: circ(530, 1040, 46), c: '#3ea34a', w: 9, a: 7.5, b: 8.2, fill: '#a5dca0' },
+  { d: 'M 230 1165 L 230 1112', c: '#3ea34a', w: 7, a: 8.2, b: 8.4 },
+  { d: circ(230, 1096, 17), c: '#e85d9b', w: 8, a: 8.4, b: 8.8, fill: '#f48fb1' },
+];
+const drawG = $('m1draw');
+strokes.forEach(s => {
+  if (s.fill) s.fe = mk('path', { d: s.d, fill: s.fill, stroke: 'none', opacity: 0 }, drawG);
+  s.el = mk('path', { d: s.d, stroke: s.c, 'stroke-width': s.w }, drawG);
+  s.L = s.el.getTotalLength();
+  s.el.setAttribute('stroke-dasharray', s.L);
+});
+
+/* ondas e arco-íris da M2 */
+const wavesG = $('waves');
+for (let i = 0; i < 6; i++) {
+  mk('path', { d: 'M 0 0 q 20 -14 40 0 t 40 0 t 40 0 t 40 0' }, wavesG);
+}
+const rbCols = ['#ff6b6b', '#ff9f43', '#ffd84d', '#6bcB77', '#4d96ff', '#9b6bff'];
+const rbArcs = rbCols.map((c, i) => {
+  const r = 330 - i * 21;
+  const p = mk('path', { d: `M ${400 - r} 760 A ${r} ${r} 0 0 1 ${400 + r} 760`, stroke: c, opacity: 0.85 }, $('rainbow'));
+  p.L = p.getTotalLength();
+  p.setAttribute('stroke-dasharray', p.L);
+  return p;
+});
+const ripples = [0, 1, 2].map(() => mk('ellipse', {}, $('ripples')));
+
+/* nuvens da M3 */
+const clouds = [0, 1, 2].map(i => {
+  const g = mk('g', {}, $('clouds'));
+  mk('ellipse', { cx: 0, cy: 0, rx: 70, ry: 26 }, g);
+  mk('ellipse', { cx: -30, cy: -18, rx: 38, ry: 28 }, g);
+  mk('ellipse', { cx: 26, cy: -22, rx: 44, ry: 30 }, g);
+  return g;
+});
+
+/* estrelas da M4 */
+const starsG = $('stars');
+const starEls = [];
+for (let i = 0; i < 60; i++) {
+  const x = (i * 137.5) % 720, y0 = (i * 211.3) % 1360, sp = 25 + (i * 53) % 60, rr = 1.5 + (i * 7) % 3;
+  const c = mk('circle', { r: rr }, starsG);
+  starEls.push({ c, x, y0, sp });
+}
+
+/* arco-íris do cartão final */
+const endCols = ['#ff6b6b', '#ff9f43', '#ffd84d', '#6bcB77', '#4d96ff', '#9b6bff'];
+const endArcs = endCols.map((c, i) => {
+  const r = 230 - i * 24;
+  const p = mk('path', { d: `M ${360 - r} 400 A ${r} ${r} 0 0 1 ${360 + r} 400`, stroke: c }, $('endarc'));
+  p.L = p.getTotalLength();
+  p.setAttribute('stroke-dasharray', p.L);
+  return p;
+});
+
+
+/* ===== enfeites da astronave ===== */
+const trailPaths = rbCols.map(c => mk('path', { stroke: c, opacity: 0.85 }, $('trail')));
+const sparkEls = Array.from({ length: 14 }, (_, i) => mk('circle', { fill: rbCols[i % 6] }, $('sparks')));
+const shoots = [0, 1, 2].map(() => mk('line', {}, $('shoots')));
+const memSvg = {
+  boat: '<path d="M -34 0 L 34 0 L 24 22 L -24 22 Z" fill="#fff" stroke="#e6dccb" stroke-width="2"/><path d="M 0 -42 L 0 0 L 26 0 Z" fill="#ff8a65"/><path d="M 0 -42 L -24 0 L 0 0 Z" fill="#ffd180"/>',
+  kite: '<path d="M 0 -44 L 30 0 L 0 0 Z" fill="#ff6b6b"/><path d="M 0 -44 L -30 0 L 0 0 Z" fill="#ffd54f"/><path d="M 0 0 L 30 0 L 0 60 Z" fill="#4dd0a8"/><path d="M 0 0 L -30 0 L 0 60 Z" fill="#6a8cff"/><path d="M 0 60 Q 12 85 0 108 Q -12 130 0 150" stroke="#e6524a" stroke-width="4" fill="none"/>',
+  sun: '<circle r="26" fill="#ffe27a" stroke="#f5b800" stroke-width="7"/><path d="' + rays(0, 0, 38, 56, 8) + '" stroke="#f5b800" stroke-width="6" stroke-linecap="round"/>',
+  house: '<path d="M -34 36 L -34 -4 L 34 -4 L 34 36 Z" fill="#f8c9bd" stroke="#e04b3a" stroke-width="6"/><path d="M -44 -2 L 0 -40 L 44 -2 Z" fill="#f4a261" stroke="#b8472a" stroke-width="6"/>',
+  balloon: '<ellipse rx="26" ry="32" fill="#ff6b8b"/><path d="M 0 32 Q -8 60 4 90" stroke="#c9c0d8" stroke-width="3" fill="none"/>',
+  plane: '<path d="M -40 8 L 44 -22 L 12 30 L 2 6 Z" fill="#fff" stroke="#d7cdbb" stroke-width="3"/><path d="M 2 6 L 44 -22" stroke="#bfb29a" stroke-width="3"/>',
+  flower: '<path d="M 0 20 L 0 70" stroke="#3ea34a" stroke-width="6"/><circle r="22" fill="#f48fb1"/><circle r="9" fill="#ffd84d"/>',
+};
+const memItems = [['boat', 90, 300, 52, 0], ['kite', 620, 900, 66, 1], ['sun', 560, 1250, 44, 2], ['house', 150, 1000, 58, 3],
+  ['balloon', 640, 420, 72, 4], ['plane', 110, 700, 64, 5], ['flower', 420, 1150, 50, 6]].map(([k, x, y0, sp, i]) => {
+  const g = mk('g', {}, $('mems'));
+  g.innerHTML = memSvg[k];
+  return { g, x, y0, sp, i };
+});
+const splashEls = [...rbCols, '#ff9fb5'].map(c => mk('circle', { fill: c, opacity: 0 }, $('splash')));
+const shipPos = x => {
+  const up = ease(seg(x, 16.8, 19.4)), amp = ease(seg(x, 18.5, 21.0));
+  return { x: 360 + amp * 170 * Math.sin((x - 18.5) * 0.9), y: lerp(1100, 700, up) - amp * 110 * Math.sin((x - 18.5) * 1.25) + Math.sin(x * 3) * 5 };
+};
+
+/* ===== cartões de informação ===== */
+const IC = $('infocards');
+const infoBg = mk('rect', { x: -80, y: -80, width: 880, height: 1440, fill: '#fff6e5', opacity: 0 }, IC);
+const txt = (par, x, y, str, size, fill, anchor, weight, style) => {
+  const e = mk('text', { x, y, 'font-size': size, fill, 'text-anchor': anchor || 'start', 'font-weight': weight || 'normal', 'font-style': style || 'normal' }, par);
+  e.textContent = str;
+  return e;
+};
+const infoData = [
+  { title: ['O que é o', 'seguro de vida?'], umbrella: true, body: ['É um contrato que paga uma', 'indenização em dinheiro aos', 'beneficiários que você escolher', 'se algo acontecer com você.'] },
+  { title: ['O que pode cobrir'], items: [['Morte', 'natural ou acidental'], ['Invalidez permanente', 'total ou parcial'], ['Doenças graves', 'como câncer e infarto'], ['Assistência funeral', 'para você e sua família']], foot: '*Coberturas variam conforme o plano contratado.' },
+  { title: ['Para que serve'], items: [['Manter o padrão de vida', 'da sua família'], ['Quitar dívidas e', 'financiamentos'], ['Garantir os estudos', 'dos filhos'], ['Dar tempo para a família', 'se reorganizar']] },
+  { title: ['Por que contratar?'], items: [['Você escolhe quem recebe', 'o valor: seus beneficiários'], ['O capital segurado não', 'entra no inventário'], ['Planos para diferentes', 'orçamentos e fases da vida'], ['Quanto antes, em geral,', 'menor o valor do plano']], foot: 'Condições conforme apólice.' },
+];
+const infoTimes = [19.6, 24.2, 28.8, 33.4], infoDur = 4.4;
+infoData.forEach((d, ci) => {
+  const g = mk('g', { opacity: 0 }, IC); d.g = g;
+  mk('ellipse', { cx: 110, cy: 150, rx: 230, ry: 150, fill: rbCols[ci], opacity: 0.22, filter: 'url(#blob)' }, g);
+  mk('ellipse', { cx: 640, cy: 1150, rx: 240, ry: 160, fill: rbCols[(ci + 3) % 6], opacity: 0.22, filter: 'url(#blob)' }, g);
+  d.title.forEach((l, i) => txt(g, 360, 200 + i * 66, l, 54, '#3b2f2a', 'middle', 'bold'));
+  const uy = 200 + (d.title.length - 1) * 66 + 36;
+  mk('path', { d: `M 210 ${uy} Q 360 ${uy + 14} 510 ${uy - 4}`, stroke: rbCols[ci], 'stroke-width': 10, fill: 'none', 'stroke-linecap': 'round' }, g);
+  d.parts = [];
+  if (d.body) {
+    const bg = mk('g', {}, g); d.parts.push(bg);
+    d.body.forEach((l, i) => txt(bg, 360, 470 + i * 56, l, 36, '#5a4a40', 'middle'));
+  }
+  if (d.umbrella) {
+    const ug = mk('g', {}, g); d.parts.push(ug);
+    for (let k = 0; k < 6; k++) {
+      const a1 = Math.PI + k * Math.PI / 6, a2 = Math.PI + (k + 1) * Math.PI / 6, R = 190, cx = 360, cy = 1040;
+      mk('path', { d: `M ${cx} ${cy} L ${cx + Math.cos(a1) * R} ${cy + Math.sin(a1) * R} A ${R} ${R} 0 0 1 ${cx + Math.cos(a2) * R} ${cy + Math.sin(a2) * R} Z`, fill: rbCols[k] }, ug);
+    }
+    mk('path', { d: 'M 360 1040 L 360 1150 Q 360 1185 330 1180', stroke: '#7a5a3c', 'stroke-width': 10, fill: 'none', 'stroke-linecap': 'round' }, ug);
+  }
+  if (d.items) d.items.forEach((it, j) => {
+    const ig = mk('g', {}, g); d.parts.push(ig);
+    const cy = 490 + j * 185;
+    mk('circle', { cx: 110, cy: cy - 12, r: 34, fill: rbCols[(j + ci) % 6] }, ig);
+    mk('path', { d: `M 94 ${cy - 12} L 106 ${cy} L 128 ${cy - 28}`, stroke: '#fff', 'stroke-width': 9, fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }, ig);
+    txt(ig, 175, cy, it[0], 34, '#3b2f2a', 'start', 'bold');
+    txt(ig, 175, cy + 44, it[1], 28, '#6b5a4f', 'start');
+  });
+  if (d.foot) { const fg = mk('g', {}, g); d.parts.push(fg); txt(fg, 360, 1190, d.foot, 24, '#8a7a6e', 'middle', 'normal', 'italic'); }
+});
+const endStars = [[60, 470], [665, 520], [85, 830], [640, 790], [55, 1000], [668, 1010], [190, 60], [545, 70]].map(([x, y], i) => {
+  const e = mk('path', { d: 'M 0 -14 L 3 -3 L 14 0 L 3 3 L 0 14 L -3 3 L -14 0 L -3 -3 Z', fill: rbCols[i % 6] }, $('end'));
+  return { e, x, y, i };
+});
+
+const captions = []; // sem legendas
+
+function render(T) {
+  const D = 9, u = T - 2;          // D = quanto tempo a astronave fica na tela
+  const ts = T + 15.6;               // relógio próprio da cena da astronave
+  const t = T < 2 ? T : (u < D ? Math.min(17.6 + u, 20.2) : 20.2 + (u - D)); // relógio do resto
+  $('turb').setAttribute('seed', (Math.floor(t * 8) % 40) + 1);
+
+  /* ---- reveal da memória ---- */
+  const r = 1250 * (ease(seg(T, 2.0, 3.8)) - ease(seg(t, 20.3, 22.0)));
+  $('revc').setAttribute('r', Math.max(0, r));
+
+  /* ---- sala: estado triste -> aquecido ---- */
+  const warmRaw = ease(seg(t, 20.6, 23.2));
+  const fade = ease(seg(t, 24.0, 27.5));
+  const warm = warmRaw * (1 - 0.92 * fade);
+  $('satm').setAttribute('values', lerp(0.25, 1, warm));
+  $('wall').setAttribute('fill', mix('#9aa3b0', '#f1d3a8', warm));
+  $('floor').setAttribute('fill', mix('#6f6a6a', '#b98a63', warm));
+  $('winbg').setAttribute('fill', mix('#7d8aa0', '#8fd3f4', warm));
+  $('rain').setAttribute('opacity', 1 - warmRaw);
+  $('winsun').setAttribute('opacity', warmRaw * (1 - fade));
+  rainLines.forEach((l, i) => {
+    const x = 404 + i * 17;
+    const y = 236 + ((T * 420 + i * 97) % 520) - 30;
+    l.setAttribute('x1', x); l.setAttribute('x2', x - 5);
+    l.setAttribute('y1', y); l.setAttribute('y2', y + 30);
+  });
+  const smile = ease(seg(t, 20.8, 22.2));
+  const breath = Math.sin(t * 1.6) * 3;
+  $('adult').setAttribute('transform', `translate(0 ${breath})`);
+  $('mouth').setAttribute('d', `M 276 ${590 - 3 * smile} Q 288 ${590 + 14 * smile} 301 ${584 - 8 * smile}`);
+  $('brow').setAttribute('d', `M 277 ${556 + 2 * (1 - smile)} L 298 ${553 - 4 * (1 - smile) - 3 * smile}`);
+  const tearP = seg(t, 21.3, 23.0);
+  $('tear').setAttribute('opacity', tearP > 0 && tearP < 1 ? 0.9 : 0);
+  $('tear').setAttribute('cy', 574 + tearP * 40);
+  $('steam').setAttribute('opacity', 0.35 + 0.25 * Math.sin(t * 2.4));
+  $('frame').setAttribute('opacity', ease(seg(t, 22.0, 23.0)) * (1 - 0.5 * fade));
+  $('boat0').setAttribute('opacity', ease(seg(t, 22.3, 23.2)) * (1 - 0.5 * fade));
+
+  /* ---- M1: desenhando ---- */
+  strokes.forEach(s => {
+    const p = seg(t, s.a, s.b);
+    s.el.setAttribute('stroke-dashoffset', s.L * (1 - p));
+    if (s.fe) s.fe.setAttribute('opacity', 0.75 * seg(t, s.b - 0.1, s.b + 0.4));
+  });
+  let pen = { x: 470, y: 1000 };
+  for (let i = 0; i < strokes.length; i++) {
+    const s = strokes[i];
+    if (t >= s.a) {
+      const p = seg(t, s.a, s.b);
+      const pt = s.el.getPointAtLength(s.L * p);
+      let from = pt;
+      if (i > 0) from = strokes[i - 1].el.getPointAtLength(strokes[i - 1].L);
+      const w = ease(seg(t, s.a, s.a + 0.3));
+      pen = { x: lerp(from.x, pt.x, w), y: lerp(from.y, pt.y, w) };
+    }
+  }
+  if (t < 4.2) pen = { x: 470 + Math.sin(t * 2) * 10, y: 1000 };
+  const sh = { x: 410, y: 770 };
+  $('m1arm').setAttribute('d', `M ${sh.x} ${sh.y} Q ${sh.x + (pen.x - sh.x) * 0.3 + 55} ${sh.y + (pen.y - sh.y) * 0.65} ${pen.x} ${pen.y}`);
+  $('m1hand').setAttribute('cx', pen.x); $('m1hand').setAttribute('cy', pen.y);
+  $('m1crayon').setAttribute('x1', pen.x); $('m1crayon').setAttribute('y1', pen.y);
+  $('m1crayon').setAttribute('x2', pen.x - 8); $('m1crayon').setAttribute('y2', pen.y + 26);
+
+  /* ---- M2: barquinho ---- */
+  $('m2').setAttribute('opacity', seg(t, 8.2, 9.2));
+  const bx = lerp(280, 620, seg(t, 9.0, 13.6));
+  const by = 985 + Math.sin(t * 3.1) * 7;
+  $('boat').setAttribute('transform', `translate(${bx} ${by}) rotate(${Math.sin(t * 2.2) * 4})`);
+  [...wavesG.children].forEach((w, i) => {
+    const off = (t * 28 + i * 31) % 160;
+    w.setAttribute('transform', `translate(${220 + off - 160 + (i % 2) * 60} ${930 + i * 46})`);
+    w.setAttribute('opacity', 0.8);
+  });
+  ripples.forEach((e, i) => {
+    const ph = ((t * 0.7 + i / 3) % 1);
+    e.setAttribute('cx', bx); e.setAttribute('cy', by + 44);
+    e.setAttribute('rx', 60 + ph * 90); e.setAttribute('ry', 10 + ph * 20);
+    e.setAttribute('opacity', (1 - ph) * 0.8);
+  });
+  rbArcs.forEach((p, i) => {
+    p.setAttribute('stroke-dashoffset', p.L * (1 - ease(seg(t, 10.8 + i * 0.12, 12.6 + i * 0.12))));
+  });
+  const wave = Math.sin(t * 4);
+  $('m2arm').setAttribute('d', `M 148 790 Q 200 ${760 + wave * 10} 250 ${775 + wave * 25}`);
+
+  /* ---- M3: pipa ---- */
+  $('m3').setAttribute('opacity', seg(t, 13.3, 14.3));
+  const kx = 500 + Math.sin(t * 1.3) * 28, ky = 370 + Math.sin(t * 1.9) * 22;
+  $('kite').setAttribute('transform', `translate(${kx} ${ky}) rotate(${Math.sin(t * 1.7) * 9})`);
+  const tw = Math.sin(t * 3);
+  $('ktail').setAttribute('d', `M 0 110 Q ${20 + tw * 14} 150 0 190 Q ${-20 - tw * 14} 230 0 270`);
+  const hand = { x: 282, y: 903 + Math.abs(Math.sin(t * 6)) * -6 };
+  $('kstring').setAttribute('d', `M ${hand.x} ${hand.y} Q ${(hand.x + kx) / 2 + 20} ${(hand.y + ky + 110) / 2 + 40} ${kx} ${ky + 110}`);
+  const rs = Math.sin(t * 6);
+  $('runner').setAttribute('transform', `translate(0 ${-Math.abs(rs) * 8})`);
+  $('leg1').setAttribute('d', `M 190 970 L ${190 + rs * 34} 1050`);
+  $('leg2').setAttribute('d', `M 190 970 L ${190 - rs * 34} 1050`);
+  $('m3arm').setAttribute('d', `M 226 890 Q 262 ${862 + rs * 4} 282 ${905 - Math.abs(rs) * 6}`);
+  clouds.forEach((c, i) => {
+    const x = ((i * 330 + t * 22) % 900) - 100;
+    c.setAttribute('transform', `translate(${x} ${180 + i * 150}) scale(${1 - i * 0.12})`);
+  });
+
+  /* ---- M4: astronave ---- */
+  $('m4').setAttribute('opacity', seg(ts, 16.6, 17.6));
+  starEls.forEach((s, i) => {
+    s.c.setAttribute('cx', s.x);
+    s.c.setAttribute('cy', (s.y0 + (ts - 16) * s.sp * 3 + 1360 * 10) % 1360 - 40);
+    s.c.setAttribute('opacity', 0.45 + 0.55 * Math.abs(Math.sin(ts * 2 + i)));
+  });
+  memItems.forEach(m => {
+    const y = ((m.y0 + (ts - 16) * m.sp) % 1500) - 150;
+    m.g.setAttribute('transform', `translate(${m.x + Math.sin(ts * 0.7 + m.i) * 20} ${y}) rotate(${Math.sin(ts * 0.9 + m.i * 2) * 25}) scale(1.15)`);
+  });
+  shoots.forEach((l, i) => {
+    const ph = (ts * 0.33 + i / 3) % 1, x = 800 - ph * 1000 + i * 60, y = -60 + ph * 760 + i * 150;
+    l.setAttribute('x1', x); l.setAttribute('y1', y); l.setAttribute('x2', x + 90); l.setAttribute('y2', y - 60);
+    l.setAttribute('opacity', Math.sin(Math.PI * ph) * 0.9);
+  });
+  const P = shipPos(ts), P0 = shipPos(ts - 0.06), P1 = shipPos(ts + 0.06);
+  const ang = clamp(Math.atan2(P1.x - P0.x, -(P1.y - P0.y)) * 180 / Math.PI, -35, 35);
+  trailPaths.forEach((tp, k) => {
+    let d = '';
+    for (let i = 0; i <= 36; i++) {
+      const q = shipPos(ts - i * 0.04);
+      d += `${i ? 'L' : 'M'} ${(q.x + (k - 2.5) * 10).toFixed(1)} ${(q.y + 64).toFixed(1)} `;
+    }
+    tp.setAttribute('d', d);
+  });
+  sparkEls.forEach((c, i) => {
+    const q = shipPos(ts - 0.12 - i * 0.09);
+    c.setAttribute('cx', q.x + Math.sin(ts * 6 + i * 1.7) * 26);
+    c.setAttribute('cy', q.y + 70 + Math.cos(ts * 5 + i) * 14);
+    c.setAttribute('r', 3 + 2.5 * Math.abs(Math.sin(ts * 8 + i)));
+    c.setAttribute('opacity', 0.9 * (1 - i / 14));
+  });
+  $('ship').setAttribute('transform', `translate(${P.x} ${P.y}) rotate(${ang})`);
+  const fl = Math.sin(ts * 22);
+  $('flame2').setAttribute('d', `M -26 62 Q 0 ${150 + fl * 14} 26 62 Z`);
+  $('flame1').setAttribute('d', `M -14 62 Q 0 ${118 - fl * 10} 14 62 Z`);
+  $('planet1').setAttribute('transform', `translate(130 ${300 + (ts - 16) * 14})`);
+
+  /* respingo de cores na entrada da memória + piscada do adulto */
+  const spp = seg(T, 1.9, 3.6);
+  splashEls.forEach((c, i) => {
+    const a = i / 7 * Math.PI * 2 + 0.4, rr = ease(spp) * 300;
+    c.setAttribute('cx', 270 + Math.cos(a) * rr); c.setAttribute('cy', 570 + Math.sin(a) * rr);
+    c.setAttribute('r', 20 + ease(spp) * 90);
+    c.setAttribute('opacity', spp > 0 && spp < 1 ? 0.55 * (1 - spp) : 0);
+  });
+  $('eye').setAttribute('ry', 4.5 * (1 - 0.85 * ((T % 3.4) < 0.14 ? 1 : 0)));
+
+  /* cartões de informação */
+  infoBg.setAttribute('opacity', ease(seg(T, 19.4, 20.2)));
+  infoData.forEach((d, ci) => {
+    const a0 = infoTimes[ci], b0 = a0 + infoDur;
+    d.g.setAttribute('opacity', Math.max(0, Math.min(seg(T, a0, a0 + 0.6), 1 - seg(T, b0 - 0.5, b0))));
+    d.parts.forEach((pt, j) => {
+      const p = ease(seg(T, a0 + 0.5 + j * 0.35, a0 + 1.1 + j * 0.35));
+      pt.setAttribute('opacity', p);
+      pt.setAttribute('transform', `translate(0 ${(1 - p) * 26})`);
+    });
+  });
+  endStars.forEach(st => {
+    const sc = 0.6 + 0.5 * Math.abs(Math.sin(T * 2.2 + st.i));
+    st.e.setAttribute('transform', `translate(${st.x} ${st.y}) scale(${sc}) rotate(${T * 20})`);
+  });
+
+  /* ---- legenda ---- */
+  let capO = 0, capT = '';
+  captions.forEach(([a, b, txt]) => {
+    if (T >= a && T <= b) {
+      capO = Math.min(seg(T, a, a + 0.5), 1 - seg(T, b - 0.5, b));
+      capT = txt;
+    }
+  });
+  $('cap').setAttribute('opacity', capO);
+  if ($('captext').textContent !== capT && capT) {
+    $('captext').textContent = capT;
+    $('captext').setAttribute('font-size', 31);
+    let bb = $('captext').getBBox();
+    if (bb.width > 600) {
+      $('captext').setAttribute('font-size', 31 * 600 / bb.width);
+      bb = $('captext').getBBox();
+    }
+    $('caprect').setAttribute('x', bb.x - 28);
+    $('caprect').setAttribute('width', bb.width + 56);
+  }
+
+  $('fadewhite').setAttribute('opacity', ease(seg(t, 26.3, 28.6)) * (1 - seg(t, 28.6, 29.8)));
+
+  /* ---- cartão final ---- */
+  const endO = ease(seg(T, 37.6, 38.4));
+  $('end').setAttribute('opacity', endO);
+  endArcs.forEach((p, i) => {
+    p.setAttribute('stroke-dashoffset', p.L * (1 - ease(seg(T, 38.0 + i * 0.1, 39.4 + i * 0.1))));
+  });
+  [['t1', 38.8], ['t2', 39.8], ['t3', 40.6], ['t4', 41.2]].forEach(([id, s]) => {
+    const p = ease(seg(T, s, s + 0.8));
+    $(id).setAttribute('opacity', p);
+    $(id).setAttribute('transform', `translate(0 ${(1 - p) * 24})`);
+  });
+}
+render(0);
+</script>
+</body>
+</html>

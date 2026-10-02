@@ -8,7 +8,7 @@ const { execFileSync } = require('child_process');
 
 const FPS = parseInt(process.argv[2] || '24', 10);
 const OUT = process.argv[3] || 'aquarela.mp4';
-const TOTAL = 25;
+const TOTAL = parseFloat(process.env.TOTAL || '25');
 const here = __dirname;
 const frames = path.join(process.env.FRAMES_DIR || path.join(here, '.frames'));
 
@@ -18,7 +18,7 @@ const frames = path.join(process.env.FRAMES_DIR || path.join(here, '.frames'));
   const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
   const page = await browser.newPage({ viewport: { width: 720, height: 1280 } });
   page.on('pageerror', e => console.error('PAGE ERROR:', e.message));
-  await page.goto('file://' + path.join(here, 'animacao.html'));
+  await page.goto('file://' + path.join(here, process.env.HTML || 'animacao.html'));
 
   if (process.env.TESTE) {
     for (const t of process.env.TESTE.split(',')) {
