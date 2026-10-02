@@ -277,7 +277,7 @@ const rays = (cx, cy, r1, r2, n) => {
   return d;
 };
 
-const TOTAL = 29;
+const TOTAL = 34;
 
 /* chuva na janela */
 const rainEl = $('rain');
@@ -486,15 +486,15 @@ function render(T) {
     $('caprect').setAttribute('width', bb.width + 56);
   }
 
-  $('fadewhite').setAttribute('opacity', ease(seg(t, 26.3, 28.6)));
+  $('fadewhite').setAttribute('opacity', ease(seg(t, 26.3, 28.6)) * (1 - seg(t, 28.6, 29.8)));
 
   /* ---- cartão final ---- */
-  const endO = 0; // sem cartão final
+  const endO = ease(seg(t, 28.6, 29.6));
   $('end').setAttribute('opacity', endO);
   endArcs.forEach((p, i) => {
-    p.setAttribute('stroke-dashoffset', p.L * (1 - ease(seg(t, 24.6 + i * 0.1, 26.0 + i * 0.1))));
+    p.setAttribute('stroke-dashoffset', p.L * (1 - ease(seg(t, 29.4 + i * 0.1, 30.8 + i * 0.1))));
   });
-  [['t1', 25.2], ['t2', 26.2], ['t3', 27.0], ['t4', 27.6]].forEach(([id, s]) => {
+  [['t1', 30.0], ['t2', 31.0], ['t3', 31.8], ['t4', 32.4]].forEach(([id, s]) => {
     const p = ease(seg(t, s, s + 0.8));
     $(id).setAttribute('opacity', p);
     $(id).setAttribute('transform', `translate(0 ${(1 - p) * 24})`);
