@@ -27,6 +27,9 @@
   <linearGradient id="sky3" x1="0" y1="0" x2="0" y2="1">
     <stop offset="0" stop-color="#7fcdf2"/><stop offset="1" stop-color="#eaf7ff"/>
   </linearGradient>
+  <linearGradient id="sky4" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#17174a"/><stop offset="0.6" stop-color="#4b3a8c"/><stop offset="1" stop-color="#e8799b"/>
+  </linearGradient>
   <clipPath id="winclip"><rect x="396" y="236" width="268" height="488"/></clipPath>
   <mask id="rev" maskUnits="userSpaceOnUse" x="0" y="0" width="720" height="1280">
     <circle id="revc" cx="270" cy="570" r="0" fill="#fff" filter="url(#soft)"/>
@@ -176,6 +179,37 @@
     </g>
   </g>
 
+  <!-- M4: astronave de papelão -->
+  <g id="m4" opacity="0">
+    <rect x="-80" y="-80" width="880" height="1440" fill="url(#sky4)"/>
+    <ellipse cx="560" cy="360" rx="220" ry="150" fill="#ff7bb0" opacity="0.28" filter="url(#blob)"/>
+    <ellipse cx="140" cy="900" rx="200" ry="140" fill="#6ec6ff" opacity="0.25" filter="url(#blob)"/>
+    <g id="stars" fill="#fff8d6"></g>
+    <g id="planet1" transform="translate(130 300)">
+      <ellipse cx="0" cy="0" rx="150" ry="28" fill="none" stroke="#ffd8a8" stroke-width="10" opacity="0.7" transform="rotate(-18)"/>
+      <circle cx="0" cy="0" r="86" fill="#f4a261"/>
+      <path d="M -70 -20 Q 0 10 70 -30" stroke="#e76f51" stroke-width="12" fill="none" opacity="0.6"/>
+    </g>
+    <circle cx="610" cy="860" r="58" fill="#5fd4b0"/>
+    <circle cx="590" cy="842" r="12" fill="#3fb592" opacity="0.7"/>
+    <g id="ship">
+      <path id="flame2" d="M -26 62 Q 0 150 26 62 Z" fill="#ff9f43"/>
+      <path id="flame1" d="M -14 62 Q 0 118 14 62 Z" fill="#ffe27a"/>
+      <path d="M -50 20 L -102 100 L -50 76 Z" fill="#e6524a"/>
+      <path d="M 50 20 L 102 100 L 50 76 Z" fill="#e6524a"/>
+      <path d="M -52 66 L -52 -60 Q -52 -140 0 -196 Q 52 -140 52 -60 L 52 66 Z" fill="#d9b382" stroke="#b98a5b" stroke-width="5"/>
+      <path d="M -42 -104 Q -30 -166 0 -196 Q 30 -166 42 -104 Z" fill="#e6524a"/>
+      <rect x="-52" y="14" width="104" height="26" fill="#f1dfbb" opacity="0.8"/>
+      <path d="M -36 -10 l 6 12 l 13 2 l -10 9 l 3 13 l -12 -7 l -12 7 l 3 -13 l -10 -9 l 13 -2 Z" fill="none" stroke="#3b7fd4" stroke-width="4" transform="translate(-4 8) scale(0.5)" opacity="0.001"/>
+      <circle cx="0" cy="-48" r="33" fill="#9fd8ff" stroke="#8a5a3b" stroke-width="8"/>
+      <circle cx="0" cy="-46" r="22" fill="#e9b88f"/>
+      <path d="M -24 -48 Q -22 -72 0 -70 Q 22 -72 24 -48 Q 10 -60 0 -58 Q -12 -60 -24 -48 Z" fill="#3b2a1d"/>
+      <circle cx="-8" cy="-44" r="3" fill="#2b2420"/><circle cx="9" cy="-44" r="3" fill="#2b2420"/>
+      <path d="M -8 -34 Q 0 -26 9 -34" stroke="#8a3b3b" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M -30 38 l 5 -5 m 8 0 l 5 5 m 8 0 l 5 -5" stroke="#8a5a3b" stroke-width="3" fill="none" opacity="0.8"/>
+    </g>
+  </g>
+
 </g></g>
 
 <!-- ============ LEGENDA ============ -->
@@ -242,7 +276,7 @@ const rays = (cx, cy, r1, r2, n) => {
   return d;
 };
 
-const TOTAL = 26;
+const TOTAL = 29;
 
 /* chuva na janela */
 const rainEl = $('rain');
@@ -293,6 +327,15 @@ const clouds = [0, 1, 2].map(i => {
   return g;
 });
 
+/* estrelas da M4 */
+const starsG = $('stars');
+const starEls = [];
+for (let i = 0; i < 60; i++) {
+  const x = (i * 137.5) % 720, y0 = (i * 211.3) % 1360, sp = 25 + (i * 53) % 60, rr = 1.5 + (i * 7) % 3;
+  const c = mk('circle', { r: rr }, starsG);
+  starEls.push({ c, x, y0, sp });
+}
+
 /* arco-íris do cartão final */
 const endCols = ['#ff6b6b', '#ff9f43', '#ffd84d', '#6bcB77', '#4d96ff', '#9b6bff'];
 const endArcs = endCols.map((c, i) => {
@@ -307,19 +350,20 @@ const captions = [
   [0.8, 3.4, 'Às vezes, uma lembrança chega sem pedir licença…'],
   [4.2, 8.4, 'Lembra? A infância tinha todas as cores.'],
   [9.3, 13.2, 'Barquinhos de papel em poças de chuva…'],
-  [14.3, 17.2, '…e sonhos que voavam bem alto.'],
-  [18.4, 20.8, 'Hoje, é você quem pinta o futuro de quem ama.'],
+  [14.3, 16.6, '…e sonhos que voavam bem alto.'],
+  [17.8, 20.2, '…e o futuro, uma astronave de papelão.'],
+  [21.4, 23.8, 'Hoje, é você quem pinta o futuro de quem ama.'],
 ];
 
 function render(t) {
   $('turb').setAttribute('seed', (Math.floor(t * 8) % 40) + 1);
 
   /* ---- reveal da memória ---- */
-  const r = 1250 * (ease(seg(t, 3.2, 5.0)) - ease(seg(t, 17.3, 19.0)));
+  const r = 1250 * (ease(seg(t, 3.2, 5.0)) - ease(seg(t, 20.3, 22.0)));
   $('revc').setAttribute('r', Math.max(0, r));
 
   /* ---- sala: estado triste -> aquecido ---- */
-  const warm = ease(seg(t, 17.6, 20.2));
+  const warm = ease(seg(t, 20.6, 23.2));
   $('satm').setAttribute('values', lerp(0.25, 1, warm));
   $('wall').setAttribute('fill', mix('#9aa3b0', '#f1d3a8', warm));
   $('floor').setAttribute('fill', mix('#6f6a6a', '#b98a63', warm));
@@ -332,17 +376,17 @@ function render(t) {
     l.setAttribute('x1', x); l.setAttribute('x2', x - 5);
     l.setAttribute('y1', y); l.setAttribute('y2', y + 30);
   });
-  const smile = ease(seg(t, 17.8, 19.2));
+  const smile = ease(seg(t, 20.8, 22.2));
   const breath = Math.sin(t * 1.6) * 3;
   $('adult').setAttribute('transform', `translate(0 ${breath})`);
   $('mouth').setAttribute('d', `M 276 ${590 - 3 * smile} Q 288 ${590 + 14 * smile} 301 ${584 - 8 * smile}`);
   $('brow').setAttribute('d', `M 277 ${556 + 2 * (1 - smile)} L 298 ${553 - 4 * (1 - smile) - 3 * smile}`);
-  const tearP = seg(t, 18.3, 20.0);
+  const tearP = seg(t, 21.3, 23.0);
   $('tear').setAttribute('opacity', tearP > 0 && tearP < 1 ? 0.9 : 0);
   $('tear').setAttribute('cy', 574 + tearP * 40);
   $('steam').setAttribute('opacity', 0.35 + 0.25 * Math.sin(t * 2.4));
-  $('frame').setAttribute('opacity', ease(seg(t, 19.0, 20.0)));
-  $('boat0').setAttribute('opacity', ease(seg(t, 19.3, 20.2)));
+  $('frame').setAttribute('opacity', ease(seg(t, 22.0, 23.0)));
+  $('boat0').setAttribute('opacity', ease(seg(t, 22.3, 23.2)));
 
   /* ---- M1: desenhando ---- */
   strokes.forEach(s => {
@@ -409,6 +453,21 @@ function render(t) {
     c.setAttribute('transform', `translate(${x} ${180 + i * 150}) scale(${1 - i * 0.12})`);
   });
 
+  /* ---- M4: astronave ---- */
+  $('m4').setAttribute('opacity', seg(t, 16.6, 17.6));
+  starEls.forEach((s, i) => {
+    s.c.setAttribute('cx', s.x);
+    s.c.setAttribute('cy', (s.y0 + (t - 16) * s.sp * 3 + 1360 * 10) % 1360 - 40);
+    s.c.setAttribute('opacity', 0.45 + 0.55 * Math.abs(Math.sin(t * 2 + i)));
+  });
+  const shipUp = ease(seg(t, 16.8, 20.2));
+  const sx = 360 + Math.sin(t * 1.1) * 36, sy = lerp(1050, 640, shipUp) + Math.sin(t * 3) * 7;
+  $('ship').setAttribute('transform', `translate(${sx} ${sy}) rotate(${Math.sin(t * 1.4) * 5})`);
+  const fl = Math.sin(t * 22);
+  $('flame2').setAttribute('d', `M -26 62 Q 0 ${150 + fl * 14} 26 62 Z`);
+  $('flame1').setAttribute('d', `M -14 62 Q 0 ${118 - fl * 10} 14 62 Z`);
+  $('planet1').setAttribute('transform', `translate(130 ${300 + (t - 16) * 14})`);
+
   /* ---- legenda ---- */
   let capO = 0, capT = '';
   captions.forEach(([a, b, txt]) => {
@@ -431,12 +490,12 @@ function render(t) {
   }
 
   /* ---- cartão final ---- */
-  const endO = ease(seg(t, 21.0, 22.0));
+  const endO = ease(seg(t, 24.0, 25.0));
   $('end').setAttribute('opacity', endO);
   endArcs.forEach((p, i) => {
-    p.setAttribute('stroke-dashoffset', p.L * (1 - ease(seg(t, 21.6 + i * 0.1, 23.0 + i * 0.1))));
+    p.setAttribute('stroke-dashoffset', p.L * (1 - ease(seg(t, 24.6 + i * 0.1, 26.0 + i * 0.1))));
   });
-  [['t1', 22.2], ['t2', 23.2], ['t3', 24.0], ['t4', 24.6]].forEach(([id, s]) => {
+  [['t1', 25.2], ['t2', 26.2], ['t3', 27.0], ['t4', 27.6]].forEach(([id, s]) => {
     const p = ease(seg(t, s, s + 0.8));
     $(id).setAttribute('opacity', p);
     $(id).setAttribute('transform', `translate(0 ${(1 - p) * 24})`);
