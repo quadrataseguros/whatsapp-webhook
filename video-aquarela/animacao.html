@@ -245,6 +245,7 @@
   </g>
 </g>
 
+<rect id="fadewhite" x="-80" y="-80" width="880" height="1440" fill="#fffdf6" opacity="0"/>
 <rect width="720" height="1280" filter="url(#grain)" opacity="0.22" pointer-events="none"/>
 </svg>
 
@@ -346,16 +347,10 @@ const endArcs = endCols.map((c, i) => {
   return p;
 });
 
-const captions = [
-  [0.8, 3.4, 'Às vezes, uma lembrança chega sem pedir licença…'],
-  [4.2, 8.4, 'Lembra? A infância tinha todas as cores.'],
-  [9.3, 13.2, 'Barquinhos de papel em poças de chuva…'],
-  [14.3, 16.6, '…e sonhos que voavam bem alto.'],
-  [17.8, 20.2, '…e o futuro, uma astronave de papelão.'],
-  [21.4, 23.8, 'Hoje, é você quem pinta o futuro de quem ama.'],
-];
+const captions = []; // sem legendas
 
-function render(t) {
+function render(T) {
+  const t = T;
   $('turb').setAttribute('seed', (Math.floor(t * 8) % 40) + 1);
 
   /* ---- reveal da memória ---- */
@@ -363,16 +358,18 @@ function render(t) {
   $('revc').setAttribute('r', Math.max(0, r));
 
   /* ---- sala: estado triste -> aquecido ---- */
-  const warm = ease(seg(t, 20.6, 23.2));
+  const warmRaw = ease(seg(t, 20.6, 23.2));
+  const fade = ease(seg(t, 24.0, 27.5));
+  const warm = warmRaw * (1 - 0.92 * fade);
   $('satm').setAttribute('values', lerp(0.25, 1, warm));
   $('wall').setAttribute('fill', mix('#9aa3b0', '#f1d3a8', warm));
   $('floor').setAttribute('fill', mix('#6f6a6a', '#b98a63', warm));
   $('winbg').setAttribute('fill', mix('#7d8aa0', '#8fd3f4', warm));
-  $('rain').setAttribute('opacity', 1 - warm);
-  $('winsun').setAttribute('opacity', warm);
+  $('rain').setAttribute('opacity', 1 - warmRaw);
+  $('winsun').setAttribute('opacity', warmRaw * (1 - fade));
   rainLines.forEach((l, i) => {
     const x = 404 + i * 17;
-    const y = 236 + ((t * 420 + i * 97) % 520) - 30;
+    const y = 236 + ((T * 420 + i * 97) % 520) - 30;
     l.setAttribute('x1', x); l.setAttribute('x2', x - 5);
     l.setAttribute('y1', y); l.setAttribute('y2', y + 30);
   });
@@ -385,8 +382,8 @@ function render(t) {
   $('tear').setAttribute('opacity', tearP > 0 && tearP < 1 ? 0.9 : 0);
   $('tear').setAttribute('cy', 574 + tearP * 40);
   $('steam').setAttribute('opacity', 0.35 + 0.25 * Math.sin(t * 2.4));
-  $('frame').setAttribute('opacity', ease(seg(t, 22.0, 23.0)));
-  $('boat0').setAttribute('opacity', ease(seg(t, 22.3, 23.2)));
+  $('frame').setAttribute('opacity', ease(seg(t, 22.0, 23.0)) * (1 - 0.5 * fade));
+  $('boat0').setAttribute('opacity', ease(seg(t, 22.3, 23.2)) * (1 - 0.5 * fade));
 
   /* ---- M1: desenhando ---- */
   strokes.forEach(s => {
@@ -489,8 +486,10 @@ function render(t) {
     $('caprect').setAttribute('width', bb.width + 56);
   }
 
+  $('fadewhite').setAttribute('opacity', ease(seg(t, 26.3, 28.6)));
+
   /* ---- cartão final ---- */
-  const endO = ease(seg(t, 24.0, 25.0));
+  const endO = 0; // sem cartão final
   $('end').setAttribute('opacity', endO);
   endArcs.forEach((p, i) => {
     p.setAttribute('stroke-dashoffset', p.L * (1 - ease(seg(t, 24.6 + i * 0.1, 26.0 + i * 0.1))));
