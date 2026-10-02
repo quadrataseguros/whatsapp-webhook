@@ -8,7 +8,7 @@ const { execFileSync } = require('child_process');
 
 const FPS = parseInt(process.argv[2] || '24', 10);
 const OUT = process.argv[3] || 'aquarela.mp4';
-const TOTAL = 18.5;
+const TOTAL = 25;
 const here = __dirname;
 const frames = path.join(process.env.FRAMES_DIR || path.join(here, '.frames'));
 

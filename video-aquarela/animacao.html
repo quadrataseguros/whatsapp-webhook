@@ -277,7 +277,7 @@ const rays = (cx, cy, r1, r2, n) => {
   return d;
 };
 
-const TOTAL = 18.5;
+const TOTAL = 25;
 
 /* chuva na janela */
 const rainEl = $('rain');
@@ -350,7 +350,9 @@ const endArcs = endCols.map((c, i) => {
 const captions = []; // sem legendas
 
 function render(T) {
-  const t = T >= 2.0 ? T + 15.6 : T; // abertura curta e pulo direto para a astronave
+  const D = 9, u = T - 2;          // D = quanto tempo a astronave fica na tela
+  const ts = T + 15.6;               // relógio próprio da cena da astronave
+  const t = T < 2 ? T : (u < D ? Math.min(17.6 + u, 20.2) : 20.2 + (u - D)); // relógio do resto
   $('turb').setAttribute('seed', (Math.floor(t * 8) % 40) + 1);
 
   /* ---- reveal da memória ---- */
@@ -451,25 +453,25 @@ function render(T) {
   });
 
   /* ---- M4: astronave ---- */
-  $('m4').setAttribute('opacity', seg(t, 16.6, 17.6));
+  $('m4').setAttribute('opacity', seg(ts, 16.6, 17.6));
   starEls.forEach((s, i) => {
     s.c.setAttribute('cx', s.x);
-    s.c.setAttribute('cy', (s.y0 + (t - 16) * s.sp * 3 + 1360 * 10) % 1360 - 40);
-    s.c.setAttribute('opacity', 0.45 + 0.55 * Math.abs(Math.sin(t * 2 + i)));
+    s.c.setAttribute('cy', (s.y0 + (ts - 16) * s.sp * 3 + 1360 * 10) % 1360 - 40);
+    s.c.setAttribute('opacity', 0.45 + 0.55 * Math.abs(Math.sin(ts * 2 + i)));
   });
-  const shipUp = ease(seg(t, 16.8, 20.2));
-  const sx = 360 + Math.sin(t * 1.1) * 36, sy = lerp(1050, 640, shipUp) + Math.sin(t * 3) * 7;
-  $('ship').setAttribute('transform', `translate(${sx} ${sy}) rotate(${Math.sin(t * 1.4) * 5})`);
-  const fl = Math.sin(t * 22);
+  const shipUp = ease(seg(ts, 16.8, 20.2));
+  const sx = 360 + Math.sin(ts * 1.1) * 36, sy = lerp(1050, 640, shipUp) + Math.sin(ts * 3) * 7;
+  $('ship').setAttribute('transform', `translate(${sx} ${sy}) rotate(${Math.sin(ts * 1.4) * 5})`);
+  const fl = Math.sin(ts * 22);
   $('flame2').setAttribute('d', `M -26 62 Q 0 ${150 + fl * 14} 26 62 Z`);
   $('flame1').setAttribute('d', `M -14 62 Q 0 ${118 - fl * 10} 14 62 Z`);
-  $('planet1').setAttribute('transform', `translate(130 ${300 + (t - 16) * 14})`);
+  $('planet1').setAttribute('transform', `translate(130 ${300 + (ts - 16) * 14})`);
 
   /* ---- legenda ---- */
   let capO = 0, capT = '';
   captions.forEach(([a, b, txt]) => {
-    if (t >= a && t <= b) {
-      capO = Math.min(seg(t, a, a + 0.5), 1 - seg(t, b - 0.5, b));
+    if (T >= a && T <= b) {
+      capO = Math.min(seg(T, a, a + 0.5), 1 - seg(T, b - 0.5, b));
       capT = txt;
     }
   });
