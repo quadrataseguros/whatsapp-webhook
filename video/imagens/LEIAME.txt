@@ -1,0 +1,1 @@
+Coloque aqui 10 imagens (01.jpg ... 10.jpg), uma por cena, na ordem dos textos. Opcional: musica.mp3 na pasta video/.
