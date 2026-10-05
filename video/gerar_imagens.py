@@ -146,3 +146,14 @@ person(d, 400, 1500, 640, arms=[(400, 960), (540, 1010)]); person(d, 680, 1500, 
 d.ellipse([505, 1050, 575, 1120], fill=DARK); d.rounded_rectangle([495, 1110, 585, 1330], radius=34, fill=DARK)
 finish(im, "10")
 print("ok")
+
+# parede branca (tela final): luz suave de janela, sombra leve e textura de reboco
+yy, xx = np.mgrid[0:H, 0:W]
+base = 244 - 14 * (xx / W) - 10 * (yy / H)
+a = np.stack([base, base - 1, base - 4], axis=2)
+for (x0, x1, y0, y1) in [(120, 520, 160, 900), (560, 960, 160, 900)]:   # sombra da janela na parede
+    m = np.zeros((H, W)); m[y0:y1, x0:x1] = 1
+    m = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(40))) / 255
+    a -= (m * 7)[:, :, None]
+a += np.random.normal(0, 2.2, a.shape)
+Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)).save("imagens/parede.jpg", quality=95)

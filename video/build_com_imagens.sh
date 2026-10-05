@@ -10,6 +10,16 @@ while IFS='|' read -r n text; do
   img=$(ls imagens/$n.* 2>/dev/null | head -1) || true
   [ -z "$img" ] && { echo "Falta imagens/$n.jpg"; exit 1; }
   printf '%b' "$text" > parts/t$i.txt
+  if [ "$n" = "parede" ]; then
+    printf 'Proteja quem você ama.' > parts/a$i.txt
+    printf 'Quadrata Seguros' > parts/b$i.txt
+    printf 'Fale com a gente.' > parts/c$i.txt
+    ffmpeg -nostdin -y -loglevel error -loop 1 -t 6 -framerate 30 -i "$img" -vf \
+     "scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,eq=saturation=1.0,drawtext=fontfile=$F:textfile=parts/a$i.txt:fontcolor=0x3a2f2a:fontsize=58:x=(w-text_w)/2:y=760:alpha='min(1,t/1)',drawtext=fontfile=$F:textfile=parts/b$i.txt:fontcolor=0xb8742a:fontsize=92:x=(w-text_w)/2:y=900:alpha='min(1,max(0,t-0.8))',drawbox=x=(iw-420)/2:y=1040:w=420:h=4:color=0xb8742a@0.8:t=fill,drawtext=fontfile=$F:textfile=parts/c$i.txt:fontcolor=0x3a2f2a:fontsize=48:x=(w-text_w)/2:y=1100:alpha='min(1,max(0,t-1.6))'" \
+     -c:v libx264 -pix_fmt yuv420p parts/p$i.mp4
+    echo "file 'p$i.mp4'" >> parts/list.txt
+    continue
+  fi
   ffmpeg -nostdin -y -loglevel error -i "$img" -frames:v 180 -vf \
    "scale=1296:2304:force_original_aspect_ratio=increase,crop=1296:2304,zoompan=z='1+0.0008*on':d=180:s=1080x1920:fps=30,eq=brightness=0.05:contrast=1.1:saturation=1.9,colorbalance=rs=.08:gs=.02:bs=-.10:rm=.06:bm=-.06:rh=.08:bh=-.08,drawtext=fontfile=$F:textfile=parts/t$i.txt:fontcolor=white:fontsize=52:line_spacing=22:x=(w-text_w)/2:y=h-420:alpha='if(lt(t,1),t,if(gt(t,5),6-t,1))':shadowcolor=black@0.7:shadowx=2:shadowy=2" \
    -c:v libx264 -pix_fmt yuv420p parts/p$i.mp4
@@ -28,7 +38,7 @@ done <<'SCENES'
 03|Atendimento próximo,\nde pessoa para pessoa.
 08|Orientação sob medida\npara a sua família\ne o seu orçamento.
 05|Ao seu lado desde a contratação\naté o momento\nem que você mais precisar.
-10|Proteja quem você ama.\n\nFale com a Quadrata Seguros.
+parede|
 SCENES
 ffmpeg -nostdin -y -loglevel error -f concat -safe 0 -i parts/list.txt -c copy parts/video.mp4
 DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 parts/video.mp4)
