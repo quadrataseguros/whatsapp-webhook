@@ -11,7 +11,7 @@ while IFS='|' read -r n text; do
   [ -z "$img" ] && { echo "Falta imagens/$n.jpg"; exit 1; }
   printf '%b' "$text" > parts/t$i.txt
   ffmpeg -nostdin -y -loglevel error -i "$img" -frames:v 180 -vf \
-   "scale=1296:2304:force_original_aspect_ratio=increase,crop=1296:2304,zoompan=z='1+0.0008*on':d=180:s=1080x1920:fps=30,eq=brightness=0.04:saturation=0.95,drawtext=fontfile=$F:textfile=parts/t$i.txt:fontcolor=white:fontsize=52:line_spacing=22:x=(w-text_w)/2:y=h-420:alpha='if(lt(t,1),t,if(gt(t,5),6-t,1))':shadowcolor=black@0.7:shadowx=2:shadowy=2" \
+   "scale=1296:2304:force_original_aspect_ratio=increase,crop=1296:2304,zoompan=z='1+0.0008*on':d=180:s=1080x1920:fps=30,eq=brightness=0.05:contrast=1.1:saturation=1.9,colorbalance=rs=.08:gs=.02:bs=-.10:rm=.06:bm=-.06:rh=.08:bh=-.08,drawtext=fontfile=$F:textfile=parts/t$i.txt:fontcolor=white:fontsize=52:line_spacing=22:x=(w-text_w)/2:y=h-420:alpha='if(lt(t,1),t,if(gt(t,5),6-t,1))':shadowcolor=black@0.7:shadowx=2:shadowy=2" \
    -c:v libx264 -pix_fmt yuv420p parts/p$i.mp4
   echo "file 'p$i.mp4'" >> parts/list.txt
 done <<'SCENES'
