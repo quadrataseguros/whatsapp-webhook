@@ -1,15 +1,88 @@
-# HANDOFF — Quadrata Seguros · Painel de Metas
+# HANDOFF — Painel de Metas · Operação Quadrata × Piscinão Veículos
 
-**Data:** 2026-06-02  
-**Branch:** `claude/sales-goals-dashboard-yagpc`  
-**Repositório:** `quadrataseguros/whatsapp-webhook`  
-**Versão atual:** `v5-full-features-2026-05-14`
+**Atualizado em:** 2026-10-05
+
+Este documento cobre **o painel de metas e comissões**. Para subir o servidor
+na nuvem, o guia é o **[DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md)** — mais completo
+e mantido à parte.
 
 ---
 
-## O que é este projeto
+## O que é este repositório
 
-Painel de metas de vendas para a Quadrata Seguros. Cada vendedor registra suas vendas (valor, ramo, seguradora, comissão). O admin configura metas semanais/mensais, metas de RO e metas por seguradora.
+Um único serviço Node.js que faz **duas coisas que sobem juntas**:
+
+1. **MarIAna / FabrícIO** — webhook do WhatsApp e Instagram com atendimento por IA
+2. **Painel de Metas** — o dashboard da operação Quadrata × Piscinão Veículos
+
+Mexer numa parte pode derrubar a outra. O `index.js` é compartilhado.
+
+---
+
+## A operação Quadrata × Piscinão Veículos
+
+Parceria **exclusiva** com a revenda Piscinão Veículos. O painel existe para
+essa operação: equipe própria, regra de comissão própria.
+
+**Equipe** (cadastrada automaticamente em `db.js`):
+Abraão, Marcelo, Léo, André, Fernanda, Wallace
+
+---
+
+## Regra de comissão — o coração da operação
+
+Implementada em `calcularVenda()`, no `index.js`. **Calculada sempre no
+servidor**, nunca no navegador: o vendedor não digita percentual e não tem como
+forjar o valor.
+
+```
+prêmio líquido = prêmio bruto ÷ (1 + IOF%)
+comissão       = prêmio líquido × percentual
+```
+
+**Percentual por seguradora:**
+
+| Seguradora | Comissão |
+|---|---|
+| Porto, Azul, Itaú | **4%** |
+| Todas as demais | **2%** |
+
+Casamento por substring, sem acento e sem diferenciar maiúsculas
+("Porto Seguro" → Porto).
+
+**IOF por ramo:**
+
+| Ramo | IOF |
+|---|---|
+| Vida, Acidentes Pessoais | 0,38% |
+| Saúde | 2,38% |
+| Demais (auto, residencial, empresarial…) | 7,38% |
+
+**Conferência:** R$ 5.000 em auto → IOF R$ 343,64 → líquido R$ 4.656,36 →
+**R$ 186,25** na Porto (4%) ou **R$ 93,13** na HDI (2%).
+
+As regras ficam expostas em `GET /api/config`, que é de onde o formulário lê —
+mudar a regra no servidor atualiza a tela sozinho. `GET /api/simular-venda`
+permite conferir um cálculo sem gravar nada.
+
+**Estorno:** cancelamento antes de 8 meses gera estorno proporcional da
+comissão. Hoje o painel **apenas avisa** (no formulário de venda e no resumo de
+comissão). Não há controle automático — foi conversado e adiado.
+
+---
+
+## ⚠️ Armadilha ao mexer na tabela `sales`
+
+| Coluna | O que é |
+|---|---|
+| `gross_value` | prêmio **bruto** — o que o vendedor digitou, com IOF |
+| `value` | prêmio **líquido** — **base de comissões, metas e rankings** |
+| `iof_pct` | alíquota aplicada, gravada para auditoria |
+| `commission_pct` | percentual aplicado, gravado para auditoria |
+
+Usar `gross_value` onde deveria ser `value` infla metas e comissões
+silenciosamente. O nome `value` é herdado da versão antiga, quando não havia
+distinção.
 
 ---
 
@@ -17,178 +90,82 @@ Painel de metas de vendas para a Quadrata Seguros. Cada vendedor registra suas v
 
 | Componente | Tecnologia |
 |---|---|
-| Servidor | Node.js + Express |
-| Banco de dados | SQLite (better-sqlite3) |
-| Frontend | HTML/CSS/JS puro (sem framework) |
-| Gráficos | Chart.js 4.4 |
-| Fontes | Google Fonts — Inter |
-
-### Arquivos principais
+| Servidor | Node.js **20+** · Express |
+| Banco | SQLite (`better-sqlite3`) |
+| Frontend | HTML/CSS/JS puro, sem framework |
+| Gráficos | Chart.js 4.4 (CDN) |
 
 ```
-index.js          — servidor Express + todas as rotas da API
-db.js             — banco SQLite + criação de tabelas + migrações
-admin-page.js     — HTML do painel admin (exportado como string Node.js)
+index.js          servidor Express: webhooks + API do painel
+db.js             SQLite, tabelas, migrações e cadastro da equipe
+admin-page.js     HTML do admin (exportado como string)
 public/
-  dashboard.html  — painel de metas (público)
-atualizar.bat     — script Windows: git pull + npm install + npm start
-railway.json      — configuração de deploy Railway
-package.json      — dependências: express, better-sqlite3, axios
+  dashboard.html  o painel
+railway.json      deploy (numReplicas: 1 — ver abaixo)
 ```
 
----
+> **Node 20+ é obrigatório.** O `better-sqlite3` 12 não roda em Node 18.
+> O `package.json` declara `>=20` justamente para a plataforma não escolher
+> uma versão incompatível e quebrar a instalação — junto com a MarIAna.
 
-## Banco de Dados (SQLite — sales.db)
+> **Uma réplica só.** SQLite em arquivo: duas instâncias gravando no mesmo
+> banco corrompem os dados. Já fixado em `railway.json`.
 
-| Tabela | Descrição |
+### Tabelas
+
+`salespeople` (vendedores, com PIN) · `sales` (vendas) · `goals` (metas
+semanais/mensais) · `ro_goals` (Resultado Operacional) · `seguradora_goals`
+(metas por seguradora) · `settings` (ex: senha do admin alterada)
+
+### Principais rotas do painel
+
+| Rota | Função |
 |---|---|
-| `salespeople` | Vendedores (id, name, active, pin) |
-| `sales` | Vendas (valor, ramo, seguradora, comissão %, data) |
-| `goals` | Metas semanais/mensais por vendedor |
-| `ro_goals` | Metas RO: min. vendas, % comissão mínima, prêmio |
-| `seguradora_goals` | Metas por seguradora: valor ano anterior, prêmio |
-| `settings` | Configurações persistidas (ex: senha admin customizada) |
+| `GET /api/config` | regras de IOF e comissão |
+| `GET /api/simular-venda` | simula um cálculo sem gravar |
+| `GET /api/stats` · `/api/daily-stats` | números do painel |
+| `GET POST DELETE /api/sales` | vendas |
+| `GET POST /api/goals` · `/api/ro-goals` · `/api/seguradora-goals` | metas |
+| `GET /api/ro-stats` · `/api/seguradora-stats` | premiações |
+| `POST /api/salespeople/:id/verify-pin` | identificação do vendedor |
+
+Rotas de admin exigem o header `x-admin-password`.
 
 ---
 
-## Funcionalidades implementadas
+## Telas
 
-### Dashboard (`/dashboard.html`)
-- [x] Cards por vendedor com anel SVG de progresso (vermelho → ouro)
-- [x] Toggle Semanal / Mensal
-- [x] Ranking competitivo com 🥇🥈🥉
-- [x] Gráfico de barras: vendido vs meta (Chart.js)
-- [x] Gráfico de evolução diária acumulada (linha)
-- [x] Indicador de ritmo projetado no fim do período
-- [x] Comparativo ▲/▼ vs período anterior em cada card
-- [x] Modal de detalhe ao clicar no card (breakdown + vendas)
-- [x] Identificação por PIN — vendedor se identifica, modal pré-seleciona
-- [x] Seção RO (Resultado Operacional) com barras de critério
-- [x] Seção Metas por Seguradora (8 empresas, meta = ano anterior × 1,10)
-- [x] Tabela de vendas do período
-- [x] Auto-refresh a cada 60 segundos
-- [x] Tema claro + logo Quadrata (Q azul)
+- **`/dashboard.html`** — cards por vendedor com anel de progresso, ranking,
+  gráfico diário, ritmo projetado, comparativo com o período anterior, seção de
+  Resultado Operacional e metas por seguradora
+- **`/admin.html`** — metas, RO, seguradoras, vendedores (com PIN), histórico de
+  vendas, exportação CSV e troca de senha
 
-### Admin (`/admin.html` ou `/gestor.html`)
-- [x] Login com senha (padrão: `admin123`)
-- [x] Aba Metas — configura valores semanais/mensais por vendedor
-- [x] Aba RO — configura min. vendas, % comissão mínima, prêmio
-- [x] Aba Seguradoras — configura valor ano anterior e prêmio por seguradora/mês
-- [x] Aba Vendedores — adiciona/remove vendedores + define PIN individual
-- [x] Aba Vendas — histórico completo com filtros + excluir venda
-- [x] Aba Config — alterar senha do admin (persiste no banco)
-- [x] Exportar CSV das vendas filtradas (compatível com Excel)
-- [x] Badge de versão no canto (confirmar que código novo está rodando)
+**Prévia visual** (estática, dados de exemplo, não salva nada):
+https://claude.ai/code/artifact/b6059110-efaa-4d5c-8ff6-6e35d9a39b11
 
 ---
 
-## API Endpoints
+## Pendências
 
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/api/stats?period=weekly\|monthly` | Stats de vendedores + totais + prev_sold |
-| GET | `/api/daily-stats?period=` | Evolução diária acumulada por vendedor |
-| GET | `/api/sales?period=` | Vendas do período |
-| POST | `/api/sales` | Registrar venda |
-| DELETE | `/api/sales/:id` | Excluir venda (admin) |
-| GET | `/api/sales/all` | Todas as vendas com filtros (admin) |
-| GET | `/api/salespeople` | Lista vendedores ativos |
-| POST | `/api/salespeople` | Adicionar vendedor (admin) |
-| DELETE | `/api/salespeople/:id` | Desativar vendedor (admin) |
-| POST | `/api/salespeople/:id/verify-pin` | Verificar PIN do vendedor |
-| POST | `/api/salespeople/:id/pin` | Definir PIN (admin) |
-| GET | `/api/goals` | Metas cadastradas |
-| POST | `/api/goals` | Salvar meta (admin) |
-| GET | `/api/ro-goals` | Metas RO |
-| POST | `/api/ro-goals` | Salvar meta RO (admin) |
-| GET | `/api/ro-stats?period=` | Stats RO com comissão ponderada |
-| GET | `/api/seguradora-goals` | Metas por seguradora |
-| POST | `/api/seguradora-goals` | Salvar meta seguradora (admin) |
-| GET | `/api/seguradora-stats` | Stats de seguradoras (mês atual) |
-| POST | `/api/admin/verify` | Verificar senha admin |
-| PUT | `/api/admin/password` | Alterar senha admin |
-| GET | `/api/version` | Versão do servidor |
-
-**Autenticação admin:** header `x-admin-password: <senha>`
+1. **Deploy** — seguir o [DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md). Três coisas não
+   podem faltar: o **volume em `/data`**, `DB_PATH=/data/sales.db` e
+   **`TZ=America/Sao_Paulo`** (sem o fuso, venda registrada depois das 21h cai
+   no dia seguinte e a semana do painel vira na hora errada).
+2. **Trocar a `ADMIN_PASSWORD`** — o padrão `admin123` não pode ir para um painel
+   exposto na internet.
+3. **Logos** — o cabeçalho usa texto. Para usar as imagens reais, é preciso os
+   arquivos PNG no repositório (imagem colada no chat não vira arquivo).
+4. **Controle de estorno** — hoje só existe o aviso. Se um dia for automatizar:
+   marcar apólice cancelada e descontar a comissão proporcional (X/8 avos).
 
 ---
 
-## Variáveis de Ambiente
+## Rodando localmente
 
-| Variável | Padrão | Descrição |
-|---|---|---|
-| `PORT` | `3000` | Porta do servidor |
-| `ADMIN_PASSWORD` | `admin123` | Senha admin (fallback — DB tem prioridade) |
-| `DB_PATH` | `./sales.db` | Caminho do banco SQLite |
-| `LANGFLOW_URL` | `http://localhost:7860` | URL do Langflow (se usar bot) |
-| `LANGFLOW_FLOW_ID` | `""` | ID do flow Langflow |
-| `LANGFLOW_API_KEY` | `""` | Chave API Langflow |
-| `VERIFY_TOKEN` | `quadrata123` | Token verificação webhook WhatsApp |
-
----
-
-## Seguradoras configuradas
-
-`PORTO`, `ALLIANZ`, `TOKIO MARINE`, `BRADESCO`, `YELLUM`, `HDI`, `SUHAI`, `ZURICH`
-
-Matching por substring case-insensitive (ex: "Porto Seguro" → PORTO).
-
----
-
-## Como rodar localmente (Windows)
-
-```cmd
-cd C:\Users\quadr\whatsapp-webhook
-npm start
-```
-
-Ou usar `atualizar.bat` para git pull + restart automático.
-
-Acesso: `http://localhost:3000/dashboard.html`
-
----
-
-## Deploy na nuvem — Railway (PENDENTE)
-
-> Passo a passo completo e atualizado: **[DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md)**
-> (inclui `TZ=America/Sao_Paulo`, a troca do DNS na Cloudflare e o desligamento
-> do Cloudflare Tunnel). O resumo abaixo continua válido:
-
-1. Entrar em **railway.app** com GitHub (`quadrataseguros`)
-2. **New Project** → Deploy from GitHub repo
-3. Selecionar `quadrataseguros/whatsapp-webhook`
-4. Branch: `claude/sales-goals-dashboard-yagpc`
-5. Aba **Volumes** → Add Volume → Mount path: `/data`
-6. Aba **Variables** → adicionar:
-   - `DB_PATH` = `/data/sales.db`
-   - `ADMIN_PASSWORD` = (senha desejada)
-7. Aba **Settings** → Networking → **Generate Domain**
-8. URL pública ficará tipo: `https://xxxx.up.railway.app`
-
-Após deploy: dashboard em `/dashboard.html`, admin em `/admin.html`.
-
----
-
-## Detalhes técnicos importantes
-
-### Template literal em admin-page.js
-O arquivo `admin-page.js` exporta o HTML do admin como uma template literal Node.js. **Regra crítica:** dentro desta string, `\n` vira quebra de linha real — sempre usar `\\n` em strings JS internas, e jamais usar caracteres especiais como BOM (U+FEFF) diretamente.
-
-### Comissão ponderada (RO)
-Fórmula: `Σ(valor × comissão%) / Σ(valor) × 100`. Evita distorção por vendas pequenas com % alto.
-
-### Período semanal
-Segunda a domingo (semana ISO). Período mensal: dia 1 ao último dia do mês.
-
----
-
-## Histórico de commits relevantes
-
-```
-db9d052  Fix: erros de sintaxe \n e BOM no admin
-fd39052  v5: ranking, gráfico diário, ritmo, comparativo, PIN, detalhes, CSV, alterar senha
-5718420  Preparar Railway deploy (DB_PATH, railway.json)
-43e1261  Tema claro + logo Quadrata
-e4d2f6a  Metas por seguradora (+10% ano anterior)
-50c5330  RO (Resultado Operacional) com premiação
+```bash
+npm install
+DB_PATH=./sales.db TZ=America/Sao_Paulo npm start
+# painel: http://localhost:3000/dashboard.html
+# admin:  http://localhost:3000/admin.html   (senha padrão: admin123)
 ```
