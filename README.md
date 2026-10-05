@@ -1,8 +1,12 @@
-# WhatsApp Webhook — MarIAna · Quadrata Seguros
+# WhatsApp Webhook — MarIAna e FabrícIO · Quadrata Seguros
 
 Webhook Node.js que recebe mensagens do WhatsApp Business API, responde com um
-**menu interativo** e, para texto livre, usa a **MarIAna** (IA via API da Anthropic /
-Claude) — enviando a resposta automática de volta ao cliente.
+**menu interativo** e, para texto livre, usa a IA (API da Anthropic / Claude) —
+enviando a resposta automática de volta ao cliente.
+
+São **duas personas** atendendo pelo **mesmo número** de WhatsApp: a **MarIAna**
+e o **FabrícIO**. Quem responde depende da porta de entrada do cliente — ver
+[Personas](#personas-mariana-e-fabrício) abaixo.
 
 > **Nota:** a IA roda direto pela API da Anthropic. Não há mais servidor Langflow
 > para manter ligado 24h — paga-se apenas por mensagem processada.
@@ -12,9 +16,11 @@ Claude) — enviando a resposta automática de volta ao cliente.
 ## Arquitetura
 
 ```
-WhatsApp  →  Meta Webhook  →  Este servidor  →  MarIAna (Claude, API Anthropic)
-                                                      ↓
-WhatsApp  ←  WhatsApp Cloud API  ←─────────── resposta automática
+WhatsApp  →  Meta Webhook  →  Este servidor  →  persona (Claude, API Anthropic)
+                                  ↑                   ↓
+                          quem atende?      resposta automática
+                       (porta de entrada)             ↓
+                                          WhatsApp Cloud API  →  cliente
 ```
 
 ---
@@ -28,13 +34,26 @@ Copie `.env.example` para `.env` e preencha:
 | `VERIFY_TOKEN` | Token de verificação da Meta (padrão: `quadrata123`) |
 | `WA_PHONE_NUMBER_ID` | ID do número no painel Meta |
 | `WA_ACCESS_TOKEN` | Token de acesso da Meta |
-| `ANTHROPIC_API_KEY` | Chave da API da Anthropic (crie em console.anthropic.com) — ativa a MarIAna |
+| `ANTHROPIC_API_KEY` | Chave da API da Anthropic (crie em console.anthropic.com) — ativa a IA |
 | `MARIANA_MODEL` | Modelo do Claude (padrão: `claude-haiku-4-5`) |
+| `IG_USER_ID` · `IG_ACCESS_TOKEN` | Instagram da **MarIAna** (dispensável se ligar por `/admin/instagram`) |
+| `IG_USER_ID_FABRICIO` · `IG_ACCESS_TOKEN_FABRICIO` | Instagram do **FabrícIO** (idem) |
+| | Os `IG_USER_ID*` aceitam **os dois ids da conta**, separados por vírgula: o app-scoped primeiro (é o que o envio usa) e o da conta profissional, `17841…`, depois (é o que o webhook manda). Com um só, o direct chega sem ser reconhecido e cai na persona padrão. |
+| `IG_APP_ID` · `IG_APP_SECRET` | App do Instagram — habilitam `/admin/instagram`, que liga a conta pelo navegador |
 | `MAKE_WEBHOOK_URL` | URL do Make — usado como fallback se `ANTHROPIC_API_KEY` não estiver configurada |
+| `WA_BUSINESS_ACCOUNT_ID` · `SERVER_URL` | Só para o [servidor MCP](#servidor-mcp-whatsapp-pelo-agente-de-ia) |
+| `WHATSAPP_NUMERO` | Opcional. Troca o número para onde os `/fale` mandam o cliente (é o mesmo para as duas personas). Padrão: `(11) 98678-0000` |
 
 ---
 
-## Deploy no Render
+## Deploy
+
+Para colocar (ou manter) o servidor na nuvem, siga o
+**[DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md)** — é o caminho recomendado: o volume
+do banco, as variáveis obrigatórias (`DB_PATH`, `TZ`) e a troca do DNS na
+Cloudflare estão detalhados lá.
+
+### Alternativa: Render
 
 1. Suba este repositório no GitHub.
 2. No Render, crie um **Web Service** conectado ao repositório.
@@ -49,7 +68,242 @@ Copie `.env.example` para `.env` e preencha:
 
 ---
 
-## Configurar a MarIAna (IA)
+## Personas: MarIAna e FabrícIO
+
+O WhatsApp é **um número só** — o (11) 98678-0000. O que muda é **quem atende**,
+conforme por onde o cliente chegou:
+
+| Porta de entrada | Quem responde |
+|---|---|
+| Direct no Instagram da MarIAna | MarIAna |
+| Direct no Instagram do FabrícIO | FabrícIO |
+| Link `/fale` na bio (ou anúncio) da MarIAna | MarIAna |
+| Link `/fale/fabricio` na bio (ou anúncio) do FabrícIO | FabrícIO |
+| Qualquer outra origem | MarIAna (padrão) |
+
+Como cada sinal é lido:
+
+- **Instagram:** o webhook diz em qual conta o direct caiu (`entry[0].id`), e o
+  servidor compara com o `IG_USER_ID` de cada persona. É o sinal mais confiável,
+  porque não depende do que o cliente digitou.
+- **WhatsApp:** o link `/fale` já abre a conversa com um texto digitado que
+  carrega a origem ("Vim *pelo Instagram do Fabricio* e quero..."). Anúncios
+  *Click to WhatsApp* são reconhecidos pelo `referral` quando o anúncio cita o
+  Fabricio.
+- **Depois da primeira mensagem** a escolha fica **gravada por contato** (tabela
+  `contact_persona`), então o cliente não vê o atendente trocar de nome no meio
+  da conversa. Se ele voltar pela outra porta, a persona troca e a conversa
+  recomeça do zero — o novo atendente não responde em cima das falas do outro.
+
+O que muda entre as duas: **nome, gênero, papel e jeito de falar**. Produtos,
+menu, regras, campanha de consórcio e limites são exatamente os mesmos — o corpo
+do prompt é compartilhado. Tudo fica em **`personas.js`**; para criar uma
+terceira persona, copie um dos objetos e acrescente ao registro.
+
+Diagnóstico: `GET /health` lista as personas, quais têm Instagram configurado e
+o link de bio de cada uma.
+
+> **Atenção — a foto e o nome do perfil do WhatsApp são um só.** Quem chega pelo
+> Instagram do Fabricio cai num WhatsApp cuja foto e nome de exibição são os da
+> conta única. Para não gerar estranheza, deixe o perfil do WhatsApp **neutro,
+> com a marca da Quadrata** (não com a cara de uma das personas) — cada uma se
+> apresenta pelo nome na conversa.
+
+---
+
+## Captação: de onde vêm os contatos
+
+O canal digital existe para testar se capta sozinho — sem apoio da carteira
+existente. Para medir isso, cada contato novo é gravado com a **porta em que
+entrou**:
+
+| Origem | Como é reconhecida |
+|---|---|
+| **Anúncio** | a mensagem traz `referral` (Click to WhatsApp) |
+| **Link da bio** | o texto que o `/fale` já abre digitado |
+| **Direct do Instagram** | a mensagem caiu numa conta de Instagram configurada |
+| **Direto no WhatsApp** | nenhuma das anteriores — a pessoa digitou o número |
+
+A origem é **atribuição de primeiro toque**: gravada uma vez, na primeira
+mensagem, e nunca sobrescrita. Quem chega pelo orgânico e depois clica num
+anúncio segue contando como orgânico — foi o orgânico que trouxe a pessoa; o
+anúncio só a reencontrou. A persona pode trocar depois; a origem, não.
+
+Veja em **`/admin/captacao`** (senha do painel): total de pessoas que puxaram
+conversa, quebra por origem com a divisão entre MarIAna e FabrícIO, e as
+últimas 12 semanas. Os mesmos números em JSON no `GET /api/captacao`.
+
+Conta **pessoas, não mensagens** — cada linha de `contact_persona` é um contato
+único. Contatos anteriores a esta mudança aparecem sem origem até mandarem uma
+mensagem nova; a partir daí entram como "Direto no WhatsApp", já que o sinal da
+porta original se perdeu.
+
+---
+
+## Perfil comercial do WhatsApp (foto e textos)
+
+O número é um só para as duas personas, então a foto e os textos do perfil têm
+que ser **neutros — da Quadrata**, não da MarIAna nem do FabrícIO. Quem chega
+pelo link do Fabricio e vê o rosto da Mariana estranha.
+
+Ao contrário do Instagram, a Cloud API **deixa editar o perfil por API**. A
+troca é feita pelo próprio servidor, onde a chave já está:
+
+1. Defina `META_APP_ID` no ambiente (o id do App, em developers.facebook.com).
+2. Abra `/admin/whatsapp`, digite a senha do painel e clique **Ver perfil atual**
+   — se a chave não tiver a permissão `whatsapp_business_management`, o erro
+   aparece aqui, antes de mudar qualquer coisa.
+3. Clique **Aplicar foto e textos**.
+
+O que sobe está em `PERFIL_WHATSAPP`, no `index.js`: a foto
+(`marca/quadrata/avatar-whatsapp.png`, 640×640), o *sobre* (limite de 139
+caracteres) e a descrição (512). A foto é um recorte da arte **Quadrata Seguros
+Digital** (`marca/quadrata/quadrata-digital.jpg`): só a marca dissolvendo em
+pixels, sem o texto — a 40px, texto vira ruído. A arte inteira é para formato
+grande (post, capa, banner). Para trocar a foto, substitua o arquivo e acione a
+rota de novo; o recorte é feito em `avatar-whatsapp.html`, renderizado com
+Chromium headless.
+
+---
+
+## Ligar o Instagram de uma persona
+
+**O caminho curto: `/admin/instagram`.** Configure `IG_APP_ID` e
+`IG_APP_SECRET` no ambiente (o **ID do app do Instagram** e a **chave
+secreta**, na tela *Configuração da API com login do Instagram*), cadastre
+`https://<seu-dominio>/instagram/callback` como URL de retorno no app, e abra
+`/admin/instagram?persona=fabricio`. São dois cliques: você entra no Instagram,
+autoriza, e o servidor guarda token e id sozinho — sem terminal, sem copiar
+variável, sem a chave secreta passando por linha de comando.
+
+O resto desta seção é o caminho manual, útil para entender o que acontece por
+baixo ou para quando o servidor ainda não está no ar.
+
+Sem `IG_USER_ID*` e `IG_ACCESS_TOKEN*` a persona atende só no WhatsApp: o
+direct do Instagram chega e ninguém responde.
+
+**O caminho é o Business Login for Instagram, não o Graph API Explorer.** O
+servidor fala com `graph.instagram.com` (ver `sendInstagramReply`), onde o
+token pertence à **conta do Instagram**. O Explorer entrega token de **Página
+do Facebook**, para `graph.facebook.com` — parece certo, valida em qualquer
+teste de Página e falha no endpoint de mensagens. Tutorial que manda usar o
+Explorer está resolvendo outro problema.
+
+1. **Conta profissional.** Instagram → Configurações → Tipo de conta:
+   *Business* ou *Creator*. Pessoal não tem API.
+2. **App na Meta.** `developers.facebook.com` → Criar app → adicione o produto
+   **Instagram** → *API setup with Instagram login*.
+3. **Permissões.** `instagram_business_basic`,
+   `instagram_business_manage_messages` (direct) e
+   `instagram_business_content_publish` (publicar post).
+4. **Vincule a conta** em *Business login settings* e gere o token pelo botão
+   **Generate token** — o login abre, você entra com o @ da persona e autoriza.
+5. **Descubra o id e valide**, na sua máquina (o token é segredo — não cole em
+   chat, não commite):
+
+   ```bash
+   node instagram-setup.js diagnostico <token>
+   ```
+
+   Se o botão **Adicionar conta** não abrir o login do Instagram — ele às
+   vezes cai no seletor de pessoas do Facebook, que nunca aceita um @ do
+   Instagram —, faça o mesmo login por fora. Cadastre uma URL de retorno em
+   *Configurar o login da empresa no Instagram* (ela não precisa existir: o
+   navegador para nela com `?code=…` na barra, e é só disso que se precisa) e:
+
+   ```bash
+   node instagram-setup.js autorizar <ig-app-id> <url-de-retorno>
+   node instagram-setup.js codigo
+   ```
+
+   O `<ig-app-id>` é o **ID do app do Instagram**, na mesma tela — não o ID do
+   app da Meta. O `codigo` pergunta o que precisa (aceita a URL inteira da
+   barra de endereços, não só o código), esconde a chave secreta enquanto você
+   digita, emenda na troca de 60 dias e imprime as duas variáveis prontas.
+
+   Nenhum segredo vai em linha de comando: ali ele ficaria no histórico do
+   terminal e apareceria em qualquer print.
+
+   **Se colar no terminal não funcionar** — o `cmd` do Windows recusa colagem
+   de várias formas, e o código tem 200 caracteres para digitar à mão — use a
+   ficha:
+
+   ```bash
+   node instagram-setup.js ficha <ig-app-id> <url-de-retorno>
+   ```
+
+   Ela cria um `instagram.txt` já com o que não muda. Abra no Bloco de Notas,
+   onde colar sempre funciona, cole a URL e a chave nos dois lugares marcados,
+   salve, e rode `node instagram-setup.js codigo`: ele lê tudo de lá e não
+   pergunta nada. `instagram.txt` e `segredo.txt` estão no `.gitignore`;
+   apague os dois quando terminar.
+
+6. **Troque pelo token de 60 dias.** O da etapa 4 vale **uma hora** — colocar
+   ele no Railway é ligar o canal por uma hora e não perceber quando cair. O
+   app secret está em *Configurações → Básico*.
+
+   ```bash
+   node instagram-setup.js trocar <token-curto> <app-secret>
+   ```
+
+7. Cole as duas variáveis que ele imprime no Railway e faça o redeploy.
+   Confira em `/health`: a persona sai de *NAO configurado* para
+   *configurado*.
+
+### O token de 60 dias se renova sozinho
+
+O token vale 60 dias e, vencido, a persona para de responder direct **sem erro
+visível para o cliente** — que só acha que ninguém atendeu. Depender de alguém
+lembrar a cada dois meses é depender de esquecer.
+
+O servidor renova sozinho (`instagram-token.js`): uma verificação um minuto
+depois de subir e a cada 12 horas. Quando faltam 20 dias ou menos, ele chama a
+Meta e **guarda o token novo no SQLite** — a variável de ambiente ele não
+consegue reescrever. A margem de 20 dias existe para o servidor poder passar
+semanas fora do ar e ainda achar a janela.
+
+Quem manda, nessa ordem:
+
+1. **A variável de ambiente, se mudou.** Trocou `IG_ACCESS_TOKEN_FABRICIO` no
+   Railway (reautenticou, mudou de conta)? É mão humana: a cadeia recomeça
+   dali e o que estava no banco é ignorado.
+2. **O token do banco**, que é o mais novo da cadeia.
+
+Ou seja: o ambiente é a **semente**, não a verdade. Para saber qual está
+valendo, `/health` mostra o prazo de cada persona (mascarado, sem expor o
+token):
+
+```json
+"instagramToken": { "configurado": true, "renovadoAutomaticamente": true,
+                    "diasRestantes": 58, "ultimaRenovacao": "2026-09-17 09:12:04" }
+```
+
+O mesmo prazo aparece no log a cada boot.
+
+**Renovar à mão** continua possível — útil se o servidor ficou meses parado e
+o token venceu de vez, ou para renovar de outra máquina:
+
+```bash
+node instagram-setup.js renovar <token-longo> --persona=fabricio
+```
+
+A Meta só renova token com **mais de 24h de vida** e que ainda não venceu.
+Logo depois de uma troca manual o servidor tenta, leva a recusa e registra sem
+alarme — no ciclo seguinte já passa. Vencido de vez não há renovação: é gerar
+outro pelo login, como acima. Todos os comandos aceitam
+`--persona=fabricio|mariana`; o padrão é `fabricio`.
+
+### O que a API faz e o que não faz
+
+| | |
+|---|---|
+| Responder direct | **Pronto** — já está no código, roteando pela conta que recebeu |
+| Publicar post e carrossel | **Dá** — dois passos (`/media`, depois `/media_publish`), ainda não implementado aqui |
+| Editar bio, nome, foto, categoria | **Não existe endpoint.** É à mão no app, com os textos de `marca/fabricio/perfil-instagram.html` |
+
+---
+
+## Configurar a IA
 
 A IA roda direto pela API da Anthropic — nada para manter ligado, sem servidor
 Langflow. Para ativar:
@@ -61,20 +315,22 @@ Langflow. Para ativar:
    Render/Railway, ou no `.env` local).
 
 Personalização:
-- O comportamento e as informações da MarIAna ficam na constante
-  `MARIANA_SYSTEM`, em `index.js`.
+- O comportamento e as informações das personas ficam em **`personas.js`**: a
+  identidade de cada uma (nome, gênero, jeito de falar) e o corpo comum
+  (produtos, tom, regras) que vale para todas.
 - O modelo padrão é `claude-haiku-4-5` (rápido e econômico). Para trocar, use a
   variável `MARIANA_MODEL`.
-- A MarIAna lembra o contexto das últimas mensagens de cada cliente por 30
-  minutos de inatividade (memória em `index.js`).
+- A IA lembra o contexto das últimas mensagens de cada cliente por 30 minutos
+  de inatividade (memória em `index.js`).
 
-Diagnóstico: acesse `GET /mariana-status` para checar se a IA está respondendo.
+Diagnóstico: acesse `GET /ia-status` (ou o antigo `/mariana-status`) para checar
+se a IA está respondendo.
 
 ---
 
 ## Menu interativo (WhatsApp)
 
-Além da MarIAna (IA), o webhook envia **menus interativos** nativos do WhatsApp
+Além da IA, o webhook envia **menus interativos** nativos do WhatsApp
 (mensagens do tipo `list`), o mesmo recurso visual de plataformas como a Digisac,
 porém direto pela Cloud API:
 
@@ -82,14 +338,48 @@ porém direto pela Cloud API:
   → recebe o menu principal com as opções: Cotação, Sinistro/Guincho, App e Corretor.
 - Ao tocar em **Sinistro/Guincho** → abre um submenu com as seguradoras e devolve
   os telefones de assistência 24h.
-- **Texto livre** (perguntas abertas) → continua sendo respondido pela **MarIAna (IA)**.
+- **Texto livre** (perguntas abertas) → continua sendo respondido pela **IA**, na voz da persona que estiver atendendo aquele contato.
 
 Requisito: a conexão precisa ser **WhatsApp Cloud API oficial** (o número já usado
-pela MarIAna atende esse requisito). Menus interativos **não** funcionam em conexões
+pelas personas atende esse requisito). Menus interativos **não** funcionam em conexões
 via QR Code.
 
 Os textos, telefones e o fluxo do menu ficam centralizados em `index.js`
 (constantes `RESPOSTAS`, `sendMainMenu`, `sendSeguradorasMenu`).
+
+---
+
+## Servidor MCP (WhatsApp pelo agente de IA)
+
+`mcp-server.js` deixa o Claude Code, Claude Desktop, Cursor ou Codex cuidar do
+WhatsApp Business conversando. Roda na **sua máquina** (stdio), não no Render,
+e não muda nada no atendimento: é só um painel de controle por conversa.
+
+| Ferramenta | O que faz |
+|------------|-----------|
+| `whatsapp_status` | Nome verificado, qualidade, limite de envio, verificação do negócio e se o webhook está inscrito |
+| `listar_templates` · `criar_template` · `apagar_template` | Templates de mensagem (criar manda para aprovação da Meta) |
+| `enviar_template` | Puxa conversa com quem não escreveu nas últimas 24h |
+| `enviar_texto` | Texto livre, só dentro da janela de 24h |
+| `servidor_saude` | `/health` e `/ia-status` do servidor no ar |
+| `captacao` | Contatos por origem e por semana (precisa de `ADMIN_PASSWORD`) |
+| `publicar_instagram` | Posta no feed da MarIAna ou do FabrícIO: 1 foto ou carrossel de até 10 (JPEG do computador ou link) |
+
+Usa o mesmo `.env` do webhook, mais `WA_BUSINESS_ACCOUNT_ID` (templates e
+status da conta) e, opcional, `SERVER_URL`. No Claude Code, o `.mcp.json` da
+raiz já registra o servidor: basta abrir o projeto e aprovar. Em outro cliente,
+aponte para `node /caminho/whatsapp-webhook/mcp-server.js`.
+
+**Fotos no Instagram.** Peça ao agente, por exemplo: *"publica no Instagram do
+FabrícIO as fotos ~/Fotos/evento1.jpg e evento2.jpg com a legenda …"*. Quem
+publica é o servidor no Render (rota `POST /api/instagram/publicar`, protegida
+pela senha do admin), com o token que ele já renova sozinho — por isso o MCP
+precisa de `ADMIN_PASSWORD` no `.env` local. A Meta só aceita **JPEG**; a foto
+fica em `/midia/…` por uma hora, só para a Meta baixar. Publicou, avisa no
+Telegram. A conta da persona precisa estar ligada em `/admin/instagram`.
+
+Para criar a conta, verificar o número e aceitar termos, use o **WhatsApp
+Business Tools MCP** oficial da Meta — este aqui cuida do dia a dia.
 
 ---
 
@@ -100,7 +390,9 @@ Os textos, telefones e o fluxo do menu ficam centralizados em `index.js`
 | `GET` | `/webhook` | Verificação Meta |
 | `POST` | `/webhook` | Recebe mensagens WhatsApp |
 | `GET` | `/health` | Status do servidor e modo ativo |
-| `GET` | `/mariana-status` | Testa se a IA (Claude) está respondendo |
+| `GET` | `/ia-status` | Testa se a IA (Claude) está respondendo (antigo `/mariana-status`) |
+| `GET` | `/fale` | Link da bio do Instagram da MarIAna — redireciona para a conversa no WhatsApp |
+| `GET` | `/fale/fabricio` | Link da bio do Instagram do FabrícIO — mesmo número, quem atende é ele |
 
 ---
 
@@ -117,3 +409,80 @@ Verificar saúde:
 ```bash
 curl http://localhost:3000/health
 ```
+
+Testes (`teste-instagram-token.js` — a política de renovação do token do
+Instagram, em banco temporário e com a rede fingida):
+```bash
+npm test
+```
+
+---
+
+## Links da bio do Instagram (`/fale`)
+
+Cada perfil tem o seu link, e é ele que diz quem vai atender:
+
+| Perfil | Link da bio |
+|---|---|
+| `@marianaquadrata` | `https://webhook.quadratadigital.com.br/fale` |
+| Instagram do FabrícIO | `https://webhook.quadratadigital.com.br/fale/fabricio` |
+
+A rota redireciona o visitante para a conversa no WhatsApp já com a mensagem
+digitada — e é essa mensagem que carrega a origem:
+
+| Link | Mensagem que abre |
+|------|-------------------|
+| `/fale` | `Oi, vim pelo Instagram e quero mais informações.` (abre o menu principal) |
+| `/fale/fabricio` | `Oi, vim pelo Instagram do Fabricio e quero mais informações.` |
+| `/fale?assunto=auto` | cotação de seguro auto |
+| `/fale/fabricio?assunto=auto` | idem, mas quem atende é o FabrícIO |
+| `?assunto=saude` · `odonto` · `vida` · `residencia` · `consorcio` · `financiamento` · `cartao` · `sinistro` | o tema correspondente, nos dois links |
+
+> Não reescreva o trecho "vim pelo Instagram (do Fabricio)" nesses textos: é
+> exatamente ele que o webhook lê para saber qual persona deve responder.
+
+O número de destino é o **(11) 98678-0000**. Para trocar sem mexer no código,
+defina `WHATSAPP_NUMERO` no ambiente (pode escrever com máscara — `(11) 98678-0000`
+— que o servidor normaliza e acrescenta o DDI 55).
+
+> **Atenção:** esse link só responde enquanto o servidor estiver no ar e
+> acessível pelo domínio. Se o domínio estiver servido por um **Cloudflare
+> Tunnel** apontando para um PC local, o link cai (erro **1033**) sempre que o
+> PC for desligado ou o `cloudflared` parar. Para o link nunca cair, hospede o
+> servidor na nuvem (Railway/Render) ou, se preferir não depender do servidor,
+> coloque o `https://wa.me/<numero>` direto na bio.
+
+---
+
+## Campanha de consórcio (valores e validade)
+
+As duas personas conhecem a tabela da campanha **Consórcio Porto Bank — 50% de desconto
+na taxa** (parcela reduzida pela metade até a contemplação). Tudo fica em
+`index.js`, em duas constantes:
+
+| Constante | O que é |
+|---|---|
+| `CONSORCIO_VALIDADE` | Último dia da oferta (`AAAA-MM-DD`). Comparado pelo dia em São Paulo |
+| `CONSORCIO_PLANOS` | Os planos e as faixas `[crédito, parcela sem oferta, parcela com redução]` |
+
+Como a campanha aparece para o cliente:
+
+- **No menu** (opção *Consórcio*): uma chamada curta com os valores de entrada
+  de auto e imóvel, e o convite para informar o crédito desejado.
+- **Na conversa com a IA**: a tabela inteira entra no prompt **apenas quando a
+  palavra "consórcio" aparece na conversa** — não em todo atendimento. Junto
+  vão as regras: pode citar os valores da tabela, mas nunca interpolar faixas,
+  e sempre explicar que a redução vale até a contemplação e depois é
+  compensada nas parcelas seguintes.
+
+Junto da campanha vai sempre o bloco `CONSORCIO_LANCES`, com as regras de
+lance da Porto: os **tipos** (livre, do valor de uma parcela até 100%; e fixo,
+o percentual único do grupo) e as **formas de pagar** (embutido, até 30% da
+própria carta; ou recursos próprios/FGTS). Esse bloco existe porque a tabela
+promocional cita só o lance embutido — lido sozinho, dá a impressão errada de
+que o lance máximo é 30% do crédito. Ele entra com ou sem campanha ativa.
+
+**Quando a campanha vencer**, o código para de oferecê-la sozinho: o menu volta
+a pedir bem e valor, e a IA passa a dizer que um corretor confirma as condições
+vigentes. Para renovar, atualize `CONSORCIO_VALIDADE` e, se os valores mudarem,
+`CONSORCIO_PLANOS`.

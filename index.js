@@ -3,14 +3,28 @@ const express = require("express");
 const axios = require("axios");
 const Anthropic = require("@anthropic-ai/sdk");
 const path = require("path");
+const fs = require("fs");
+const crypto = require("crypto");
 const db = require("./db");
 const ADMIN_HTML = require("./admin-page");
+const personas = require("./personas");
+const igToken = require("./instagram-token");
+const igPublicar = require("./instagram-publicar");
 
 const app = express();
-app.use(express.json());
+// Render (e Railway) terminam o TLS e repassam a conexão como HTTP puro: sem
+// isso req.protocol sempre vem "http", e a URL de callback do Instagram
+// (urlCallback, abaixo) sai errada — a Meta recusa por redirect_uri não bater
+// com o https cadastrado no app.
+app.set("trust proxy", 1);
+// Fotos para o Instagram chegam em base64 e passam do limite padrão (100 KB);
+// só essa rota ganha folga, o resto (webhook incluso) segue como sempre foi.
+const jsonPadrao = express.json();
+const jsonGrande = express.json({ limit: "60mb" });
+app.use((req, res, next) => (req.path === "/api/instagram/publicar" ? jsonGrande : jsonPadrao)(req, res, next));
 
 // Versão do servidor (para confirmar que o código novo está rodando)
-const SERVER_VERSION = "v5-full-features-2026-05-14";
+const SERVER_VERSION = "v6-personas-2026-09-01";
 app.get("/api/version", (_req, res) => res.json({ version: SERVER_VERSION }));
 
 // Admin panel servido direto da memória (sem cache, sempre atualizado)
@@ -22,9 +36,11 @@ app.get(["/admin", "/admin.html", "/gestor", "/gestor.html"], (_req, res) => {
 });
 
 app.use(express.static(path.join(__dirname, "public")));
+app.use("/marca", express.static(path.join(__dirname, "marca"), { index: false }));
 
 const VERIFY_TOKEN = process.env.VERIFY_TOKEN || "quadrata123";
-// IA da MarIAna — agora direto pela API da Anthropic (Claude), sem Langflow.
+// IA das personas (MarIAna e FabrícIO) — direto pela API da Anthropic
+// (Claude), sem Langflow. Quem responde cada mensagem sai de personas.js.
 // A chave é lida automaticamente de ANTHROPIC_API_KEY pelo SDK.
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || "";
 const MARIANA_MODEL = process.env.MARIANA_MODEL || "claude-haiku-4-5";
@@ -32,8 +48,6 @@ const anthropic = ANTHROPIC_API_KEY ? new Anthropic() : null;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
 const WA_PHONE_NUMBER_ID = process.env.WA_PHONE_NUMBER_ID || "";
 const WA_ACCESS_TOKEN = process.env.WA_ACCESS_TOKEN || "";
-const IG_ACCESS_TOKEN = process.env.IG_ACCESS_TOKEN || "";
-const IG_USER_ID = process.env.IG_USER_ID || "";
 const MAKE_WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL || "";
 // Espelho das conversas no Telegram. O token do bot e o id do chat/grupo são
 // lidos do ambiente (Render) — nunca ficam no código. Se ambos estiverem
@@ -43,6 +57,9 @@ const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "";
 // Versão da Graph API da Meta. Versões antigas são descontinuadas ~2 anos
 // após o lançamento e passam a retornar 404; mantenha em uma versão vigente.
 const GRAPH_VERSION = process.env.GRAPH_VERSION || "v21.0";
+// Id do App da Meta (painel developers.facebook.com). Só é usado para subir
+// a foto do perfil comercial do WhatsApp — o resto da API não precisa dele.
+const META_APP_ID = process.env.META_APP_ID || "";
 
 const PORT = process.env.PORT || 3000;
 
@@ -59,8 +76,20 @@ app.get("/webhook", (req, res) => {
 app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
-    mode: anthropic ? "mariana" : MAKE_WEBHOOK_URL ? "make" : "menu",
+    mode: anthropic ? "ia" : MAKE_WEBHOOK_URL ? "make" : "menu",
     modelo: anthropic ? MARIANA_MODEL : null,
+    // Quem atende e por qual Instagram. "NAO configurado" = a persona só
+    // responde no WhatsApp; faltam IG_USER_ID/IG_ACCESS_TOKEN dela.
+    personas: Object.values(personas.PERSONAS).map((p) => ({
+      id: p.id,
+      nome: p.nome,
+      padrao: p.id === personas.padrao().id,
+      instagram: igToken.idDe(p) && igToken.tokenDe(p) ? "configurado" : "NAO configurado",
+      // Validade do token do Instagram — é o que avisa antes de a persona
+      // emudecer no direct. Sem token no meio, só o prazo.
+      instagramToken: igToken.estado(p),
+      link: p.id === personas.padrao().id ? "/fale" : `/fale/${p.id}`,
+    })),
     // Diagnóstico do espelho de conversas (sem expor tokens/URLs). Se vier
     // "NAO configurado", falta definir as variáveis no ambiente (Render).
     espelhoTelegram:
@@ -75,8 +104,9 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// Diagnóstico da IA — abre no browser para checar se a MarIAna (Claude) responde
-app.get("/mariana-status", async (_req, res) => {
+// Diagnóstico da IA — abre no browser para checar se o Claude responde.
+// O caminho antigo (/mariana-status) continua valendo.
+app.get(["/ia-status", "/mariana-status"], async (_req, res) => {
   if (!anthropic) {
     return res
       .status(503)
@@ -99,6 +129,40 @@ app.get("/mariana-status", async (_req, res) => {
   }
 });
 
+// ─── Página pública "Fale com a gente" ──────────────────────────────────────
+// É o link da bio do Instagram. Leva o cliente direto para a conversa no
+// WhatsApp — um número só, (11) 98678-0000, para as duas personas; para trocar
+// sem mexer no código, basta definir WHATSAPP_NUMERO no ambiente.
+const NUMERO_PADRAO = "5511986780000";
+
+// Aceita o número escrito de qualquer jeito — (11) 98678-0000, 11986780000,
+// +55 11 98678-0000 — e devolve só os dígitos com o DDI 55 na frente.
+function normalizarNumero(valor) {
+  const d = String(valor || "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.length <= 11) return `55${d}`;
+  return d;
+}
+
+const WHATSAPP_NUMERO = normalizarNumero(process.env.WHATSAPP_NUMERO) || NUMERO_PADRAO;
+
+// Mensagem já digitada ao abrir o WhatsApp. Os textos vivem em personas.js:
+// cada persona tem os seus, e é o trecho de origem ("pelo Instagram do
+// Fabricio") que, lá no webhook, diz quem deve atender o cliente.
+//
+// GET /fale            → atende a MarIAna (padrão; é o link já publicado)
+// GET /fale/fabricio   → mesmo número, mas quem atende é o FabrícIO
+// Os dois aceitam ?assunto=auto etc., como antes.
+app.get(["/fale", "/fale.html", "/contato", "/fale/:persona"], (req, res) => {
+  const persona =
+    personas.porId(req.params.persona || req.query.de) || personas.padrao();
+  const textos = personas.textosFale(persona);
+  const assunto = String(req.query.assunto || "").toLowerCase();
+  const texto = textos[assunto] || textos.padrao;
+  res.setHeader("Cache-Control", "no-store");
+  res.redirect(302, `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(texto)}`);
+});
+
 function extractWhatsAppMessage(body) {
   try {
     const value = body.entry?.[0]?.changes?.[0]?.value;
@@ -108,6 +172,9 @@ function extractWhatsAppMessage(body) {
     return {
       platform: "whatsapp",
       from: message.from,
+      // Chave da conversa e da persona. Separa por plataforma para um id do
+      // Instagram nunca colidir com um telefone do WhatsApp.
+      chave: `whatsapp:${message.from}`,
       messageId: message.id,
       type: message.type,
       text:
@@ -129,11 +196,16 @@ function extractWhatsAppMessage(body) {
 
 function extractInstagramMessage(body) {
   try {
-    const messaging = body.entry?.[0]?.messaging?.[0];
+    const entry = body.entry?.[0];
+    const messaging = entry?.messaging?.[0];
     if (!messaging?.message?.text) return null;
     return {
       platform: "instagram",
+      // Conta que RECEBEU a mensagem — é o que diz se o direct caiu no perfil
+      // da MarIAna ou no do FabrícIO.
+      igAccountId: entry?.id ? String(entry.id) : "",
       from: messaging.sender.id,
+      chave: `instagram:${messaging.sender.id}`,
       messageId: messaging.message.mid,
       type: "text",
       text: messaging.message.text,
@@ -144,7 +216,69 @@ function extractInstagramMessage(body) {
   }
 }
 
-async function sendWhatsAppReply(to, text) {
+// ─── Quem atende esta mensagem ───────────────────────────────────────────────
+// O WhatsApp é um número só, então a persona vem da PORTA DE ENTRADA:
+//   1. Instagram → a conta em que o direct caiu (o sinal mais confiável, não
+//      depende do que o cliente digitou).
+//   2. WhatsApp  → o anúncio (referral) ou o texto do link /fale da bio.
+//   3. Sem pista → quem já vinha atendendo este contato (fica gravado).
+//   4. Contato novo e sem pista → a persona padrão (MarIAna).
+//
+// Um sinal EXPLÍCITO (1 ou 2) vale mais que o histórico: quem falava com a
+// MarIAna e chega pelo link do Fabricio passa a ser atendido por ele. Nesse
+// caso a conversa recomeça do zero, para o novo atendente não responder em
+// cima das falas do outro.
+const lerPersona = db.prepare("SELECT persona, origem FROM contact_persona WHERE chave = ?");
+// A origem e a data entram só no INSERT: no conflito o UPDATE não as toca, e é
+// isso que faz a atribuição ser de primeiro toque. COALESCE cobre as linhas
+// gravadas antes destas colunas existirem.
+const gravarPersona = db.prepare(
+  `INSERT INTO contact_persona (chave, persona, origem, created_at, updated_at)
+   VALUES (?, ?, ?, datetime('now', 'localtime'), datetime('now', 'localtime'))
+   ON CONFLICT(chave) DO UPDATE SET
+     persona    = excluded.persona,
+     origem     = COALESCE(contact_persona.origem, excluded.origem),
+     created_at = COALESCE(contact_persona.created_at, excluded.created_at),
+     updated_at = excluded.updated_at`
+);
+
+function resolverPersona(msg) {
+  const explicita =
+    msg.platform === "instagram"
+      ? personas.porInstagram(msg.igAccountId)
+      : personas.porReferral(msg.referral) || personas.porTexto(msg.text);
+
+  let salva = null;
+  let origemSalva = null;
+  try {
+    const linha = lerPersona.get(msg.chave);
+    salva = personas.porId(linha?.persona);
+    origemSalva = linha?.origem || null;
+  } catch (e) {
+    console.error("Falha ao ler a persona do contato:", e.message);
+  }
+
+  const escolhida = explicita || salva || personas.padrao();
+  // Grava quando a persona muda OU quando o contato ainda não tem origem
+  // (linha antiga, de antes desta coluna existir).
+  if (!salva || salva.id !== escolhida.id || !origemSalva) {
+    const origem = origemSalva || personas.detectarOrigem(msg);
+    try {
+      gravarPersona.run(msg.chave, escolhida.id, origem);
+    } catch (e) {
+      console.error("Falha ao gravar a persona do contato:", e.message);
+    }
+    if (!origemSalva) console.log(`  Origem: ${personas.ORIGENS[origem]?.rotulo || origem}`);
+    // Trocou de atendente no meio do caminho: zera o histórico.
+    if (salva) {
+      console.log(`  Troca de atendente: ${salva.nome} → ${escolhida.nome} (conversa zerada)`);
+      esquecerConversa(msg.chave);
+    }
+  }
+  return escolhida;
+}
+
+async function sendWhatsAppReply(to, text, persona) {
   if (!WA_PHONE_NUMBER_ID || !WA_ACCESS_TOKEN) return;
   await axios.post(
     `https://graph.facebook.com/${GRAPH_VERSION}/${WA_PHONE_NUMBER_ID}/messages`,
@@ -161,8 +295,8 @@ async function sendWhatsAppReply(to, text) {
       },
     }
   );
-  // Espelha no Telegram o que a MarIAna respondeu.
-  espelharTelegram(`🤖 MarIAna → ${to}\n${text}`);
+  // Espelha no Telegram o que a persona respondeu.
+  espelharTelegram(`🤖 ${persona?.nome || "IA"} → ${to}\n${text}`);
 }
 
 // Envia uma cópia da conversa para o Telegram (monitoramento pelo time).
@@ -191,7 +325,7 @@ async function espelharTelegram(text) {
 
 // ---------------------------------------------------------------------------
 // Menu interativo (WhatsApp Cloud API) — mesmo recurso de lista/botões do
-// Digisac, enviado direto pelo webhook. A MarIAna (IA) segue como fallback
+// Digisac, enviado direto pelo webhook. A IA segue como fallback
 // para mensagens de texto livre.
 // ---------------------------------------------------------------------------
 
@@ -249,6 +383,15 @@ function estaAberto(d = new Date()) {
   }
 }
 
+// Resposta pronta do menu, já com a campanha de consórcio quando ela estiver
+// valendo. Passa por aqui todo lugar que responde a partir de um id — assim a
+// oferta aparece igual, venha o cliente do menu, de um anúncio ou do texto.
+function respostaDe(id) {
+  const base = RESPOSTAS[id];
+  if (!base) return base;
+  return id === "cot_consorcio" ? base + consorcioResumo() : base;
+}
+
 // Fecho das respostas que dependem de um corretor (humano). Só menciona o
 // horário quando estamos FECHADOS — dentro do expediente o cliente não
 // precisa saber que existe um horário. Varia um pouco a frase (aberto) para
@@ -280,13 +423,14 @@ const COTACAO_IDS = new Set([
   "cot_outros",
 ]);
 
-async function sendMainMenu(to, name) {
+async function sendMainMenu(to, name, persona) {
+  const p = persona || personas.padrao();
   await sendWhatsAppInteractiveList(to, {
     header: "Quadrata Seguros",
     body:
-      `Olá${name ? ", " + name : ""}! 👋 Eu sou a *MarIAna*, assistente virtual da *Quadrata Seguros*.\n\n` +
+      `Olá${name ? ", " + name : ""}! 👋 ${p.apresentacao}\n\n` +
       `Resolvo bastante coisa por aqui na hora e, quando precisar, chamo um corretor pra te atender. Toque em *"Ver opções"* e me diz o que você precisa:`,
-    footer: "MarIAna • Atendimento digital",
+    footer: p.footer,
     button: "Ver opções",
     rows: [
       { id: "cotacao", title: "Cotação de seguro", description: "Auto, vida, saúde, residência e mais" },
@@ -362,10 +506,11 @@ const RESPOSTAS = {
     "🩺 *Plano de Saúde*\n\n" +
     "Para eu encontrar as melhores opções, me conta:\n" +
     "• *Quantas pessoas* vão usar e as *idades*\n• Sua *cidade*\n• Se é *individual/familiar* ou *empresarial* (com CNPJ)",
+  // A continuação vem de consorcioResumo(): a campanha, enquanto ela valer, ou
+  // o pedido de bem/valor depois que ela acabar.
   cot_consorcio:
-    "🎯 *Consórcio* — um jeito planejado de conquistar o que você quer.\n\n" +
-    "Me conta pra eu começar:\n" +
-    "• O *bem* desejado (imóvel, automóvel, serviços…)\n• O *valor* aproximado que você tem em mente",
+    "🎯 *Consórcio* — um jeito planejado de conquistar o que você quer, sem juros: " +
+    "você paga taxa de administração e recebe o bem por sorteio ou lance.",
   cot_financiamento:
     "🏦 *Financiamento*\n\n" +
     "Para eu preparar sua simulação, me diz:\n" +
@@ -436,8 +581,13 @@ const MENU_TRIGGERS = [
 function isMenuTrigger(text) {
   if (!text) return false;
   const t = text.trim().toLowerCase();
-  if (MENU_TRIGGERS.some((w) => t === w || t.startsWith(w + " "))) return true;
-  return /^(bom dia|boa tarde|boa noite)\b/.test(t);
+  // O cliente quase sempre escreve "Oi," ou "Olá!" com pontuação colada. Para
+  // o menu abrir do mesmo jeito, trocamos essa pontuação por um espaço antes
+  // de comparar: "oi, quero informações" vira "oi quero informações".
+  const limpo = t.replace(/^([^\s,!.?;:]+)\s*[,!.?;:]+\s*/, "$1 ").trim();
+  const casa = (x) => MENU_TRIGGERS.some((w) => x === w || x.startsWith(w + " "));
+  if (casa(t) || casa(limpo)) return true;
+  return /^(bom dia|boa tarde|boa noite)\b/.test(limpo);
 }
 
 // Identifica o assunto a partir do texto livre (ou do anúncio do Instagram),
@@ -459,37 +609,37 @@ function detectAssunto(text) {
 }
 
 // Retorna true se o menu tratou a mensagem (e a IA não deve ser acionada).
-async function handleWhatsAppMenu(msg) {
+async function handleWhatsAppMenu(msg, persona) {
   // 1. Cliente selecionou um item de lista/botão
   if (msg.interactiveId) {
     if (msg.interactiveId === "cotacao") {
       await sendCotacaoMenu(msg.from);
-      lembrarTroca(msg.from, msg.text || "Cotação de seguro",
+      lembrarTroca(msg.chave, msg.text || "Cotação de seguro",
         "Perfeito! Te mostrei os tipos de seguro para você escolher qual quer cotar.");
       return true;
     }
     if (msg.interactiveId === "sinistro") {
       await sendSeguradorasMenu(msg.from);
-      marcarSinistroTratado(msg.from);
-      lembrarTroca(msg.from, msg.text || "Sinistro / Guincho",
+      marcarSinistroTratado(msg.chave);
+      lembrarTroca(msg.chave, msg.text || "Sinistro / Guincho",
         "Sinto muito pelo ocorrido. Te mostrei a lista de seguradoras para você me dizer qual é a sua.");
       return true;
     }
     if (msg.interactiveId === "corretor") {
       const t = RESPOSTAS.corretor + fechoCorretor("te atender");
-      await sendWhatsAppReply(msg.from, t);
-      lembrarTroca(msg.from, msg.text || "Falar com corretor", t);
+      await sendWhatsAppReply(msg.from, t, persona);
+      lembrarTroca(msg.chave, msg.text || "Falar com corretor", t);
       return true;
     }
-    const resposta = RESPOSTAS[msg.interactiveId];
+    const resposta = respostaDe(msg.interactiveId);
     if (resposta) {
       const extra = COTACAO_IDS.has(msg.interactiveId) ? fechoCorretor() : "";
       const t = resposta + extra;
-      await sendWhatsAppReply(msg.from, t);
+      await sendWhatsAppReply(msg.from, t, persona);
       // Ao escolher a seguradora, marcamos o sinistro como tratado (já demos os
       // telefones), para o fluxo não repetir a pergunta depois.
-      if (msg.interactiveId.startsWith("seg_")) marcarSinistroTratado(msg.from);
-      lembrarTroca(msg.from, msg.text || msg.interactiveId, t);
+      if (msg.interactiveId.startsWith("seg_")) marcarSinistroTratado(msg.chave);
+      lembrarTroca(msg.chave, msg.text || msg.interactiveId, t);
       return true;
     }
     return false;
@@ -503,55 +653,56 @@ async function handleWhatsAppMenu(msg) {
         .filter(Boolean)
         .join(" ")
     );
-    const ola = "Olá! 👋 Eu sou a *MarIAna*, assistente virtual da *Quadrata Seguros*. Que bom falar com você!\n\n";
+    const ola = `Olá! 👋 ${persona.apresentacao} Que bom falar com você!\n\n`;
     if (assuntoAd === "sinistro") {
       await sendSeguradorasMenu(msg.from);
-      marcarSinistroTratado(msg.from);
-      lembrarTroca(msg.from, msg.text || "(veio de um anúncio sobre sinistro)",
+      marcarSinistroTratado(msg.chave);
+      lembrarTroca(msg.chave, msg.text || "(veio de um anúncio sobre sinistro)",
         "Sinto muito pelo ocorrido. Te mostrei a lista de seguradoras para você me dizer qual é a sua.");
       return true;
     }
     if (assuntoAd) {
-      const t = ola + RESPOSTAS[assuntoAd] + fechoCorretor();
-      await sendWhatsAppReply(msg.from, t);
-      lembrarTroca(msg.from, msg.text || "(veio de um anúncio)", t);
+      const t = ola + respostaDe(assuntoAd) + fechoCorretor();
+      await sendWhatsAppReply(msg.from, t, persona);
+      lembrarTroca(msg.chave, msg.text || "(veio de um anúncio)", t);
       return true;
     }
     await sendCotacaoMenu(msg.from);
-    lembrarTroca(msg.from, msg.text || "(veio de um anúncio)",
+    lembrarTroca(msg.chave, msg.text || "(veio de um anúncio)",
       "Te dei as boas-vindas e mostrei os tipos de seguro para você escolher qual quer cotar.");
     return true;
   }
 
-  // 2. Saudação / palavra-chave → mostra o menu principal
-  if (isMenuTrigger(msg.text)) {
-    await sendMainMenu(msg.from, msg.name);
-    lembrarTroca(msg.from, msg.text,
-      "Oi! Sou a MarIAna, da Quadrata Seguros. Te mostrei o menu com as opções: cotação, sinistro/guincho, baixar o app e falar com corretor.");
-    return true;
-  }
-
-  // 3. Sinistro/emergência (por texto livre): na PRIMEIRA vez, mandamos o menu
-  // de seguradoras — ali estão os telefones da assistência 24h (urgentes e que
-  // a IA não tem na memória). Se o sinistro já foi tratado nesta conversa, NÃO
-  // repetimos a pergunta: deixamos a MarIAna conduzir com o contexto que já tem.
+  // 2. Sinistro/emergência (por texto livre) vem ANTES da saudação: quem
+  // escreve "Oi, bati o carro" precisa do telefone da assistência 24h, não do
+  // menu geral. Na PRIMEIRA vez mandamos o menu de seguradoras — ali estão os
+  // telefones urgentes, que a IA não tem na memória. Se o sinistro já foi
+  // tratado nesta conversa, NÃO repetimos a pergunta: deixamos a persona
+  // conduzir com o contexto que já tem.
   const assunto = detectAssunto(msg.text);
-  if (assunto === "sinistro" && !sinistroJaTratado(msg.from)) {
+  if (assunto === "sinistro" && !sinistroJaTratado(msg.chave)) {
     await sendSeguradorasMenu(msg.from);
-    marcarSinistroTratado(msg.from);
-    lembrarTroca(msg.from, msg.text,
+    marcarSinistroTratado(msg.chave);
+    lembrarTroca(msg.chave, msg.text,
       "Sinto muito pelo ocorrido. Te mostrei a lista de seguradoras para você me dizer qual é a sua.");
     return true;
   }
 
-  // 4. Demais textos livres → deixamos a MarIAna (IA) conduzir a conversa: ela
+  // 3. Saudação / palavra-chave → mostra o menu principal
+  if (isMenuTrigger(msg.text)) {
+    await sendMainMenu(msg.from, msg.name, persona);
+    lembrarTroca(msg.chave, msg.text, persona.resumoMenu);
+    return true;
+  }
+
+  // 4. Demais textos livres → deixamos a persona (IA) conduzir a conversa: ela
   // entende pedidos com nuance (ex.: "consórcio de automóvel de 100 mil") que o
   // atalho por palavra-chave interpretaria errado. O atalho vira PLANO B, usado
   // só quando a IA está desativada, para ainda assim dar uma resposta útil.
   if (!anthropic && assunto) {
-    const t = RESPOSTAS[assunto] + fechoCorretor();
-    await sendWhatsAppReply(msg.from, t);
-    lembrarTroca(msg.from, msg.text, t);
+    const t = respostaDe(assunto) + fechoCorretor();
+    await sendWhatsAppReply(msg.from, t, persona);
+    lembrarTroca(msg.chave, msg.text, t);
     return true;
   }
 
@@ -560,14 +711,19 @@ async function handleWhatsAppMenu(msg) {
   return false;
 }
 
-async function sendInstagramReply(to, text) {
-  if (!IG_ACCESS_TOKEN || !IG_USER_ID) {
-    console.log("Instagram: IG_ACCESS_TOKEN ou IG_USER_ID não configurado");
+async function sendInstagramReply(to, text, persona) {
+  const p = persona || personas.padrao();
+  // O token do ambiente é só a semente: o que vale agora pode ser uma
+  // renovação guardada no banco. Ver instagram-token.js.
+  const token = igToken.tokenDe(p);
+  const igId = igToken.idDe(p);
+  if (!token || !igId) {
+    console.log(`Instagram: ${p.nome} sem conta ligada (veja /admin/instagram)`);
     return;
   }
-  console.log('[IG] Enviando para', to, 'com user_id', IG_USER_ID, 'token inicio:', IG_ACCESS_TOKEN.substring(0,20));
+  console.log('[IG] Enviando para', to, 'como', p.nome, 'com user_id', igId);
   try { await axios.post(
-    `https://graph.instagram.com/v21.0/${IG_USER_ID}/messages`,
+    `https://graph.instagram.com/v21.0/${igId}/messages`,
     {
       recipient: { id: to },
       message: { text },
@@ -575,68 +731,181 @@ async function sendInstagramReply(to, text) {
     },
     {
       headers: {
-        Authorization: `Bearer ${IG_ACCESS_TOKEN}`,
+        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     }
   ); } catch(igErr) { console.error('[IG] Erro detalhado:', igErr.response?.status, JSON.stringify(igErr.response?.data)); throw igErr; }
-  // Espelha no Telegram o que a MarIAna respondeu (Instagram).
-  espelharTelegram(`🤖 MarIAna → ${to} (Instagram)\n${text}`);
+  // Espelha no Telegram o que a persona respondeu (Instagram).
+  espelharTelegram(`🤖 ${p.nome} → ${to} (Instagram)\n${text}`);
 }
 
 // ---------------------------------------------------------------------------
-// MarIAna — IA de atendimento via API da Anthropic (Claude).
+// IA de atendimento via API da Anthropic (Claude).
 // Substitui o antigo servidor Langflow: sem servidor pesado ligado 24h, paga-se
 // só por mensagem processada. O menu interativo continua como primeira camada.
 // ---------------------------------------------------------------------------
 
-const MARIANA_SYSTEM = `Você é a MarIAna, atendente virtual da *Quadrata Seguros*, uma corretora de seguros brasileira. Você atende clientes pelo WhatsApp.
+// ─── Campanha Consórcio Porto Bank ──────────────────────────────────────────
+// "50% de desconto na taxa" — parcela reduzida em 50% até a contemplação.
+// Valores da tabela oficial para PESSOA FÍSICA. Depois da validade a campanha
+// para de ser oferecida sozinha: nada de prometer preço vencido ao cliente.
+const CONSORCIO_VALIDADE = "2026-08-31"; // último dia da oferta
 
-Quem você é:
-- Seu nome é MarIAna. Use-o para dar um toque pessoal: no início de uma conversa nova, apresente-se brevemente ("Oi, aqui é a MarIAna, da Quadrata Seguros 🙂"). Deixe natural que você é uma assistente virtual (digital), sem esconder e sem repetir isso o tempo todo.
-- Simpática, atenciosa e prestativa, como uma boa atendente que gosta de ajudar. Fale como uma pessoa de verdade, não como um robô ou um formulário.
-- Você conhece de seguros e transmite segurança, mas sem enrolação.
+function consorcioNaValidade(d = new Date()) {
+  try {
+    // Compara pelo dia corrente em São Paulo, não em UTC.
+    const hoje = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Sao_Paulo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+    return hoje <= CONSORCIO_VALIDADE;
+  } catch {
+    return false; // na dúvida, não oferece
+  }
+}
 
-Tom e estilo:
-- Escreva em português do Brasil, de forma calorosa, educada e objetiva.
-- Respostas CURTAS (é WhatsApp): normalmente de 2 a 4 linhas. Evite textos longos e listas grandes.
-- Use no máximo 1 emoji por mensagem, e nem sempre — só quando somar algo.
-- Chame o cliente pelo primeiro nome quando souber, mas sem exagerar (não em toda frase).
-- Para negrito, use *asteriscos simples* (padrão do WhatsApp), nunca **duplos**.
+// [crédito, parcela sem oferta, parcela com redução]
+const CONSORCIO_PLANOS = [
+  {
+    bem: "Automóvel",
+    prazo: "100 meses",
+    condicoes:
+      "Taxa adm 0,08% ao mês (7,5% no total), Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de até 30% do crédito (modalidade de pagamento), conforme disponibilidade do grupo.",
+    faixas: [
+      [150000, 1704, 883], [160000, 1818, 942], [170000, 1932, 1001],
+      [180000, 2045, 1060], [190000, 2159, 1119], [200000, 2273, 1178],
+      [210000, 2386, 1237], [220000, 2500, 1296], [230000, 2614, 1354],
+      [240000, 2727, 1413], [250000, 2841, 1472],
+    ],
+  },
+  {
+    bem: "Automóvel",
+    prazo: "90 meses",
+    condicoes:
+      "Taxa adm 0,09% ao mês (8% no total), Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de até 30% do crédito (modalidade de pagamento), conforme disponibilidade do grupo.",
+    faixas: [
+      [80000, 1011, 522], [85000, 1074, 554], [90000, 1137, 587],
+      [95000, 1200, 620], [100000, 1264, 652], [105000, 1327, 685],
+      [110000, 1390, 718], [115000, 1453, 750], [120000, 1516, 783],
+      [125000, 1580, 816], [130000, 1643, 848], [135000, 1706, 881],
+      [140000, 1769, 914],
+    ],
+  },
+  {
+    bem: "Imóvel",
+    prazo: "200 meses",
+    condicoes:
+      "Taxa adm 11,5% (antecipada, diluída no plano) — 0,06% ao mês, Fundo de Reserva 2%, Seguro Prestamista 0,038%. Grupo em formação. Lance embutido de 30% do crédito (modalidade de pagamento) e lance fixo de 40% (tipo de lance deste grupo).",
+    // Aqui a 3ª coluna é a parcela reduzida JÁ COM a entrada diluída no prazo.
+    reduzidaLabel: "parcela reduzida + entrada diluída no prazo do grupo",
+    faixas: [
+      [140000, 941, 457], [150000, 1008, 490], [160000, 1076, 523],
+      [170000, 1143, 555], [180000, 1210, 588], [190000, 1277, 621],
+      [200000, 1345, 653], [210000, 1412, 686], [220000, 1479, 719],
+      [230000, 1546, 751], [240000, 1614, 784], [250000, 1681, 817],
+      [260000, 1748, 849], [270000, 1815, 882], [280000, 1883, 915],
+    ],
+  },
+];
 
-Como conduzir a conversa:
-- Uma pergunta de cada vez. Ao iniciar uma cotação, não despeje todos os dados de uma vez: peça primeiro o principal e vá conduzindo o cliente, passo a passo.
-- Sempre deixe claro qual é o próximo passo. Termine, quando fizer sentido, com uma pergunta ou um convite para o cliente continuar.
-- Reconheça o que o cliente disse antes de pedir algo novo (ex.: "Ótimo, seguro de carro então!").
-- Não repita a mesma frase pronta em toda resposta. Só mencione que "um corretor vai retornar" quando o assunto realmente depende de um humano (valores, fechamento) — e diga isso de formas variadas, não sempre igual.
+const brl = (n) => n.toLocaleString("pt-BR");
 
-O que você faz:
-- Ajuda com cotação de seguros (auto, residência, vida, saúde), consórcio, financiamento e outros; orientações sobre sinistro/assistência 24h; e dúvidas gerais.
-- Preste atenção ao que o cliente realmente quer. Consórcio e financiamento NÃO são seguros — são formas de conquistar um bem (imóvel, carro). Se o cliente disser "consórcio de automóvel", é consórcio, não seguro de carro. Na dúvida, pergunte com gentileza para confirmar.
-- Dados essenciais por tipo (peça aos poucos): auto: CPF, CEP e placa; residência: CPF e CEP do imóvel; vida: nome completo e data de nascimento; consórcio: qual bem e valor aproximado; financiamento: qual bem, valor do bem e entrada.
+// Menor parcela reduzida de cada plano — serve de chamada ("a partir de").
+function consorcioEntradas() {
+  return CONSORCIO_PLANOS.map((p) => {
+    const [credito, , reduzida] = p.faixas[0];
+    return { bem: p.bem, prazo: p.prazo, credito, reduzida };
+  });
+}
 
-Regras importantes:
-- NUNCA invente preços, valores de apólice, coberturas específicas ou números de protocolo. Você não fecha vendas nem informa valores — quem faz isso é um corretor humano.
-- Quando o cliente pedir algo que dependa de um corretor (valores, contratação, negociação), colete as informações e avise, de forma natural, que um corretor da Quadrata Seguros dá sequência.
-- Sinistro/emergência (batida, roubo, pane): acolha primeiro ("Sinto muito pelo ocorrido"). Se o histórico da conversa já mostra que passamos o telefone da assistência 24h da seguradora, NÃO pergunte a seguradora de novo — oriente os próximos passos: acionar a seguradora por aquele telefone, ter em mãos o CPF do titular ou a placa, e registrar aqui para um corretor acompanhar. NUNCA invente números de telefone: use somente os que já apareceram na conversa.
-- Se perguntarem sobre assunto fora de seguros, redirecione gentilmente para como você pode ajudar com seguros.
-- Se o cliente quiser ver todas as opções, diga que ele pode digitar *menu*.
+// Resumo curto para o WhatsApp (menu). Tabela cheia fica só para a IA.
+function consorcioResumo() {
+  if (!consorcioNaValidade()) {
+    return (
+      "\n\nMe conta pra eu começar:\n" +
+      "• O *bem* desejado (imóvel, automóvel, serviços…)\n" +
+      "• O *valor* aproximado que você tem em mente"
+    );
+  }
+  const [auto90] = consorcioEntradas().filter((e) => e.prazo === "90 meses");
+  const imovel = consorcioEntradas().find((e) => e.bem === "Imóvel");
+  return (
+    "\n\n🔥 *Reta final da campanha Porto Bank* (até 31/08): *50% de desconto na taxa* — você paga *metade da parcela* até ser contemplado.\n\n" +
+    `• *Automóvel*: crédito de R$ ${brl(auto90.credito)} por R$ ${brl(auto90.reduzida)}/mês\n` +
+    `• *Imóvel*: crédito de R$ ${brl(imovel.credito)} por R$ ${brl(imovel.reduzida)}/mês\n\n` +
+    "Me diga o *bem* (imóvel ou automóvel) e o *valor do crédito* que você quer, " +
+    "que eu te mostro a parcela exata. 😉"
+  );
+}
 
-Informações úteis:
-- Horário de atendimento humano: segunda a sexta, das 8h30 às 17h30.
-- App do cliente: *MySeg* (2ª via de boleto, apólices). No cadastro, informar o código da corretora *1133* (Quadrata Seguros).
-- Link de cotação online (ofereça quando fizer sentido): http://gestao.segfy.com/Publico/Segurados/Orcamentos/SolicitarCotacao?e=N4%2BhsohRMBQkt3Y5rAUWTQ%3D%3D
+// Bloco injetado no prompt da IA só quando a conversa é sobre consórcio.
+// Regras de lance. Valem sempre, com ou sem campanha: a tabela promocional cita
+// só o lance embutido, e ler aquilo sozinho dá a impressão errada de que o lance
+// máximo é 30% do crédito. São coisas diferentes — o TIPO de lance (quanto se
+// oferece) e a FORMA de pagar (de onde sai o dinheiro).
+const CONSORCIO_LANCES = `
 
-Cartão de Crédito Porto Bank (campanha atual — muitos clientes estão PRÉ-APROVADOS):
-- Benefícios: 12 meses de anuidade grátis (depois, isenção 100% por gastos: Gold/Platinum a partir de R$3.500/mês, Ultra a partir de R$10.000/mês); até 4 cartões adicionais sem anuidade; até 3,5 pontos/dólar com acesso a salas VIP; IOF Zero em compras internacionais (o IOF volta como cashback); descontos nos seguros Porto com o cartão ativo (Auto até 15%, Residencial 10% + 5% de cashback, Vida até 10%); Shell Box com até R$0,15/litro na rede Shell; ConectCar com até 4 tags grátis, sem mensalidade; controle total pelo super app.
-- Como funciona a adesão: o cliente aceita a oferta enviando o CPF. Com os dados, a Quadrata monta um LINK PERSONALIZADO para o cliente assinar a proposta, que segue para análise da Porto Bank. Você (MarIAna) NÃO gera nem envia o link — quem prepara e envia é um corretor da Quadrata.
-- Fluxo quando o cliente quiser o cartão: explique os principais benefícios de forma breve e peça o CPF (confirme o nome, se ainda não souber). Quando ele enviar o CPF, agradeça, confirme os dados e avise que um corretor vai preparar o link personalizado e enviar em seguida para ele assinar, seguindo depois para análise da Porto Bank.
-- Se o cliente enviar SÓ um CPF, sem outro contexto, provavelmente está aceitando esta oferta do cartão — confirme gentilmente ("É para garantir seu Cartão Porto Bank, certo?") antes de seguir.
-- NUNCA prometa aprovação (a análise é da Porto Bank) nem invente taxas/limites além dos listados; detalhes finais são confirmados na proposta.`;
+LANCES NO CONSÓRCIO (regra geral da Porto — vale mesmo fora da campanha):
+
+Tipos de lance — quanto o cliente oferece:
+- Lance livre: o cliente escolhe o percentual, do valor de uma parcela até a quitação total (100% do crédito). Na assembleia, leva quem ofertar o maior percentual.
+- Lance fixo: o grupo define um percentual único e pré-estabelecido (25%, 30%, 40% — varia conforme o grupo). Se mais de um cliente ofertar esse valor, a Porto aplica um critério de desempate (Loteria Federal ou proximidade com a pedra-chave).
+
+Formas de pagar o lance — de onde sai o dinheiro:
+- Lance embutido: o cliente usa até 30% da PRÓPRIA carta de crédito para pagar o lance, sem tirar do bolso. Se for contemplado, esse valor é descontado do crédito que ele recebe. A disponibilidade varia por bem e por grupo (imóvel e pesados, por exemplo).
+- Recursos próprios: dinheiro do cliente ou, no caso de imóvel, o saldo do FGTS.
+
+CUIDADO AO EXPLICAR: os 30% do lance embutido são o limite do que dá para tirar da própria carta — NÃO são o teto do lance. Com recursos próprios o cliente pode ofertar mais, inclusive quitar 100% no lance livre. Nunca dê a entender que só existe lance de 30%, nem que o embutido é a única opção.
+
+Percentuais e disponibilidade mudam de grupo para grupo: informe o que estiver na tabela do plano e, para o resto, diga que um corretor confirma as regras do grupo específico. A contemplação sai por sorteio ou por lance.`;
+
+function consorcioParaIA() {
+  if (!consorcioNaValidade()) {
+    return (
+      CONSORCIO_LANCES +
+      "\n\nCONSÓRCIO: a campanha de 50% de desconto na taxa (parcela reduzida) ENCERROU. " +
+      "Não ofereça nem cite aqueles valores. Colete o bem desejado e o valor do crédito e diga que um corretor confirma as condições vigentes."
+    );
+  }
+  const tabelas = CONSORCIO_PLANOS.map((p) => {
+    const linhas = p.faixas
+      .map(([c, sem, red]) => `  crédito R$ ${brl(c)} — sem oferta R$ ${brl(sem)} — com redução R$ ${brl(red)}`)
+      .join("\n");
+    const obs = p.reduzidaLabel ? ` (a coluna com redução é a ${p.reduzidaLabel})` : "";
+    return `${p.bem} — grupo de ${p.prazo}${obs}\n  ${p.condicoes}\n${linhas}`;
+  }).join("\n\n");
+
+  return `${CONSORCIO_LANCES}
+
+CAMPANHA CONSÓRCIO PORTO BANK — válida até 31/08/2026 (estamos na reta final):
+"50% de desconto na taxa": a parcela fica reduzida em 50% até a contemplação.
+
+EXCEÇÃO à regra de não informar valores: estes números são de tabela oficial
+publicada e VOCÊ PODE informá-los ao cliente, desde que copiados exatamente
+como estão abaixo. Valores para PESSOA FÍSICA.
+
+${tabelas}
+
+Ao falar desta campanha:
+- SEMPRE explique, junto do valor reduzido, que a redução vale ATÉ A CONTEMPLAÇÃO e que depois a diferença é compensada nas parcelas seguintes. Nunca cite a parcela reduzida sozinha, como se fosse o valor definitivo do plano.
+- NUNCA invente, calcule, interpole ou arredonde faixas: se o cliente pedir um crédito que não está na tabela, mostre as faixas vizinhas que existem e diga que um corretor monta o valor exato.
+- Diga que as parcelas são reajustadas no aniversário do grupo e que as demais condições estão no Regulamento.
+- Consórcio NÃO é financiamento: não tem juros, tem taxa de administração, e o bem sai por sorteio ou lance.
+- A oferta acaba em 31/08/2026 — pode usar isso como um convite gentil para não deixar passar, sem pressionar.
+- Para seguir, peça o valor do crédito desejado e avise que um corretor da Quadrata finaliza a simulação e a adesão.`;
+}
+
+// O prompt de sistema mora em personas.js: cada persona tem a sua identidade
+// (nome, gênero, jeito de falar) e todas compartilham o mesmo corpo — produtos,
+// tom, regras e limites. Ver personas.systemPrompt().
 
 // Memória de conversa por cliente (em memória do processo). Mantém o contexto
 // das últimas trocas, como fazia a "session" do Langflow. Some após um período
-// de inatividade — atendimento novo recomeça do zero.
+// de inatividade — atendimento novo recomeça do zero. A chave é a de msg.chave
+// ("whatsapp:5511..." / "instagram:123..."), a mesma da persona do contato.
 const conversas = new Map();
 const CONVERSA_TTL_MS = 30 * 60 * 1000; // 30 min de inatividade
 const MAX_MENSAGENS = 12; // ~6 trocas (user + assistant)
@@ -660,7 +929,7 @@ function pushHistorico(from, role, content) {
 }
 
 // Registra no histórico da IA uma troca que foi tratada pelo MENU (seleção,
-// sinistro, cotação…). Assim a MarIAna "enxerga" o que o menu respondeu e
+// sinistro, cotação…). Assim a IA "enxerga" o que o menu respondeu e
 // mantém o fio da conversa, em vez de responder como se nada tivesse ocorrido.
 // Sempre grava o par (cliente + resposta) para o histórico continuar alternando.
 function lembrarTroca(from, userText, assistantText) {
@@ -682,6 +951,12 @@ function sinistroJaTratado(from) {
   return !!c.sinistroTratado;
 }
 
+// Zera a conversa — usado quando o contato troca de persona, para o novo
+// atendente não continuar de onde o outro parou.
+function esquecerConversa(chave) {
+  conversas.delete(chave);
+}
+
 // Limpeza periódica das conversas antigas (evita crescer a memória).
 setInterval(() => {
   const agora = Date.now();
@@ -690,12 +965,24 @@ setInterval(() => {
   }
 }, 10 * 60 * 1000).unref();
 
-async function runMarIAna(inputText, from, name) {
-  const historico = getHistorico(from);
+async function runIA(inputText, chave, name, persona) {
+  const historico = getHistorico(chave);
   const messages = [...historico, { role: "user", content: inputText }];
 
-  let system = MARIANA_SYSTEM;
-  if (name && name !== from) system += `\n\nO nome do cliente é ${name}.`;
+  let system = personas.systemPrompt(persona || personas.padrao());
+  // A tabela do consórcio só entra quando o assunto aparece na conversa (na
+  // mensagem atual ou no que já foi dito). Evita carregar dezenas de faixas de
+  // preço em todo atendimento — e diminui a chance de a IA citar valor fora
+  // de contexto.
+  const conversaToda = [...historico.map((m) => m.content), inputText].join(" ");
+  if (/cons[óo]rcio/i.test(conversaToda)) system += consorcioParaIA();
+  // Sem nome de perfil, o "nome" que chega é o próprio id do contato — não vale
+  // apresentar um número como nome. O id é a parte depois de "plataforma:".
+  // (Esta linha comparava com `from`, variável que deixou de existir quando a
+  // chave passou a ser "plataforma:id" — e o ReferenceError derrubava TODA
+  // resposta da IA, no WhatsApp e no Instagram, direto para o fallback.)
+  const idContato = String(chave || "").split(":").pop();
+  if (name && name !== idContato) system += `\n\nO nome do cliente é ${name}.`;
   if (!estaAberto()) {
     system += `\n\nATENÇÃO: no momento estamos FORA do horário de atendimento (${HORARIO}). Ao mencionar o retorno de um corretor, deixe claro que será assim que reabrirmos.`;
   }
@@ -714,10 +1001,10 @@ async function runMarIAna(inputText, from, name) {
     .trim();
 
   if (result) {
-    pushHistorico(from, "user", inputText);
-    pushHistorico(from, "assistant", result);
+    pushHistorico(chave, "user", inputText);
+    pushHistorico(chave, "assistant", result);
   } else {
-    console.warn("MarIAna retornou resposta vazia. stop_reason:", response.stop_reason);
+    console.warn("IA retornou resposta vazia. stop_reason:", response.stop_reason);
   }
 
   return result;
@@ -734,16 +1021,22 @@ app.post("/webhook", async (req, res) => {
   }
 
   console.log(
-    `[${msg.platform}] Mensagem de ${msg.name} (${msg.from}): ${
+    `[${msg.platform}] Mensagem de ${msg.name} (${msg.from})${
+      msg.igAccountId ? ` na conta ${msg.igAccountId}` : ""
+    }: ${
       msg.interactiveId ? "[menu:" + msg.interactiveId + "] " : ""
     }${msg.text}`
   );
 
+  // Quem atende: definido pela porta de entrada e gravado por contato.
+  const persona = resolverPersona(msg);
+  console.log(`  Atende: ${persona.nome}`);
+
   // Espelho das conversas → Telegram (monitoramento pelo time). Roda SEMPRE,
   // com a IA ligada ou não. Aqui espelhamos a mensagem que CHEGOU do cliente;
-  // as respostas da MarIAna são espelhadas dentro das funções de envio.
+  // as respostas da persona são espelhadas dentro das funções de envio.
   espelharTelegram(
-    `📩 ${msg.name} (${msg.from}) · ${msg.platform}\n` +
+    `📩 ${msg.name} (${msg.from}) · ${msg.platform} · ${persona.nome}\n` +
       `${msg.interactiveId ? "🔘 [menu] " : ""}${msg.text}`
   );
 
@@ -757,28 +1050,28 @@ app.post("/webhook", async (req, res) => {
   }
 
   try {
-    // Camada de menu interativo (apenas WhatsApp). A MarIAna/IA continua
-    // como fallback para mensagens de texto livre.
+    // Camada de menu interativo (apenas WhatsApp). A IA continua como
+    // fallback para mensagens de texto livre.
     if (msg.platform === "whatsapp") {
-      const handled = await handleWhatsAppMenu(msg);
+      const handled = await handleWhatsAppMenu(msg, persona);
       if (handled) return;
     }
 
     if (anthropic) {
       let reply = "";
       try {
-        reply = await runMarIAna(msg.text, msg.from, msg.name);
+        reply = await runIA(msg.text, msg.chave, msg.name, persona);
       } catch (aiErr) {
         // IA fora do ar: não repassamos o erro — abaixo montamos uma
         // resposta conclusiva (direta ao assunto quando possível).
-        console.error("  IA (MarIAna) indisponível:", aiErr.message);
+        console.error(`  IA (${persona.nome}) indisponível:`, aiErr.message);
       }
       if (reply) {
-        console.log(`Resposta MarIAna: ${reply}`);
+        console.log(`Resposta ${persona.nome}: ${reply}`);
         if (msg.platform === "whatsapp") {
-          await sendWhatsAppReply(msg.from, reply);
+          await sendWhatsAppReply(msg.from, reply, persona);
         } else {
-          await sendInstagramReply(msg.from, reply);
+          await sendInstagramReply(msg.from, reply, persona);
         }
       } else {
         // Sem resposta da IA. Se conseguirmos identificar o assunto,
@@ -787,7 +1080,7 @@ app.post("/webhook", async (req, res) => {
         const assunto = detectAssunto(msg.text);
         let texto;
         if (assunto && assunto !== "sinistro" && RESPOSTAS[assunto]) {
-          texto = RESPOSTAS[assunto] + fechoCorretor();
+          texto = respostaDe(assunto) + fechoCorretor();
         } else {
           texto =
             "✅ Recebi sua mensagem e já registrei sua solicitação." +
@@ -797,9 +1090,9 @@ app.post("/webhook", async (req, res) => {
               : "");
         }
         if (msg.platform === "whatsapp") {
-          await sendWhatsAppReply(msg.from, texto);
+          await sendWhatsAppReply(msg.from, texto, persona);
         } else {
-          await sendInstagramReply(msg.from, texto);
+          await sendInstagramReply(msg.from, texto, persona);
         }
       }
     } else if (MAKE_WEBHOOK_URL) {
@@ -822,9 +1115,9 @@ app.post("/webhook", async (req, res) => {
     const aviso = "Ops, tive uma instabilidade técnica rapidinha por aqui. 🙏 Pode me mandar sua mensagem de novo em alguns instantes? Se preferir, também pode falar com a gente por telefone.";
     try {
       if (msg.platform === "whatsapp") {
-        await sendWhatsAppReply(msg.from, aviso);
+        await sendWhatsAppReply(msg.from, aviso, persona);
       } else {
-        await sendInstagramReply(msg.from, aviso);
+        await sendInstagramReply(msg.from, aviso, persona);
       }
     } catch {
       // ignora erro ao enviar aviso
@@ -888,6 +1181,613 @@ app.get("/api/simular-venda", (req, res) => {
   const gross = parseFloat(req.query.value);
   if (!gross || gross <= 0) return res.status(400).json({ error: "Valor inválido" });
   res.json(calcularVenda(gross, req.query.ramo || "", req.query.seguradora || ""));
+});
+
+
+// ─── Perfil comercial do WhatsApp ────────────────────────────────────────────
+// O número é um só para as duas personas, então o perfil (foto, "sobre",
+// descrição) tem que ser NEUTRO — da Quadrata, não da MarIAna nem do FabrícIO.
+// A Cloud API deixa editar isso por API, ao contrário do Instagram. A chave de
+// acesso mora no servidor, então a troca é feita daqui, pela rota abaixo.
+//
+// Foto: marca/quadrata/avatar-whatsapp.png (640×640). Para trocar, substitua o
+// arquivo e acione a rota de novo. Precisa de META_APP_ID no ambiente — o
+// upload da imagem passa pela API de upload do App, não pelo número.
+const PERFIL_WHATSAPP = {
+  foto: path.join(__dirname, "marca", "quadrata", "avatar-whatsapp.png"),
+  // "Sobre" — aparece embaixo do nome. Limite da Meta: 139 caracteres.
+  about: "Atendimento digital 24h com a MarIAna e o FabrícIO. Um corretor humano fecha com você.",
+  // Descrição — na tela de perfil. Limite: 512 caracteres.
+  description:
+    "Quadrata Corretora de Seguros. Cotação de auto, vida, saúde e residência, consórcio, " +
+    "financiamento e Cartão Porto Bank. Atendimento digital 24h: a MarIAna e o FabrícIO " +
+    "tiram sua dúvida na hora; valores e contratação são sempre com um corretor humano. " +
+    "Atendimento humano de segunda a sexta, das 8h30 às 17h30.",
+  // Categoria do negócio (enum da Meta). Seguros entra em serviços financeiros.
+  vertical: "FINANCE",
+};
+
+const graph = (caminho) => `https://graph.facebook.com/${GRAPH_VERSION}/${caminho}`;
+
+function erroMeta(e) {
+  const d = e.response?.data?.error;
+  return d ? `${d.message} (código ${d.code}${d.error_subcode ? "/" + d.error_subcode : ""})` : e.message;
+}
+
+// Lê o perfil atual na Meta. Também serve de teste: se a chave não tiver a
+// permissão whatsapp_business_management, o erro aparece aqui, antes de
+// qualquer alteração.
+async function lerPerfilWhatsApp() {
+  const r = await axios.get(graph(`${WA_PHONE_NUMBER_ID}/whatsapp_business_profile`), {
+    params: { fields: "about,address,description,email,profile_picture_url,websites,vertical" },
+    headers: { Authorization: `Bearer ${WA_ACCESS_TOKEN}` },
+  });
+  return r.data?.data?.[0] || r.data;
+}
+
+// Sobe a imagem pela API de upload retomável e devolve o handle que o perfil
+// aceita em profile_picture_handle.
+async function subirFotoPerfil(arquivo) {
+  const bytes = fs.readFileSync(arquivo);
+  const tipo = arquivo.endsWith(".png") ? "image/png" : "image/jpeg";
+  const sessao = await axios.post(graph(`${META_APP_ID}/uploads`), null, {
+    params: { file_length: bytes.length, file_type: tipo },
+    headers: { Authorization: `Bearer ${WA_ACCESS_TOKEN}` },
+  });
+  const envio = await axios.post(graph(sessao.data.id), bytes, {
+    headers: {
+      Authorization: `OAuth ${WA_ACCESS_TOKEN}`,
+      file_offset: "0",
+      "Content-Type": "application/octet-stream",
+    },
+    maxBodyLength: Infinity,
+  });
+  return envio.data.h;
+}
+
+async function aplicarPerfilWhatsApp({ comFoto = true } = {}) {
+  const corpo = {
+    messaging_product: "whatsapp",
+    about: PERFIL_WHATSAPP.about,
+    description: PERFIL_WHATSAPP.description,
+    vertical: PERFIL_WHATSAPP.vertical,
+  };
+  if (comFoto) corpo.profile_picture_handle = await subirFotoPerfil(PERFIL_WHATSAPP.foto);
+  await axios.post(graph(`${WA_PHONE_NUMBER_ID}/whatsapp_business_profile`), corpo, {
+    headers: { Authorization: `Bearer ${WA_ACCESS_TOKEN}`, "Content-Type": "application/json" },
+  });
+  return corpo;
+}
+
+function faltaParaPerfil(comFoto) {
+  const falta = [];
+  if (!WA_PHONE_NUMBER_ID) falta.push("WA_PHONE_NUMBER_ID");
+  if (!WA_ACCESS_TOKEN) falta.push("WA_ACCESS_TOKEN");
+  if (comFoto) {
+    if (!META_APP_ID) falta.push("META_APP_ID");
+    if (!fs.existsSync(PERFIL_WHATSAPP.foto)) falta.push("arquivo " + path.relative(__dirname, PERFIL_WHATSAPP.foto));
+  }
+  return falta;
+}
+
+// GET  /api/whatsapp/perfil  → como o perfil está hoje na Meta
+// POST /api/whatsapp/perfil  → aplica foto + textos (?foto=nao pula a imagem)
+app.get("/api/whatsapp/perfil", requireAdmin, async (_req, res) => {
+  const falta = faltaParaPerfil(false);
+  if (falta.length) return res.status(400).json({ erro: "Falta configurar: " + falta.join(", ") });
+  try {
+    res.json({ perfil: await lerPerfilWhatsApp(), proposto: { ...PERFIL_WHATSAPP, foto: path.basename(PERFIL_WHATSAPP.foto) } });
+  } catch (e) {
+    res.status(502).json({ erro: erroMeta(e) });
+  }
+});
+
+app.post("/api/whatsapp/perfil", requireAdmin, async (req, res) => {
+  const comFoto = String(req.query.foto || "sim") !== "nao";
+  const falta = faltaParaPerfil(comFoto);
+  if (falta.length) return res.status(400).json({ erro: "Falta configurar: " + falta.join(", ") });
+  try {
+    const aplicado = await aplicarPerfilWhatsApp({ comFoto });
+    console.log("Perfil do WhatsApp atualizado" + (comFoto ? " (com foto)" : ""));
+    res.json({ ok: true, aplicado, perfil: await lerPerfilWhatsApp() });
+  } catch (e) {
+    console.error("Falha ao atualizar o perfil do WhatsApp:", erroMeta(e));
+    res.status(502).json({ erro: erroMeta(e) });
+  }
+});
+
+// Página mínima para acionar isso pelo navegador, com a senha do painel.
+app.get("/admin/whatsapp", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.type("html").send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Perfil do WhatsApp — Quadrata</title>
+<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:40px auto;padding:0 20px;color:#1e293b}
+h1{font-size:20px}label{display:block;font-size:13px;color:#64748b;margin-top:16px}
+input{width:100%;padding:10px;font-size:15px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box}
+button{margin:16px 8px 0 0;padding:10px 18px;font-size:15px;border:0;border-radius:8px;cursor:pointer;background:#e2e8f0}
+button.p{background:#2f89f5;color:#fff}pre{background:#f1f5f9;padding:14px;border-radius:8px;font-size:12px;white-space:pre-wrap;word-break:break-word}
+img{width:96px;height:96px;border-radius:50%;vertical-align:middle;margin-right:12px}</style></head><body>
+<h1>Perfil comercial do WhatsApp</h1>
+<p><img src="/marca/quadrata/avatar-whatsapp.png" alt=""> Foto que vai subir, mais o "sobre" e a descrição neutros da Quadrata.</p>
+<label>Senha do painel</label><input id="s" type="password" autocomplete="current-password">
+<button onclick="ver()">Ver perfil atual</button>
+<button class="p" onclick="aplicar(true)">Aplicar foto e textos</button>
+<button onclick="aplicar(false)">Só os textos</button>
+<pre id="out">—</pre>
+<script>
+const out=document.getElementById('out');
+async function chamar(m,q){out.textContent='…';const r=await fetch('/api/whatsapp/perfil'+(q||''),{method:m,headers:{'x-admin-password':document.getElementById('s').value}});out.textContent=JSON.stringify(await r.json(),null,2)}
+function ver(){chamar('GET')}function aplicar(f){if(confirm(f?'Trocar a foto e os textos do perfil do WhatsApp?':'Aplicar só os textos?'))chamar('POST',f?'':'?foto=nao')}
+</script></body></html>`);
+});
+
+// ─── Captação: de onde vêm os contatos ───────────────────────────────────────
+// Responde a pergunta que o canal digital existe para testar: ele capta
+// sozinho? E, se sim, por qual porta. Conta CONTATOS ÚNICOS (pessoas), não
+// mensagens — cada linha de contact_persona é uma pessoa que puxou conversa.
+
+const qCaptacaoTotal = db.prepare(`
+  SELECT COALESCE(origem, 'organico') AS origem, persona, COUNT(*) AS n
+    FROM contact_persona
+   GROUP BY origem, persona
+`);
+
+const qCaptacaoSemana = db.prepare(`
+  SELECT strftime('%Y-%W', created_at) AS semana,
+         date(created_at, 'weekday 0', '-6 days') AS inicio,
+         COALESCE(origem, 'organico') AS origem,
+         COUNT(*) AS n
+    FROM contact_persona
+   WHERE created_at IS NOT NULL
+   GROUP BY semana, origem
+   ORDER BY semana DESC
+`);
+
+app.get("/api/captacao", requireAdmin, (_req, res) => {
+  try {
+    const origens = {};
+    let total = 0;
+    for (const [id, o] of Object.entries(personas.ORIGENS)) {
+      origens[id] = { id, rotulo: o.rotulo, curto: o.curto, total: 0, porPersona: {} };
+    }
+    for (const r of qCaptacaoTotal.all()) {
+      const o = (origens[r.origem] ||= { id: r.origem, rotulo: r.origem, curto: r.origem, total: 0, porPersona: {} });
+      o.total += r.n;
+      o.porPersona[r.persona] = (o.porPersona[r.persona] || 0) + r.n;
+      total += r.n;
+    }
+
+    // Semanas mais recentes primeiro, no máximo 12.
+    const semanas = [];
+    for (const r of qCaptacaoSemana.all()) {
+      let s = semanas.find((x) => x.semana === r.semana);
+      if (!s) {
+        if (semanas.length >= 12) continue;
+        s = { semana: r.semana, inicio: r.inicio, total: 0, porOrigem: {} };
+        semanas.push(s);
+      }
+      s.porOrigem[r.origem] = r.n;
+      s.total += r.n;
+    }
+
+    res.json({
+      total,
+      origens: Object.values(origens).sort((a, b) => b.total - a.total),
+      semanas,
+      personas: Object.values(personas.PERSONAS).map((p) => ({ id: p.id, nome: p.nome })),
+    });
+  } catch (e) {
+    console.error("Falha ao apurar a captação:", e.message);
+    res.status(500).json({ erro: e.message });
+  }
+});
+
+// Painel da captação — números por origem e por semana.
+app.get(["/admin/captacao", "/captacao"], (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.type("html").send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Captação — Quadrata Seguros</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f1f5f9;--card:#fff;--linha:#e2e8f0;--t1:#122c56;--t2:#475569;--t3:#94a3b8;--azul:#2f89f5}
+body{background:var(--bg);color:var(--t1);font-family:'Inter',system-ui,sans-serif;font-size:15px;line-height:1.5;
+     padding:32px 20px 80px}
+.wrap{max-width:720px;margin:0 auto}
+h1{font-size:22px;font-weight:800;letter-spacing:-.02em}
+.sub{font-size:13px;color:var(--t3);margin-top:2px}
+.card{background:var(--card);border:1px solid var(--linha);border-radius:14px;padding:22px;margin-top:18px}
+.hero{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums}
+.hero-lbl{font-size:13px;color:var(--t2);margin-top:6px}
+h2{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t3);margin-bottom:14px}
+.linha-org{display:grid;grid-template-columns:1fr auto;gap:4px 14px;align-items:baseline;margin-bottom:14px}
+.linha-org:last-child{margin-bottom:0}
+.rot{font-size:14px;font-weight:500}
+.val{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.trilho{grid-column:1/-1;height:8px;background:#eef2f7;border-radius:4px;overflow:hidden}
+.barra{height:100%;background:var(--azul);border-radius:4px;min-width:2px}
+.quebra{grid-column:1/-1;font-size:12px;color:var(--t3);font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px 10px;text-align:right;font-variant-numeric:tabular-nums;border-bottom:1px solid var(--linha)}
+th:first-child,td:first-child{text-align:left;font-variant-numeric:normal}
+th{font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em}
+tbody tr:last-child td{border-bottom:0}
+.tot{font-weight:700}
+.vazio{color:var(--t2);font-size:14px;line-height:1.65}
+.vazio strong{color:var(--t1)}
+label{display:block;font-size:13px;color:var(--t2);margin-bottom:6px}
+input{width:100%;max-width:260px;padding:9px 11px;font-size:15px;border:1px solid #cbd5e1;border-radius:8px;font-family:inherit}
+button{margin-top:12px;padding:9px 18px;font-size:14px;font-weight:600;border:0;border-radius:8px;cursor:pointer;
+       background:var(--azul);color:#fff;font-family:inherit}
+.erro{color:#b91c1c;font-size:14px;margin-top:12px}
+</style></head><body><div class="wrap">
+<h1>Captação</h1>
+<div class="sub">Contatos únicos que puxaram conversa, pela porta em que entraram</div>
+
+<div class="card" id="login">
+  <label for="s">Senha do painel</label>
+  <input id="s" type="password" autocomplete="current-password">
+  <button onclick="carregar()">Ver números</button>
+  <div class="erro" id="erro" hidden></div>
+</div>
+
+<div id="painel" hidden></div>
+</div>
+<script>
+const $=(id)=>document.getElementById(id);
+const N=(n)=>n.toLocaleString('pt-BR');
+
+async function carregar(){
+  const senha=$('s').value; const erro=$('erro'); erro.hidden=true;
+  let d;
+  try{
+    const r=await fetch('/api/captacao',{headers:{'x-admin-password':senha}});
+    d=await r.json();
+    if(!r.ok){erro.textContent=d.erro||d.error||'Não foi possível carregar.';erro.hidden=false;return}
+  }catch(e){erro.textContent='Falha de rede: '+e.message;erro.hidden=false;return}
+  $('login').hidden=true; $('painel').hidden=false; desenhar(d);
+}
+
+function desenhar(d){
+  const nomes={}; d.personas.forEach(p=>nomes[p.id]=p.nome);
+  let html='';
+
+  if(!d.total){
+    html+='<div class="card"><h2>Ainda sem contatos</h2><p class="vazio">'
+       +'Nenhuma conversa foi iniciada ainda — ou o servidor subiu depois das que houve.<br><br>'
+       +'A partir de agora, cada pessoa nova que puxar conversa é registrada aqui com a porta '
+       +'em que entrou: <strong>anúncio</strong>, <strong>link da bio</strong>, '
+       +'<strong>direct do Instagram</strong> ou <strong>direto no WhatsApp</strong>.</p></div>';
+    $('painel').innerHTML=html; return;
+  }
+
+  html+='<div class="card"><div class="hero">'+N(d.total)+'</div>'
+     +'<div class="hero-lbl">'+(d.total===1?'pessoa iniciou':'pessoas iniciaram')+' conversa</div></div>';
+
+  const maior=Math.max(...d.origens.map(o=>o.total),1);
+  html+='<div class="card"><h2>Por origem</h2>';
+  d.origens.forEach(o=>{
+    const pct=d.total?Math.round(o.total/d.total*100):0;
+    const quebra=Object.entries(o.porPersona).map(([id,n])=>(nomes[id]||id)+' '+N(n)).join(' · ');
+    html+='<div class="linha-org" title="'+o.rotulo+': '+N(o.total)+' de '+N(d.total)+'">'
+       +'<span class="rot">'+o.rotulo+'</span>'
+       +'<span class="val">'+N(o.total)+' <span style="color:var(--t3);font-weight:500">· '+pct+'%</span></span>'
+       +'<div class="trilho"><div class="barra" style="width:'+(o.total/maior*100)+'%"></div></div>'
+       +'<div class="quebra">'+(quebra||'—')+'</div></div>';
+  });
+  html+='</div>';
+
+  if(d.semanas.length){
+    const cols=d.origens.filter(o=>o.total>0);
+    html+='<div class="card"><h2>Por semana</h2><table><thead><tr><th>Semana de</th>'
+       +cols.map(o=>'<th>'+o.curto+'</th>').join('')+'<th>Total</th></tr></thead><tbody>';
+    d.semanas.forEach(s=>{
+      const dia=s.inicio?s.inicio.split('-').reverse().slice(0,2).join('/'):s.semana;
+      html+='<tr><td>'+dia+'</td>'
+         +cols.map(o=>'<td>'+(s.porOrigem[o.id]?N(s.porOrigem[o.id]):'<span style="color:var(--t3)">—</span>')+'</td>').join('')
+         +'<td class="tot">'+N(s.total)+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+  }
+  $('painel').innerHTML=html;
+}
+$('s').addEventListener('keydown',e=>{if(e.key==='Enter')carregar()});
+</script></body></html>`);
+});
+
+// ─── Ligar uma conta do Instagram pelo navegador ──────────────────────────────
+//
+// Sem isto, ligar uma persona ao Instagram é: gerar código no navegador, colar
+// num terminal, trocar por token, copiar duas variáveis e reconfigurar o
+// deploy. Cinco passos manuais, cada um com sua chance de erro — e o pior
+// deles é a chave secreta passando por linha de comando, histórico e print.
+//
+// Aqui o servidor faz tudo: ele já tem a chave (variável de ambiente), recebe
+// o código direto do Instagram e guarda token e id no banco. Para quem liga,
+// são dois cliques.
+const IG_APP_ID = process.env.IG_APP_ID || "";
+const IG_APP_SECRET = process.env.IG_APP_SECRET || "";
+const IG_ESCOPOS = [
+  "instagram_business_basic",
+  "instagram_business_manage_messages",
+  "instagram_business_manage_comments",
+  "instagram_business_content_publish",
+].join(",");
+
+// state guarda qual persona está sendo ligada e prova que o retorno veio de um
+// pedido nosso. Vive em memória: o fluxo dura um minuto e não sobrevive a um
+// restart de propósito — código antigo não deve valer depois.
+const ligacoesEmCurso = new Map();
+
+const urlCallback = (req) =>
+  `${req.protocol}://${req.get("host")}/instagram/callback`;
+
+app.get("/admin/instagram", (req, res) => {
+  const persona = personas.porId(req.query.persona) || personas.padrao();
+  const senhaOk = req.query.senha === getAdminPassword();
+  const falta = [];
+  if (!IG_APP_ID) falta.push("IG_APP_ID");
+  if (!IG_APP_SECRET) falta.push("IG_APP_SECRET");
+
+  res.type("html").send(`<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ligar Instagram — Quadrata</title>
+<style>
+ body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#122c56;margin:0;
+      padding:40px 20px;line-height:1.5}
+ .c{max-width:520px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;
+    border-radius:14px;padding:28px}
+ h1{font-size:20px;margin:0 0 6px} p{margin:8px 0;color:#475569;font-size:15px}
+ a.b,button{display:inline-block;background:#2f89f5;color:#fff;border:0;
+   border-radius:9px;padding:11px 18px;font-size:15px;font-weight:600;
+   text-decoration:none;cursor:pointer;margin-top:14px}
+ input{width:100%;padding:11px;border:1px solid #cbd5e1;border-radius:9px;
+   font-size:15px;margin-top:14px;box-sizing:border-box}
+ .erro{background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:12px;
+   border-radius:9px;font-size:14px}
+ code{background:#f1f5f9;padding:2px 6px;border-radius:5px;font-size:13px}
+</style>
+<div class="c">
+<h1>Ligar o Instagram do ${persona.nome}</h1>
+${
+  falta.length
+    ? `<p class="erro">Faltam as variáveis ${falta.join(" e ")} no ambiente.
+       São o <strong>ID do app do Instagram</strong> e a <strong>chave secreta</strong>,
+       da tela "Configuração da API com login do Instagram".</p>`
+    : senhaOk
+      ? `<p>Você vai entrar no Instagram e autorizar. O servidor guarda o
+         token sozinho — nada para copiar.</p>
+         <p><strong>Importante:</strong> entre com a conta
+         <code>${persona.id === "fabricio" ? "@fabricioquadrata" : "@marianaquadrata"}</code>,
+         não com outra.</p>
+         <a class="b" href="/admin/instagram/iniciar?persona=${persona.id}&senha=${encodeURIComponent(req.query.senha || "")}">Entrar no Instagram e autorizar</a>`
+      : `<p>Digite a senha do painel para continuar.</p>
+         <form method="get" action="/admin/instagram">
+           <input type="hidden" name="persona" value="${persona.id}">
+           <input type="password" name="senha" placeholder="Senha do painel" autofocus>
+           <button type="submit">Continuar</button>
+         </form>`
+}
+</div>`);
+});
+
+app.get("/admin/instagram/iniciar", (req, res) => {
+  if (req.query.senha !== getAdminPassword()) return res.status(401).send("Senha incorreta.");
+  const persona = personas.porId(req.query.persona) || personas.padrao();
+  if (!IG_APP_ID) return res.status(500).send("IG_APP_ID não configurado.");
+
+  const state = crypto.randomBytes(16).toString("hex");
+  ligacoesEmCurso.set(state, { persona: persona.id, em: Date.now() });
+  // Limpa pedidos que ficaram pelo caminho — ninguém volta depois de 15 min.
+  for (const [k, v] of ligacoesEmCurso) {
+    if (Date.now() - v.em > 15 * 60 * 1000) ligacoesEmCurso.delete(k);
+  }
+
+  const url =
+    "https://www.instagram.com/oauth/authorize" +
+    "?force_reauth=true" +
+    `&client_id=${encodeURIComponent(IG_APP_ID)}` +
+    `&redirect_uri=${encodeURIComponent(urlCallback(req))}` +
+    `&scope=${encodeURIComponent(IG_ESCOPOS)}` +
+    `&state=${state}` +
+    "&response_type=code";
+  res.redirect(302, url);
+});
+
+app.get("/instagram/callback", async (req, res) => {
+  const pagina = (titulo, corpo, cor = "#2f89f5") =>
+    res.type("html").send(`<!doctype html><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${titulo}</title>
+<style>body{font-family:system-ui,sans-serif;background:#f1f5f9;color:#122c56;
+ margin:0;padding:40px 20px;line-height:1.55}
+ .c{max-width:520px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;
+ border-radius:14px;padding:28px;border-top:4px solid ${cor}}
+ h1{font-size:20px;margin:0 0 10px} p{color:#475569;font-size:15px}
+ code{background:#f1f5f9;padding:2px 6px;border-radius:5px;font-size:13px;
+ word-break:break-all}</style>
+<div class="c"><h1>${titulo}</h1>${corpo}</div>`);
+
+  if (req.query.error) {
+    return pagina(
+      "Autorização recusada",
+      `<p>O Instagram respondeu <code>${req.query.error}</code>.</p>
+       <p>${req.query.error_description || ""}</p>`,
+      "#dc2626"
+    );
+  }
+
+  const pedido = ligacoesEmCurso.get(String(req.query.state || ""));
+  if (!pedido) {
+    return pagina(
+      "Pedido não reconhecido",
+      `<p>Este retorno não corresponde a nenhum pedido recente. Comece de novo
+       por <code>/admin/instagram</code>.</p>`,
+      "#dc2626"
+    );
+  }
+  ligacoesEmCurso.delete(String(req.query.state));
+
+  const persona = personas.porId(pedido.persona) || personas.padrao();
+  const code = String(req.query.code || "").replace(/#_$/, "");
+  if (!code) return pagina("Faltou o código", "<p>O Instagram não devolveu código.</p>", "#dc2626");
+
+  try {
+    const troca = await igToken.ligarPeloCodigo({
+      code,
+      appId: IG_APP_ID,
+      appSecret: IG_APP_SECRET,
+      redirectUri: urlCallback(req),
+      persona: persona.id,
+    });
+    pagina(
+      "Pronto",
+      `<p>A conta <code>@${troca.username}</code> está ligada ao
+       <strong>${persona.nome}</strong>.</p>
+       <p>Token válido por ${troca.dias} dias, e o servidor renova sozinho antes
+       de vencer. Não há nada para copiar nem variável para configurar.</p>
+       <p>Confira em <code>/health</code>.</p>`
+    );
+  } catch (err) {
+    pagina("Não deu certo", `<p><code>${String(err.message)}</code></p>`, "#dc2626");
+  }
+});
+
+// ─── Publicar no feed do Instagram ───────────────────────────────────────────
+// POST /api/instagram/publicar  { persona, legenda, imagens: [ "https://…" | { base64, tipo } ] }
+// É o que a ferramenta publicar_instagram do mcp-server.js chama.
+app.get("/midia/:id", igPublicar.servirMidia);
+
+app.post("/api/instagram/publicar", requireAdmin, async (req, res) => {
+  try {
+    const { persona, legenda, imagens = [] } = req.body || {};
+    // Atrás do Render o Express vê http; a Meta precisa buscar por https.
+    const proto = req.get("x-forwarded-proto")?.split(",")[0] || req.protocol;
+    const base = `${proto}://${req.get("host")}`;
+    const urls = imagens.map((img) => {
+      if (typeof img === "string") return img;
+      if (img?.tipo !== "image/jpeg") throw new Error("O Instagram só aceita JPEG.");
+      return `${base}/midia/${igPublicar.guardarMidia(img.base64, img.tipo)}`;
+    });
+    const post = await igPublicar.publicar({ persona, legenda, imagens: urls });
+    espelharTelegram(`📸 ${post.persona} publicou no Instagram\n${post.permalink || post.id}`);
+    res.json(post);
+  } catch (e) {
+    const d = e.response?.data?.error;
+    const erro = d ? `${d.message} (código ${d.code}${d.error_subcode ? "/" + d.error_subcode : ""})` : e.message;
+    console.error("Falha ao publicar no Instagram:", erro);
+    res.status(400).json({ erro });
+  }
+});
+
+// Página para publicar no feed do Instagram pelo navegador, com a senha do
+// painel — sem precisar montar a chamada à API na mão. Chama a mesma rota
+// /api/instagram/publicar de cima.
+app.get("/admin/instagram/publicar", (_req, res) => {
+  res.setHeader("Cache-Control", "no-store");
+  res.type("html").send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Publicar no Instagram — Quadrata</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:560px;margin:40px auto;padding:0 20px;color:#122c56;background:#f1f5f9}
+h1{font-size:20px}
+label{display:block;font-size:13px;color:#64748b;margin-top:16px}
+input,select,textarea{width:100%;padding:10px;font-size:15px;border:1px solid #cbd5e1;border-radius:8px;
+  box-sizing:border-box;font-family:inherit;background:#fff}
+textarea{min-height:90px;resize:vertical}
+button{margin-top:18px;padding:11px 18px;font-size:15px;font-weight:600;border:0;border-radius:9px;
+  cursor:pointer;background:#2f89f5;color:#fff}
+button:disabled{opacity:.6;cursor:wait}
+#previews{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+#previews img{width:76px;height:76px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0}
+#out{margin-top:18px;padding:14px;border-radius:9px;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534}
+.erro{background:#fef2f2;border:1px solid #fecaca;color:#991b1b}
+a.permalink{color:#2f89f5;font-weight:600}
+.dica{font-size:13px;color:#64748b;margin-top:6px}
+</style></head><body>
+<h1>Publicar no Instagram</h1>
+<p class="dica">Só JPEG. Uma foto vira post simples; de 2 a 10 viram carrossel, na ordem escolhida.</p>
+
+<label for="senha">Senha do painel</label>
+<input id="senha" type="password" autocomplete="current-password">
+
+<label for="persona">Conta</label>
+<select id="persona">
+  <option value="fabricio">FabrícIO — @fabricioquadrata</option>
+  <option value="mariana">MarIAna — @marianaquadrata</option>
+</select>
+
+<label for="fotos">Fotos (1 a 10, JPEG)</label>
+<input id="fotos" type="file" accept="image/jpeg" multiple>
+<div id="previews"></div>
+
+<label for="legenda">Legenda</label>
+<textarea id="legenda" placeholder="Escreva a legenda do post…"></textarea>
+
+<button id="btn" onclick="publicar()">Publicar</button>
+<div id="out" hidden></div>
+
+<script>
+const $=(id)=>document.getElementById(id);
+const out=$('out');
+
+$('fotos').addEventListener('change', () => {
+  const previews=$('previews'); previews.innerHTML='';
+  [...$('fotos').files].forEach(f => {
+    const img=document.createElement('img');
+    img.src=URL.createObjectURL(f);
+    previews.appendChild(img);
+  });
+});
+
+function lerComoBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result).split(',')[1]);
+    r.onerror = () => reject(new Error('Falha ao ler ' + file.name));
+    r.readAsDataURL(file);
+  });
+}
+
+function mostrar(texto, classe) {
+  out.hidden = false;
+  out.className = classe;
+  out.textContent = texto;
+}
+
+async function publicar() {
+  const senha = $('senha').value;
+  const persona = $('persona').value;
+  const legenda = $('legenda').value;
+  const arquivos = [...$('fotos').files];
+
+  if (!senha) return mostrar('Digite a senha do painel.', 'erro');
+  if (!arquivos.length) return mostrar('Escolha pelo menos uma foto.', 'erro');
+  if (arquivos.length > 10) return mostrar('No máximo 10 fotos (carrossel).', 'erro');
+  const naoJpeg = arquivos.find(f => f.type !== 'image/jpeg');
+  if (naoJpeg) return mostrar('"' + naoJpeg.name + '" não é JPEG — o Instagram só aceita esse formato.', 'erro');
+
+  const btn = $('btn'); btn.disabled = true; btn.textContent = 'Publicando…';
+  out.hidden = true;
+  try {
+    const imagens = await Promise.all(arquivos.map(async (f) => ({ base64: await lerComoBase64(f), tipo: f.type })));
+    const r = await fetch('/api/instagram/publicar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-password': senha },
+      body: JSON.stringify({ persona, legenda, imagens }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Falha ao publicar.');
+    mostrar('Publicado! ' + (d.permalink ? '' : ''), 'ok');
+    if (d.permalink) out.innerHTML = 'Publicado por ' + d.persona + '. <a class="permalink" href="' + d.permalink + '" target="_blank" rel="noopener">Ver no Instagram →</a>';
+  } catch (e) {
+    mostrar(e.message, 'erro');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Publicar';
+  }
+}
+</script>
+</body></html>`);
 });
 
 // ─── Dashboard API ────────────────────────────────────────────────────────────
@@ -1360,10 +2260,21 @@ app.get("/api/daily-stats", (req, res) => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 app.listen(PORT, () => {
-  console.log(`Servidor MarIAna rodando na porta ${PORT}`);
+  console.log(`Servidor Quadrata rodando na porta ${PORT}`);
   console.log(`IA (Anthropic): ${anthropic ? "ativa" : "(ANTHROPIC_API_KEY não configurada)"}`);
   console.log(`Modelo: ${MARIANA_MODEL}`);
-  console.log(`Modo: ${anthropic ? "mariana" : MAKE_WEBHOOK_URL ? "make" : "só menu"}`);
+  console.log(`Modo: ${anthropic ? "ia" : MAKE_WEBHOOK_URL ? "make" : "só menu"}`);
+  for (const p of Object.values(personas.PERSONAS)) {
+    const t = igToken.estado(p);
+    const ig = t.configurado
+      ? `Instagram ok${t.diasRestantes !== null ? ` (token vence em ${t.diasRestantes} dias)` : ""}`
+      : "sem Instagram";
+    const link = p.id === personas.padrao().id ? "/fale" : `/fale/${p.id}`;
+    console.log(`Persona: ${p.nome} — ${link} — ${ig}`);
+  }
+  // Renovação do token do Instagram: sem isso a persona emudece no direct a
+  // cada 60 dias.
+  igToken.iniciar();
   console.log(`>>> VERSAO: ${SERVER_VERSION} <<<`);
   console.log(`>>> Admin: http://localhost:${PORT}/admin.html`);
   console.log(`>>> Senha admin: ${ADMIN_PASSWORD === "admin123" ? "admin123 (padrao)" : "(custom via .env)"}`);

@@ -5,6 +5,12 @@ node_modules/
 .env
 .env.local
 
+# Chave secreta do app do Instagram, quando passada por arquivo ao
+# instagram-setup.js em vez de digitada (ver README)
+segredo.txt
+instagram.txt
+token-curto.txt
+
 # Logs
 *.log
 npm-debug.log*
@@ -18,3 +24,10 @@ yarn-error.log*
 *.db
 *.db-shm
 *.db-wal
+
+# Documentos de clientes (propostas, apolices) — nunca versionar
+*.pdf
+*.PDF
+
+# Tela de design montada (saida de build, ~2,4 MB)
+marca/**/logotipo-*.html
