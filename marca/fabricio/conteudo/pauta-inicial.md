@@ -43,7 +43,7 @@ salvamento. CTA fraco de propósito.*
 | # | Pilar | Gancho | Formato | CTA |
 |---|---|---|---|---|
 | 6 | Dúvida de cliente | "Esse cliente mandou mensagem às 2h07 de um domingo. Foi respondido às 2h07." | Reels · print anonimizado da conversa | Olha o perfil pra entender como |
-| 7 | Quem sou | "Não sou corretor. E é por isso que eu consigo te responder agora." | Reels falado · o limite explicado na cara | Direct |
+| 7 | Quem sou | "Sou o consultor digital da Quadrata — corretora registrada na SUSEP. É por isso que eu te respondo agora, a qualquer hora." | Reels falado · a responsabilidade explicada na cara | Direct |
 | 8 | Dúvida de cliente | "As 5 perguntas que mais chegam aqui. Aposto que uma é a sua." | Carrossel · 5 perguntas, resposta em uma linha cada | Qual é a sua? Comenta |
 | 9 | Dúvida de cliente | "2ª via de boleto às 23h, sem falar com ninguém." | Reels · MySeg, código da corretora 1133 | Salva |
 | 10 | Quem sou | "Manda 'oi' no direct e cronometra." | Reels de 10s · desafio | Direct — é literalmente o teste |
@@ -103,7 +103,7 @@ têm story, que é quando a conversa realmente acontece.
 
 | | Segunda | Terça | Quinta | Sábado |
 |---|---|---|---|---|
-| **Semana 1** | *(fixado: a apresentação)* | #7 Não sou corretor | #1 Os 10 primeiros minutos | #10 Manda "oi" e cronometra |
+| **Semana 1** | *(fixado: a apresentação)* | #7 Consultor digital da Quadrata (SUSEP) | #1 Os 10 primeiros minutos | #10 Manda "oi" e cronometra |
 | **Semana 2** | #2 Consórcio não tem juros | **S1** Dúvida da semana | #16 Placa e CEP | #6 Respondido às 2h07 |
 | **Semana 3** | #3 O que depende da apólice | **S1** Dúvida da semana | **S2** Consórcio sem lenda | #8 As 5 perguntas |
 | **Semana 4** | #12 Consórcio × financiamento | **S1** Dúvida da semana | #17 Cartão Porto Bank | **S3** Primeiros 10 min |

@@ -108,9 +108,17 @@ RESTRIÇÕES INEGOCIÁVEIS
 - Não prometa cobertura, valor de prêmio, desconto, prazo de indenização nem
   resultado de sinistro. Cobertura depende da apólice — quando o assunto for
   cobertura, o conteúdo manda o cliente CONFERIR A APÓLICE DELE, não afirma.
-- Não trate o FabrícIO como corretor. Ele é consultor digital. Corretor é
-  profissão regulada pela SUSEP e quem fecha é um humano da Quadrata. Todo
-  conteúdo de fundo de funil deixa isso visível.
+- Não escreva "não sou corretor" nem qualquer frase que separe o FabrícIO da
+  Quadrata — ele é o consultor digital DA Quadrata (corretora registrada na
+  SUSEP), sob a mesma responsabilidade de um consultor humano. Isso é regra
+  INTERNA, não texto para o post: não precisa citar SUSEP nem explicar
+  responsabilidade regulatória na legenda — isso soa jurídico e gera
+  desconfiança em vez de confiança. No conteúdo, a divisão de tarefas aparece
+  de forma simples e acolhedora — frase-padrão, varie a forma mas não o
+  sentido: "o FabrícIO orienta e já adianta sua cotação, e um consultor
+  humano da Quadrata acompanha todo o processo, pra você ter suporte
+  completo na contratação". Evite "fecha com você" sozinho — soa
+  transacional; o que vende é o acompanhamento, não só o fechamento.
 - Não cite seguradora por nome de forma negativa e não faça comparação de
   preço entre seguradoras.
 - Nada de "seguro X é melhor que Y", "aqui é mais barato", "eu resolvo seu
