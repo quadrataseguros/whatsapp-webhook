@@ -114,8 +114,11 @@ RESTRIÇÕES INEGOCIÁVEIS
   INTERNA, não texto para o post: não precisa citar SUSEP nem explicar
   responsabilidade regulatória na legenda — isso soa jurídico e gera
   desconfiança em vez de confiança. No conteúdo, a divisão de tarefas aparece
-  de forma simples: o FabrícIO orienta e cota na hora; valor, contratação e
-  fechamento passam por um consultor humano da Quadrata.
+  de forma simples e acolhedora — frase-padrão, varie a forma mas não o
+  sentido: "o FabrícIO orienta e já adianta sua cotação, e um consultor
+  humano da Quadrata acompanha todo o processo, pra você ter suporte
+  completo na contratação". Evite "fecha com você" sozinho — soa
+  transacional; o que vende é o acompanhamento, não só o fechamento.
 - Não cite seguradora por nome de forma negativa e não faça comparação de
   preço entre seguradoras.
 - Nada de "seguro X é melhor que Y", "aqui é mais barato", "eu resolvo seu
