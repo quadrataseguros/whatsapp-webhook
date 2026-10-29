@@ -37,7 +37,10 @@ td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
 .scroll{overflow-x:auto}
 .tag{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
 .t-conferido{background:#dcfce7;color:var(--green)}.t-divergente{background:#ffedd5;color:var(--orange)}
-.t-so_sics{background:#fef9c3;color:var(--yellow)}.t-so_seguradora{background:#fee2e2;color:var(--red)}
+.t-so_sics{background:#fef9c3;color:var(--yellow)}.t-so_seguradora{background:#fee2e2;color:var(--red)}.t-sem_relatorio{background:#e2e8f0;color:var(--t2)}
+tr.conf{background:#fffbeb}tr.conf td:first-child{border-left:4px solid #f59e0b}
+.motivo{font-size:11px;color:#92400e;margin-top:4px;max-width:260px}.okb{font-size:11px;font-weight:700;color:var(--green)}
+.btnc{background:#f59e0b;color:#fff;border:0;border-radius:6px;padding:4px 10px;font:700 11px Inter;cursor:pointer;margin-top:4px}
 .muted{color:var(--t3);font-size:11px}
 .msg{padding:10px 14px;border-radius:8px;font-size:13px;margin-top:12px}
 .ok{background:#dcfce7;color:#166534}.err{background:#fee2e2;color:#991b1b}
@@ -68,7 +71,7 @@ td select,td input{font-size:12px;padding:4px 6px;width:100%}
   </div>
   <div class="card scroll">
     <table>
-      <thead><tr><th>Vence</th><th>Seguradora</th><th>Segurado</th><th>Ramo / item</th><th>Apólice SICS</th><th>Apólice seg.</th><th>Prêmio</th><th>Conferência</th><th>Acompanhamento</th><th>Obs.</th></tr></thead>
+      <thead><tr><th>Vence</th><th>Seguradora</th><th>Segurado</th><th>Ramo / item</th><th>Apólice SICS</th><th>Apólice seg.</th><th>Prêmio</th><th>Conferência / confirmar</th><th>Acompanhamento</th><th>Obs.</th></tr></thead>
       <tbody id="tb"><tr><td colspan="10" class="muted">Nada importado ainda — use a aba Importar.</td></tr></tbody>
     </table>
   </div>
@@ -106,13 +109,14 @@ var CAMPOS = [
   {k:'ramo', l:'Ramo', syn:['nomeproduto','ramo','produto','modalidade']},
   {k:'item', l:'Placa / item', syn:['placa','item','chassi','bem']},
   {k:'vigencia_fim', l:'Fim da vigência', syn:['fim vig','termino','vencimento','venc','fim de vig','final vig','dt fim','data fim','finalvigencia']},
-  {k:'premio', l:'Prêmio', syn:['premio total','premio','valor']},
+  {k:'premio', l:'Prêmio (bruto)', syn:['premio total','premio bruto','valor']},
+  {k:'premio_liquido', l:'Prêmio líquido (se não houver bruto)', syn:['premio liq. anterior','premio liquido']},
   {k:'vendedor', l:'Vendedor / produtor', syn:['preposto','vendedor','produtor','executivo']},
   {k:'situacao', l:'Situação (relatório)', syn:['situacao','status']},
   {k:'seguradora', l:'Seguradora (coluna)', syn:['seguradora','companhia']}
 ];
 var STATUS_LBL = {pendente:'Pendente',em_contato:'Em contato',cotando:'Cotando',renovada:'Renovada',perdida:'Perdida',cancelada:'Cancelada'};
-var SIT_LBL = {conferido:'Conferido',divergente:'Vigência diverge',so_sics:'Só no SICS',so_seguradora:'Só na seguradora'};
+var SIT_LBL = {conferido:'Conferido',divergente:'Vigência diverge',so_sics:'Só no SICS',so_seguradora:'Só na seguradora',sem_relatorio:'Sem relatório da seguradora'};
 var pwd = sessionStorage.getItem('ren_pwd') || '';
 var dados = {headers:[], rows:[]}, filtroSit = '';
 var $ = function(id){ return document.getElementById(id); };
@@ -146,11 +150,11 @@ function carregar() {
   if ($('fMes').value) q.set('mes', $('fMes').value);
   if ($('fSeg').value) q.set('seguradora', $('fSeg').value);
   if ($('fStatus').value) q.set('status', $('fStatus').value);
-  if (filtroSit) q.set('situacao', filtroSit);
+  if (filtroSit === 'confirmar') q.set('confirmar', '1'); else if (filtroSit) q.set('situacao', filtroSit);
   api('/api/renovacoes?' + q).then(function(d){
     var r = d.resumo;
-    $('chips').innerHTML = [['','Total',r.total],['conferido','Conferido',r.conferido],['divergente','Vigência diverge',r.divergente],['so_sics','Só no SICS',r.so_sics],['so_seguradora','Só na seguradora',r.so_seguradora]]
-      .map(function(c){ return '<div class="chip'+(filtroSit===c[0]?' on':'')+'" data-s="'+c[0]+'"><b>'+c[2]+'</b><span>'+c[1]+'</span></div>'; }).join('');
+    $('chips').innerHTML = [['','Total',r.total],['confirmar','⚠ A confirmar',r.a_confirmar],['conferido','Conferido',r.conferido],['divergente','Vigência diverge',r.divergente],['so_sics','Só no SICS',r.so_sics],['so_seguradora','Só na seguradora',r.so_seguradora],['sem_relatorio','Sem relatório',r.sem_relatorio]]
+      .map(function(c){ return '<div class="chip'+(filtroSit===c[0]?' on':'')+'" data-s="'+c[0]+'"'+(c[0]==='confirmar'?' style="background:#fffbeb"':'')+'><b>'+c[2]+'</b><span>'+c[1]+'</span></div>'; }).join('');
     document.querySelectorAll('.chip').forEach(function(c){ c.onclick = function(){ filtroSit = c.dataset.s; carregar(); }; });
     $('tb').innerHTML = d.linhas.length ? d.linhas.map(linha).join('') : '<tr><td colspan="10" class="muted">Nenhuma renovação neste filtro.</td></tr>';
   }).catch(function(e){ $('tb').innerHTML = '<tr><td colspan="10" class="muted">'+esc(e.message)+'</td></tr>'; });
@@ -159,15 +163,21 @@ function linha(l) {
   var v = l.situacao==='divergente' ? dbr(l.vigencia_sics)+'<div class="muted">seg.: '+dbr(l.vigencia_seg)+'</div>' : dbr(l.vigencia);
   var prem = brl(l.premio) + (l.variacao_premio_pct!=null ? '<div class="muted">seg. '+(l.variacao_premio_pct>0?'+':'')+l.variacao_premio_pct+'%</div>' : '');
   var opts = Object.keys(STATUS_LBL).map(function(s){ return '<option value="'+s+'"'+(s===l.status?' selected':'')+'>'+STATUS_LBL[s]+'</option>'; }).join('');
-  return '<tr data-k="'+esc(l.chave)+'"><td>'+v+'</td><td>'+esc(l.seguradora)+'</td><td>'+esc(l.segurado)+'<div class="muted">'+esc(l.documento)+'</div></td>'
+  return '<tr data-k="'+esc(l.chave)+'"'+(l.confirmar?' class="conf"':'')+'><td>'+v+'</td><td>'+esc(l.seguradora)+'</td><td>'+esc(l.segurado)+'<div class="muted">'+esc(l.documento)+'</div></td>'
     +'<td>'+esc(l.ramo)+'<div class="muted">'+esc(l.item)+'</div></td><td>'+esc(l.apolice_sics||'—')+'</td><td>'+esc(l.apolice_seg||'—')+(l.via_cruzamento==='documento'?'<div class="muted">cruzada por CPF/placa</div>':'')+'</td>'
-    +'<td>'+prem+'</td><td><span class="tag t-'+l.situacao+'">'+SIT_LBL[l.situacao]+'</span></td>'
+    +'<td>'+prem+'</td><td><span class="tag t-'+l.situacao+'">'+SIT_LBL[l.situacao]+'</span>'
+    +(l.confirmar ? '<div class="motivo">'+esc(l.motivo)+'</div><button class="btnc" data-conf="1">✔ Confirmei</button>' : (l.confirmado ? '<div class="okb">✔ confirmado</div>' : ''))+'</td>'
     +'<td><select class="st">'+opts+'</select></td><td><input type="text" class="ob" value="'+esc(l.obs)+'"></td></tr>';
 }
 function salvarAcomp(tr) {
   api('/api/renovacoes/acompanhamento', {method:'POST', body:JSON.stringify({chave:tr.dataset.k, status:tr.querySelector('.st').value, obs:tr.querySelector('.ob').value})})
     .catch(function(e){ alert(e.message); });
 }
+$('tb').addEventListener('click', function(e){
+  var b = e.target.closest('[data-conf]'); if (!b) return;
+  var tr = b.closest('tr');
+  api('/api/renovacoes/acompanhamento', {method:'POST', body:JSON.stringify({chave:tr.dataset.k, confirmado:true})}).then(carregar).catch(function(x){ alert(x.message); });
+});
 $('tb').addEventListener('change', function(e){ var tr = e.target.closest('tr'); if (tr) salvarAcomp(tr); });
 $('btnFiltrar').onclick = carregar;
 

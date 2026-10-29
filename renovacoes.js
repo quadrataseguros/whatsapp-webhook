@@ -67,6 +67,8 @@ db.exec(`
     updated_at     TEXT DEFAULT (datetime('now', 'localtime'))
   );
 `);
+// confirmado = alguém olhou o caso incerto e deu o aval (some do destaque).
+try { db.exec("ALTER TABLE ren_acompanhamento ADD COLUMN confirmado INTEGER DEFAULT 0"); } catch (_) {}
 
 // ─── Normalização ───────────────────────────────────────────────────────────
 const semAcento = (s) => String(s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
@@ -83,7 +85,8 @@ function seguradoraCanonica(texto) {
 // são a mesma apólice para quem compara.
 const normApolice = (s) => String(s || "").toUpperCase().replace(/[^0-9A-Z]/g, "").replace(/^0+/, "");
 const normDoc = (s) => String(s || "").replace(/\D/g, "");
-const normItem = (s) => String(s || "").toUpperCase().replace(/[^0-9A-Z]/g, "");
+// "0" é como alguns relatórios dizem "sem item".
+const normItem = (s) => { const v = String(s || "").toUpperCase().replace(/[^0-9A-Z]/g, ""); return v === "0" ? "" : v; };
 
 function parseData(v) {
   if (v == null || v === "") return null;
@@ -169,19 +172,29 @@ function cruzar() {
   for (const s of livres) if (!usados.has(s.id)) pares.push({ sics: null, seg: s });
 
   const acomp = new Map(db.prepare("SELECT * FROM ren_acompanhamento").all().map((a) => [a.chave, a]));
-  return pares.map((p) => montarLinha(p, acomp));
+  // Quem não tem relatório da seguradora importado não pode ser "conferido" nem "ausente".
+  const comRelatorio = new Set(segs.map((x) => grupoDe(x.seguradora)));
+  return pares.map((p) => montarLinha(p, acomp, comRelatorio));
 }
 
-function montarLinha({ sics, seg, via }, acomp) {
+function montarLinha({ sics, seg, via }, acomp, comRelatorio) {
   const base = sics || seg;
   let situacao;
   if (sics && seg) {
     const dif = sics.vigencia_fim && seg.vigencia_fim ? diasEntre(sics.vigencia_fim, seg.vigencia_fim) : 0;
     situacao = dif > TOLERANCIA_VIGENCIA_DIAS ? "divergente" : "conferido";
-  } else situacao = sics ? "so_sics" : "so_seguradora";
+  } else if (sics) situacao = comRelatorio.has(grupoDe(sics.seguradora)) ? "so_sics" : "sem_relatorio";
+  else situacao = "so_seguradora";
 
   const chave = grupoDe(base.seguradora) + "|" + (base.apolice_norm || "id" + base.id);
   const ac = acomp.get(chave);
+  const confirmado = !!ac?.confirmado;
+  const MOTIVOS = {
+    divergente: "O fim de vigência é diferente no SICS e na seguradora — confirmar a data certa.",
+    so_sics: "Não consta no relatório da seguradora — confirmar se já foi renovada, cancelada ou se o relatório veio incompleto.",
+    so_seguradora: "Não consta na lista do SICS — confirmar se falta cadastro no sistema.",
+    sem_relatorio: "Ainda sem relatório desta seguradora — vencimento vem só do SICS, não foi conferido.",
+  };
   const premio = sics?.premio ?? seg?.premio ?? null;
   const premioSeg = seg?.premio ?? null;
   return {
@@ -203,6 +216,9 @@ function montarLinha({ sics, seg, via }, acomp) {
     vendedor_sics: sics?.vendedor || null,
     situacao_seg: seg?.situacao_seg || null,
     situacao,
+    confirmar: situacao !== "conferido" && !confirmado,
+    confirmado,
+    motivo: situacao === "conferido" ? "" : MOTIVOS[situacao],
     via_cruzamento: via || null,
     status: ac?.status || "pendente",
     responsavel_id: ac?.responsavel_id ?? null,
@@ -213,7 +229,7 @@ function montarLinha({ sics, seg, via }, acomp) {
 // ─── Previsão (alimenta o dashboard) ───────────────────────────────────────
 // Premissa: o prêmio das listas é o BRUTO (com IOF), o mesmo que o vendedor
 // digita numa venda; a comissão sai da mesma regra de calcularVenda().
-function createRouter({ requireAdmin, calcularVenda }) {
+function createRouter({ requireAdmin, calcularVenda, iofDoRamo }) {
   const router = express.Router();
 
   const retencao = () => {
@@ -269,15 +285,16 @@ function createRouter({ requireAdmin, calcularVenda }) {
   });
 
   router.get("/api/renovacoes", requireAdmin, (req, res) => {
-    const { mes, seguradora, situacao, status } = req.query;
+    const { mes, seguradora, situacao, status, confirmar } = req.query;
     let linhas = cruzar();
     if (mes) linhas = linhas.filter((l) => (l.vigencia || "").startsWith(mes));
     if (seguradora) linhas = linhas.filter((l) => l.seguradora === seguradora);
     if (situacao) linhas = linhas.filter((l) => l.situacao === situacao);
     if (status) linhas = linhas.filter((l) => l.status === status);
+    if (confirmar) linhas = linhas.filter((l) => l.confirmar);
     linhas.sort((a, b) => (a.vigencia || "9999").localeCompare(b.vigencia || "9999"));
-    const resumo = { total: linhas.length, conferido: 0, divergente: 0, so_sics: 0, so_seguradora: 0 };
-    linhas.forEach((l) => resumo[l.situacao]++);
+    const resumo = { total: linhas.length, conferido: 0, divergente: 0, so_sics: 0, so_seguradora: 0, sem_relatorio: 0, a_confirmar: 0 };
+    linhas.forEach((l) => { resumo[l.situacao]++; if (l.confirmar) resumo.a_confirmar++; });
     res.json({ resumo, linhas });
   });
 
@@ -300,6 +317,8 @@ function createRouter({ requireAdmin, calcularVenda }) {
     if (seguradora && !fixa) return res.status(400).json({ error: "Seguradora desconhecida: " + seguradora });
     if (fonte === "seguradora" && !fixa) return res.status(400).json({ error: "Informe a seguradora do relatório" });
 
+    // Alguns relatórios (Allianz) trazem o prêmio LÍQUIDO; o SICS guarda o bruto.
+    const premioBrutoDoLiquido = (liq, ramo) => (liq == null ? null : +(liq * (1 + iofDoRamo(ramo) / 100)).toFixed(2));
     const aceitas = [], ignoradas = [];
     linhas.forEach((l, i) => {
       const seg = fixa || seguradoraCanonica(l.seguradora);
@@ -312,7 +331,8 @@ function createRouter({ requireAdmin, calcularVenda }) {
       aceitas.push({
         seguradora: seg, apolice, apolice_norm: normApolice(apolice), segurado: String(l.segurado || "").trim(),
         documento, ramo: String(l.ramo || "").trim(), item: normItem(l.item), vigencia_fim: vigencia,
-        premio: parseDinheiro(l.premio), vendedor: String(l.vendedor || "").trim() || null,
+        premio: parseDinheiro(l.premio) ?? premioBrutoDoLiquido(parseDinheiro(l.premio_liquido), l.ramo),
+        vendedor: String(l.vendedor || "").trim() || null,
         situacao_seg: String(l.situacao || "").trim() || null,
       });
     });
@@ -340,17 +360,18 @@ function createRouter({ requireAdmin, calcularVenda }) {
   });
 
   router.post("/api/renovacoes/acompanhamento", requireAdmin, (req, res) => {
-    const { chave, status, responsavel_id, obs } = req.body || {};
+    const { chave, status, responsavel_id, obs, confirmado } = req.body || {};
     if (!chave) return res.status(400).json({ error: "chave obrigatória" });
     if (status && !STATUS.includes(status)) return res.status(400).json({ error: "status inválido" });
     const atual = db.prepare("SELECT * FROM ren_acompanhamento WHERE chave = ?").get(chave) || {};
-    db.prepare(`INSERT INTO ren_acompanhamento (chave, status, responsavel_id, obs, updated_at)
-      VALUES (?, ?, ?, ?, datetime('now','localtime'))
+    db.prepare(`INSERT INTO ren_acompanhamento (chave, status, responsavel_id, obs, confirmado, updated_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now','localtime'))
       ON CONFLICT(chave) DO UPDATE SET status=excluded.status, responsavel_id=excluded.responsavel_id,
-        obs=excluded.obs, updated_at=excluded.updated_at`)
+        obs=excluded.obs, confirmado=excluded.confirmado, updated_at=excluded.updated_at`)
       .run(chave, status || atual.status || "pendente",
         responsavel_id !== undefined ? responsavel_id || null : atual.responsavel_id ?? null,
-        obs !== undefined ? String(obs) : atual.obs ?? null);
+        obs !== undefined ? String(obs) : atual.obs ?? null,
+        confirmado !== undefined ? (confirmado ? 1 : 0) : atual.confirmado ?? 0);
     res.json({ ok: true });
   });
 

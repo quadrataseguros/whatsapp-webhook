@@ -1855,7 +1855,7 @@ app.post("/api/admin/verify", (req, res) => {
 });
 
 // Organizador de renovações (renovacoes.js) — cruza SICS Web × relatórios das seguradoras
-app.use(require("./renovacoes").createRouter({ requireAdmin, calcularVenda }));
+app.use(require("./renovacoes").createRouter({ requireAdmin, calcularVenda, iofDoRamo }));
 
 app.get("/api/salespeople", (_req, res) => {
   res.json(db.prepare("SELECT * FROM salespeople WHERE active=1 ORDER BY name").all());
