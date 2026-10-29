@@ -165,6 +165,11 @@ devolve, por seguradora, as renovações em aberto do mês e a projeção
 seguradora no dashboard mostra isso. Renovação marcada como "renovada" não
 entra na projeção — assume-se que já virou venda lançada (evita contar duas
 vezes). Nas metas, Mitsui conta no card PORTO e HDI e Alliro no card YELLUM (meta única do grupo; metas antigas cadastradas como "HDI" deixam de aparecer).
+**Visão Master** (`/master.html`, exige senha de admin; `GET /api/master/estrategia`):
+por seguradora com meta no mês, diz se a renovação fecha a meta, se só fecha
+renovando quase tudo, ou se precisa de venda nova (e quanto), e lista as
+renovações em aberto com as "prioridade" primeiro (as maiores até cobrir o gap,
+depois por vencimento mais próximo). Tudo em prêmio líquido × retenção.
 Premissa: o prêmio das listas é bruto (com IOF) — confirmado com a Allianz. Mapeamento de colunas é
 auto-detectado e lembrado por seguradora — ajustar com planilhas reais.
 

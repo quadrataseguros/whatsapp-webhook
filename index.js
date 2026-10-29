@@ -2140,9 +2140,7 @@ app.post("/api/seguradora-goals", requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
-app.get("/api/seguradora-stats", (req, res) => {
-  const year  = parseInt(req.query.year)  || new Date().getFullYear();
-  const month = parseInt(req.query.month) || (new Date().getMonth() + 1);
+function calcSeguradoraStats(year, month) {
 
   const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay   = new Date(year, month, 0).getDate();
@@ -2202,7 +2200,7 @@ app.get("/api/seguradora-stats", (req, res) => {
     };
   });
 
-  res.json({
+  return {
     year, month,
     startDate, endDate,
     seguradoras,
@@ -2210,7 +2208,22 @@ app.get("/api/seguradora-stats", (req, res) => {
     achievedCount: seguradoras.filter((s) => s.achieved).length,
     projecaoCount: seguradoras.filter((s) => s.configured && s.projecaoPct >= 100).length,
     retencao: retencaoPct,
-  });
+  };
+}
+
+app.get("/api/seguradora-stats", (req, res) => {
+  const year  = parseInt(req.query.year)  || new Date().getFullYear();
+  const month = parseInt(req.query.month) || (new Date().getMonth() + 1);
+  res.json(calcSeguradoraStats(year, month));
+});
+
+// Visão do Master: metas × vendido × renovações em aberto → onde focar. Traz nome de cliente, então exige admin.
+app.get("/api/master/estrategia", requireAdmin, (req, res) => {
+  const year  = parseInt(req.query.year)  || new Date().getFullYear();
+  const month = parseInt(req.query.month) || (new Date().getMonth() + 1);
+  const stats = calcSeguradoraStats(year, month);
+  const casa = (segLinha, nomeCard) => matchesSeg(segLinha, SEGURADORAS.find((x) => x.name === nomeCard));
+  res.json(renovacoesMod.planoMaster({ stats, mes: `${year}-${String(month).padStart(2, "0")}`, calcularVenda, casa, retencaoPct: renovacoesMod.retencaoAtual() }));
 });
 
 // ─── PIN Authentication ───────────────────────────────────────────────────────

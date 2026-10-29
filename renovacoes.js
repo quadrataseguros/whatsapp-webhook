@@ -423,4 +423,72 @@ function previsaoPorSeguradora(mes, calcularVenda, retencaoPct) {
   return Object.values(por).map((x) => ({ ...x, liquido_em_aberto: +x.liquido_em_aberto.toFixed(2), liquido_previsto: +(x.liquido_em_aberto * retencaoPct / 100).toFixed(2) }));
 }
 
-module.exports = { createRouter, previsaoPorSeguradora, retencaoAtual, seguradoraCanonica, parseData, parseDinheiro, cruzar, SEGURADORAS };
+// Plano do Master: para cada seguradora com meta no mês, quanto falta, se as renovações
+// em aberto fecham a meta e QUAIS renovar primeiro. Tudo em prêmio líquido (base das metas).
+function planoMaster({ stats, mes, calcularVenda, casa, retencaoPct }) {
+  const ret = retencaoPct / 100;
+  const hoje = new Date(new Date().toISOString().slice(0, 10));
+  const abertas = cruzar().filter((l) => l.vigencia && l.vigencia.startsWith(mes) && !["renovada", "perdida", "cancelada"].includes(l.status))
+    .map((l) => ({ ...l, liquido: l.premio > 0 ? calcularVenda(l.premio, l.ramo, l.seguradora).net_value : 0,
+      dias: Math.round((Date.parse(l.vigencia) - hoje) / 86400000) }));
+  const r2 = (n) => +n.toFixed(2);
+
+  const cards = stats.seguradoras.map((c) => {
+    const minhas = abertas.filter((l) => casa(l.seguradora, c.seguradora));
+    const potencial = minhas.reduce((a, l) => a + l.liquido, 0);
+    const esperado = potencial * ret;
+    const gap = Math.max(0, c.targetValue - c.currentValue);
+    let situacao, vendaNova = 0;
+    if (!c.configured) situacao = "sem_meta";
+    else if (c.achieved) situacao = "batida";
+    else if (c.currentValue + esperado >= c.targetValue) situacao = "renovacao_fecha";
+    else if (c.currentValue + potencial >= c.targetValue) situacao = "renovar_quase_tudo";
+    else { situacao = "venda_nova"; vendaNova = gap - potencial; }
+
+    // Quais renovar: as maiores primeiro até a soma × retenção cobrir o gap; dentro delas, as que vencem antes.
+    let acum = 0;
+    const porValor = [...minhas].sort((a, b) => b.liquido - a.liquido);
+    const essenciais = new Set();
+    if (gap > 0) for (const l of porValor) { essenciais.add(l.chave); acum += l.liquido * ret; if (acum >= gap) break; }
+    const lista = minhas.map((l) => ({
+      chave: l.chave, segurado: l.segurado, documento: l.documento, ramo: l.ramo, item: l.item, vigencia: l.vigencia, dias: l.dias,
+      liquido: r2(l.liquido), vendedor: l.vendedor_sics, status: l.status, confirmar: l.confirmar, motivo: l.motivo,
+      essencial: essenciais.has(l.chave),
+    })).sort((a, b) => (b.essencial - a.essencial) || a.dias - b.dias || b.liquido - a.liquido);
+
+    const R = (n) => "R$ " + n.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const dica = {
+      sem_meta: minhas.length ? `Sem meta cadastrada — ${minhas.length} renovações (${R(potencial)} líquido) a acompanhar.` : "Sem meta e sem renovações no mês.",
+      batida: "Meta batida. Renovações restantes são carteira garantida.",
+      renovacao_fecha: `Faltam ${R(gap)}. Renovando ${essenciais.size} apólice(s) prioritária(s) a meta fecha${c.bonusValue ? ` e libera ${R(c.bonusValue)} de bônus` : ""}.`,
+      renovar_quase_tudo: `Faltam ${R(gap)}. Só fecha renovando quase tudo (${R(potencial)} em aberto) — qualquer perda exige venda nova. Atenção máxima.`,
+      venda_nova: `Faltam ${R(gap)}; as renovações dão no máximo ${R(potencial)}. Precisa de ~${R(vendaNova)} em venda nova para bater.`,
+    }[situacao];
+    return {
+      seguradora: c.seguradora, situacao, dica, meta: r2(c.targetValue), vendido: r2(c.currentValue), gap: r2(gap),
+      bonus: c.bonusValue, percentual: c.percentage, renovacoes_abertas: minhas.length, potencial: r2(potencial), esperado: r2(esperado),
+      projecao_pct: c.targetValue > 0 ? +(((c.currentValue + esperado) / c.targetValue) * 100).toFixed(1) : 0,
+      venda_nova_necessaria: r2(Math.max(0, vendaNova)), a_confirmar: minhas.filter((l) => l.confirmar).length, renovacoes: lista,
+    };
+  });
+
+  // Foco: o que dá para fechar primeiro, com bônus maior e menos esforço.
+  const ordem = { renovacao_fecha: 0, renovar_quase_tudo: 1, venda_nova: 2, sem_meta: 3, batida: 4 };
+  cards.sort((a, b) => ordem[a.situacao] - ordem[b.situacao] || b.bonus - a.bonus || a.gap - b.gap);
+  const abertasMeta = cards.filter((c) => ["renovacao_fecha", "renovar_quase_tudo", "venda_nova"].includes(c.situacao));
+  return {
+    mes, retencao: retencaoPct,
+    resumo: {
+      metas_batidas: cards.filter((c) => c.situacao === "batida").length,
+      renovacao_fecha: cards.filter((c) => c.situacao === "renovacao_fecha").length,
+      renovar_quase_tudo: cards.filter((c) => c.situacao === "renovar_quase_tudo").length,
+      venda_nova: cards.filter((c) => c.situacao === "venda_nova").length,
+      bonus_em_jogo: abertasMeta.filter((c) => c.situacao !== "venda_nova").reduce((a, c) => a + c.bonus, 0),
+      venda_nova_total: r2(abertasMeta.reduce((a, c) => a + c.venda_nova_necessaria, 0)),
+      a_confirmar: cards.reduce((a, c) => a + c.a_confirmar, 0),
+    },
+    seguradoras: cards,
+  };
+}
+
+module.exports = { createRouter, planoMaster, previsaoPorSeguradora, retencaoAtual, seguradoraCanonica, parseData, parseDinheiro, cruzar, SEGURADORAS };
