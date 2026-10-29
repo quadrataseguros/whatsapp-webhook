@@ -29,9 +29,11 @@ const SEGURADORAS = {
   ZURICH: ["zurich"],
 };
 
-// Azul e Itaú são marcas do grupo Porto e saem no mesmo relatório (SUSEP 054J0J):
+// Grupo Porto = Porto, Azul, Itaú e Mitsui (mesmo relatório, SUSEP 054J0J).
+// Grupo Yellum = Yellum, HDI e Alliro.
+//
 // o cruzamento olha o GRUPO, mas a tela segue mostrando a marca que o SICS tem.
-const GRUPO = { PORTO: "PORTO", AZUL: "PORTO", ITAU: "PORTO" };
+const GRUPO = { PORTO: "PORTO", AZUL: "PORTO", ITAU: "PORTO", MITSUI: "PORTO", YELLUM: "YELLUM", HDI: "YELLUM", ALLIRO: "YELLUM" };
 const grupoDe = (seg) => GRUPO[seg] || seg;
 
 const STATUS = ["pendente", "em_contato", "cotando", "renovada", "perdida", "cancelada"];

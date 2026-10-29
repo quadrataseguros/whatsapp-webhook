@@ -2099,18 +2099,16 @@ app.get("/api/ro-stats", (req, res) => {
 // ─── Metas por Seguradora (Grupo) ─────────────────────────────────────────────
 
 const SEGURADORAS = [
-  { name: "PORTO",        patterns: ["porto"] },
+  { name: "PORTO",        patterns: ["porto", "mitsui", "sumitomo"] },
   { name: "AZUL",         patterns: ["azul"] },
   { name: "ITAÚ",         patterns: ["itau", "itaú"] },
   { name: "ALLIANZ",      patterns: ["allianz"] },
   { name: "TOKIO MARINE", patterns: ["tokio"] },
   { name: "BRADESCO",     patterns: ["bradesco"] },
-  { name: "YELLUM",       patterns: ["yellum", "yelum"] },
+  { name: "YELLUM",       patterns: ["yellum", "yelum", "alliro", "aliro"] },
   { name: "HDI",          patterns: ["hdi"] },
   { name: "SUHAI",        patterns: ["suhai"] },
   { name: "ZURICH",       patterns: ["zurich"] },
-  { name: "MITSUI",       patterns: ["mitsui", "sumitomo"] },
-  { name: "ALLIRO",       patterns: ["alliro", "aliro"] },
 ];
 
 function matchesSeg(saleSeg, seg) {
