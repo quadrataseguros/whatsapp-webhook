@@ -123,6 +123,8 @@ function parseDinheiro(v) {
   return Number.isFinite(n) ? n : null;
 }
 
+// Relatórios de cotação trazem prêmio negativo ou zero em renovações ainda sem cálculo.
+const positivo = (n) => (n != null && n > 0 ? n : null);
 const diasEntre = (a, b) => Math.abs(Date.parse(a) - Date.parse(b)) / 86400000;
 
 // ─── Cruzamento ─────────────────────────────────────────────────────────────
@@ -161,6 +163,14 @@ function cruzar() {
   const livres = segs.filter((s) => !usados.has(s.id));
   for (const a of restoSics) {
     let cand = null;
+    // Algumas seguradoras (Suhai) põem prefixo no número: "1003111249581" no relatório
+    // e "11249581" no SICS. Vale quando o menor é sufixo do maior e tem 6+ caracteres.
+    if (a.apolice_norm && a.apolice_norm.length >= 6) {
+      cand = livres.find((s) => !usados.has(s.id) && grupoDe(s.seguradora) === grupoDe(a.seguradora) && s.apolice_norm &&
+        (s.apolice_norm.endsWith(a.apolice_norm) || (s.apolice_norm.length >= 6 && a.apolice_norm.endsWith(s.apolice_norm))) &&
+        (!a.vigencia_fim || !s.vigencia_fim || diasEntre(a.vigencia_fim, s.vigencia_fim) <= JANELA_FALLBACK_DIAS));
+      if (cand) { usados.add(cand.id); pares.push({ sics: a, seg: cand, via: "sufixo" }); continue; }
+    }
     if (a.documento) {
       cand = livres.find((s) =>
         !usados.has(s.id) && grupoDe(s.seguradora) === grupoDe(a.seguradora) && s.documento === a.documento &&
@@ -339,7 +349,7 @@ function createRouter({ requireAdmin, calcularVenda, iofDoRamo }) {
       aceitas.push({
         seguradora: seg, apolice, apolice_norm: normApolice(apolice), segurado: String(l.segurado || "").trim(),
         documento, ramo: String(l.ramo || "").trim(), item: normItem(l.item), vigencia_fim: vigencia,
-        premio: parseDinheiro(l.premio) ?? premioBrutoDoLiquido(parseDinheiro(l.premio_liquido), l.ramo),
+        premio: positivo(parseDinheiro(l.premio)) ?? premioBrutoDoLiquido(positivo(parseDinheiro(l.premio_liquido)), l.ramo),
         vendedor: String(l.vendedor || "").trim() || null,
         situacao_seg: String(l.situacao || "").trim() || null,
       });
