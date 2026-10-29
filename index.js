@@ -2105,8 +2105,7 @@ const SEGURADORAS = [
   { name: "ALLIANZ",      patterns: ["allianz"] },
   { name: "TOKIO MARINE", patterns: ["tokio"] },
   { name: "BRADESCO",     patterns: ["bradesco"] },
-  { name: "YELLUM",       patterns: ["yellum", "yelum", "alliro", "aliro"] },
-  { name: "HDI",          patterns: ["hdi"] },
+  { name: "YELLUM",       patterns: ["yellum", "yelum", "hdi", "alliro", "aliro"] },
   { name: "SUHAI",        patterns: ["suhai"] },
   { name: "ZURICH",       patterns: ["zurich"] },
 ];

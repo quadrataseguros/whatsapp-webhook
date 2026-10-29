@@ -164,7 +164,7 @@ devolve, por seguradora, as renovações em aberto do mês e a projeção
 (vendido + renovações em aberto em prêmio líquido × retenção); o card da
 seguradora no dashboard mostra isso. Renovação marcada como "renovada" não
 entra na projeção — assume-se que já virou venda lançada (evita contar duas
-vezes). Nas metas, Mitsui conta no card PORTO e Alliro no card YELLUM.
+vezes). Nas metas, Mitsui conta no card PORTO e HDI e Alliro no card YELLUM (meta única do grupo; metas antigas cadastradas como "HDI" deixam de aparecer).
 Premissa: o prêmio das listas é bruto (com IOF) — confirmado com a Allianz. Mapeamento de colunas é
 auto-detectado e lembrado por seguradora — ajustar com planilhas reais.
 
