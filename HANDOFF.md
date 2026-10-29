@@ -146,6 +146,19 @@ https://claude.ai/code/artifact/b6059110-efaa-4d5c-8ff6-6e35d9a39b11
 
 ---
 
+## Organizador de renovações
+
+`renovacoes.js` + `public/renovacoes.html`. Importa a lista do SICS Web e o
+relatório de cada seguradora (xlsx/csv, lidos no navegador), cruza por nº de
+apólice (fallback: CPF/CNPJ + placa + vencimento ±31 dias) e classifica em
+conferido / vigência diverge / só no SICS / só na seguradora. Acompanhamento
+(pendente → renovada/perdida) fica em `ren_acompanhamento`, ligado à chave da
+apólice, e sobrevive a reimportações. `GET /api/renovacoes/previsao` (pública,
+só totais) alimenta a seção "Previsibilidade" do dashboard: comissão prevista =
+renovado + em aberto × retenção (padrão 85%), pela mesma regra de `calcularVenda`.
+Premissa: o prêmio das listas é bruto (com IOF). Mapeamento de colunas é
+auto-detectado e lembrado por seguradora — ajustar com planilhas reais.
+
 ## Pendências
 
 1. **Deploy** — seguir o [DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md). Três coisas não

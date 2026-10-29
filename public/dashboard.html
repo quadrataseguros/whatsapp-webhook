@@ -313,6 +313,12 @@ tbody td{padding:10px 14px;color:var(--t2)}
     <div class="chart-box"><canvas id="chartDaily"></canvas></div>
   </div>
 
+  <div class="sec" id="secREN" style="display:none">
+    <div class="sec-title">Previsibilidade — Renovações a Vencer <a href="/renovacoes.html" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--blue);text-decoration:none">Abrir organizador →</a></div>
+    <div class="sumgrid" id="renGrid"></div>
+    <div style="font-size:11px;color:var(--t3);margin-top:-14px" id="renNota"></div>
+  </div>
+
   <div class="sec" id="secSG">
     <div class="sec-title">Metas por Seguradora (Grupo) — Crescimento +10% vs Ano Anterior</div>
     <div class="ro-summary">
@@ -1195,6 +1201,27 @@ document.addEventListener('visibilitychange', function() {
 
 load();
 agendar();
+
+function carregarRenovacoes() {
+  fetch('/api/renovacoes/previsao?meses=3').then(function(r) { return r.json(); }).then(function(d) {
+    var ms = (d.meses || []).filter(function(m) { return m.apolices > 0; });
+    if (!ms.length) return;
+    var NOMES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    document.getElementById('secREN').style.display = '';
+    document.getElementById('renGrid').innerHTML = ms.map(function(m) {
+      var p = m.mes.split('-');
+      var pct = m.apolices ? Math.round(m.renovadas / m.apolices * 100) : 0;
+      return '<div class="sc"><div class="sc-lbl">' + NOMES[+p[1] - 1] + '/' + p[0] + ' · ' + m.apolices + ' apólices</div>'
+        + '<div class="sc-val" style="color:var(--gold)">' + fmtR(m.comissao_prevista) + '</div>'
+        + '<div class="sc-sub">comissão prevista · prêmio ' + fmtR(m.premio_previsto) + '</div>'
+        + '<div class="sc-bar"><div class="sc-bar-fill" style="width:' + pct + '%;background:var(--green)"></div></div>'
+        + '<div class="sc-sub">' + m.renovadas + ' renovadas · ' + m.em_aberto + ' em aberto · ' + m.perdidas + ' perdidas'
+        + (m.divergencias ? ' · ' + m.divergencias + ' a conferir' : '') + '</div></div>';
+    }).join('');
+    document.getElementById('renNota').textContent = 'Previsto = já renovado + em aberto × retenção de ' + d.retencao + '%. Comissão pela mesma regra das vendas.';
+  }).catch(function() {});
+}
+carregarRenovacoes();
 </script>
 </body>
 </html>

@@ -1854,6 +1854,9 @@ app.post("/api/admin/verify", (req, res) => {
     : res.status(401).json({ error: "Senha incorreta" });
 });
 
+// Organizador de renovações (renovacoes.js) — cruza SICS Web × relatórios das seguradoras
+app.use(require("./renovacoes").createRouter({ requireAdmin, calcularVenda }));
+
 app.get("/api/salespeople", (_req, res) => {
   res.json(db.prepare("SELECT * FROM salespeople WHERE active=1 ORDER BY name").all());
 });
