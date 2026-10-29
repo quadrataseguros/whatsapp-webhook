@@ -107,7 +107,7 @@ var CAMPOS = [
   {k:'item', l:'Placa / item', syn:['placa','item','chassi','bem']},
   {k:'vigencia_fim', l:'Fim da vigência', syn:['fim vig','termino','vencimento','venc','fim de vig','final vig','dt fim','data fim']},
   {k:'premio', l:'Prêmio', syn:['premio total','premio','valor']},
-  {k:'vendedor', l:'Vendedor / produtor', syn:['vendedor','produtor','corretor','executivo']},
+  {k:'vendedor', l:'Vendedor / produtor', syn:['preposto','vendedor','produtor','executivo']},
   {k:'situacao', l:'Situação (relatório)', syn:['situacao','status']},
   {k:'seguradora', l:'Seguradora (coluna)', syn:['seguradora','cia','companhia']}
 ];
@@ -178,8 +178,10 @@ function autoMapa(headers) {
   var m = {};
   CAMPOS.forEach(function(c){
     if (salvo[c.k] && headers.indexOf(salvo[c.k])>=0) { m[c.k] = salvo[c.k]; return; }
+    // Nome exato do cabeçalho vence; só depois vale "contém" ("Preposto" antes de "Preposto/Afiliado…").
     var achou = '';
-    c.syn.some(function(s){ return headers.some(function(h){ if (norm(h).indexOf(s)>=0) { achou = h; return true; } }); });
+    c.syn.some(function(s){ return headers.some(function(h){ if (norm(h)===s) { achou = h; return true; } }); });
+    if (!achou) c.syn.some(function(s){ return headers.some(function(h){ if (norm(h).indexOf(s)>=0) { achou = h; return true; } }); });
     m[c.k] = achou;
   });
   return m;

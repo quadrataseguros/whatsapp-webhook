@@ -21,7 +21,7 @@ const SEGURADORAS = {
   MITSUI: ["mitsui", "sumitomo"],
   "TOKIO MARINE": ["tokio"],
   YELLUM: ["yellum", "yelum", "yelun"],
-  ALLIRO: ["alliro"],
+  ALLIRO: ["alliro", "aliro"],
   HDI: ["hdi"],
   BRADESCO: ["bradesco"],
   SUHAI: ["suhai"],
