@@ -156,7 +156,16 @@ conferido / vigência diverge / só no SICS / só na seguradora. Acompanhamento
 apólice, e sobrevive a reimportações. `GET /api/renovacoes/previsao` (pública,
 só totais) alimenta a seção "Previsibilidade" do dashboard: comissão prevista =
 renovado + em aberto × retenção (padrão 85%), pela mesma regra de `calcularVenda`.
-Premissa: o prêmio das listas é bruto (com IOF). Mapeamento de colunas é
+Cada renovação não conferida (só num dos lados, vigência diferente ou
+seguradora sem relatório) fica **em destaque "a confirmar"** até alguém clicar
+em "Confirmei". Cruzamento é por grupo: Porto, Azul e Itaú saem no mesmo
+relatório (SUSEP 054J0J). **Ligação com as metas:** `GET /api/seguradora-stats`
+devolve, por seguradora, as renovações em aberto do mês e a projeção
+(vendido + renovações em aberto em prêmio líquido × retenção); o card da
+seguradora no dashboard mostra isso. Renovação marcada como "renovada" não
+entra na projeção — assume-se que já virou venda lançada (evita contar duas
+vezes). MITSUI e ALLIRO entraram na lista de seguradoras das metas.
+Premissa: o prêmio das listas é bruto (com IOF) — confirmado com a Allianz. Mapeamento de colunas é
 auto-detectado e lembrado por seguradora — ajustar com planilhas reais.
 
 ## Pendências

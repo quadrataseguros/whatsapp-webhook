@@ -1855,7 +1855,8 @@ app.post("/api/admin/verify", (req, res) => {
 });
 
 // Organizador de renovações (renovacoes.js) — cruza SICS Web × relatórios das seguradoras
-app.use(require("./renovacoes").createRouter({ requireAdmin, calcularVenda, iofDoRamo }));
+const renovacoesMod = require("./renovacoes");
+app.use(renovacoesMod.createRouter({ requireAdmin, calcularVenda, iofDoRamo }));
 
 app.get("/api/salespeople", (_req, res) => {
   res.json(db.prepare("SELECT * FROM salespeople WHERE active=1 ORDER BY name").all());
@@ -2104,10 +2105,12 @@ const SEGURADORAS = [
   { name: "ALLIANZ",      patterns: ["allianz"] },
   { name: "TOKIO MARINE", patterns: ["tokio"] },
   { name: "BRADESCO",     patterns: ["bradesco"] },
-  { name: "YELLUM",       patterns: ["yellum"] },
+  { name: "YELLUM",       patterns: ["yellum", "yelum"] },
   { name: "HDI",          patterns: ["hdi"] },
   { name: "SUHAI",        patterns: ["suhai"] },
   { name: "ZURICH",       patterns: ["zurich"] },
+  { name: "MITSUI",       patterns: ["mitsui", "sumitomo"] },
+  { name: "ALLIRO",       patterns: ["alliro", "aliro"] },
 ];
 
 function matchesSeg(saleSeg, seg) {
@@ -2158,7 +2161,19 @@ app.get("/api/seguradora-stats", (req, res) => {
   const goalMap = {};
   goals.forEach((g) => (goalMap[g.seguradora] = g));
 
+  // Renovações a vencer no mês (organizador de renovações), em prêmio líquido.
+  const mesRef = `${year}-${String(month).padStart(2, "0")}`;
+  const retencaoPct = renovacoesMod.retencaoAtual();
+  const renovs = renovacoesMod.previsaoPorSeguradora(mesRef, calcularVenda, retencaoPct);
+
   const seguradoras = SEGURADORAS.map((seg) => {
+    const rs = renovs.filter((r) => matchesSeg(r.seguradora, seg));
+    const renovacao = {
+      apolices: rs.reduce((a, r) => a + r.apolices, 0),
+      emAberto: rs.reduce((a, r) => a + r.em_aberto, 0),
+      aConfirmar: rs.reduce((a, r) => a + r.a_confirmar, 0),
+      previstoLiquido: rs.reduce((a, r) => a + r.liquido_previsto, 0),
+    };
     const currentValue = sales
       .filter((s) => matchesSeg(s.seguradora, seg))
       .reduce((sum, s) => sum + s.value, 0);
@@ -2173,8 +2188,12 @@ app.get("/api/seguradora-stats", (req, res) => {
     const growthPct = prevValue > 0
       ? parseFloat((((currentValue - prevValue) / prevValue) * 100).toFixed(2))
       : 0;
+    const projecao = currentValue + renovacao.previstoLiquido;
     return {
       seguradora: seg.name,
+      renovacao,
+      projecao,
+      projecaoPct: targetValue > 0 ? parseFloat(((projecao / targetValue) * 100).toFixed(2)) : 0,
       currentValue,
       prevValue,
       targetValue,
@@ -2192,6 +2211,8 @@ app.get("/api/seguradora-stats", (req, res) => {
     seguradoras,
     totalBonus:    seguradoras.filter((s) => s.achieved).reduce((sum, s) => sum + s.bonusValue, 0),
     achievedCount: seguradoras.filter((s) => s.achieved).length,
+    projecaoCount: seguradoras.filter((s) => s.configured && s.projecaoPct >= 100).length,
+    retencao: retencaoPct,
   });
 });
 

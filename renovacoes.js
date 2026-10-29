@@ -229,6 +229,12 @@ function montarLinha({ sics, seg, via }, acomp, comRelatorio) {
 // ─── Previsão (alimenta o dashboard) ───────────────────────────────────────
 // Premissa: o prêmio das listas é o BRUTO (com IOF), o mesmo que o vendedor
 // digita numa venda; a comissão sai da mesma regra de calcularVenda().
+function retencaoAtual() {
+  const r = db.prepare("SELECT value FROM settings WHERE key='ren_retencao'").get();
+  const n = r ? parseFloat(r.value) : RETENCAO_PADRAO;
+  return Number.isFinite(n) ? n : RETENCAO_PADRAO;
+}
+
 function createRouter({ requireAdmin, calcularVenda, iofDoRamo }) {
   const router = express.Router();
 
@@ -385,4 +391,24 @@ function createRouter({ requireAdmin, calcularVenda, iofDoRamo }) {
   return router;
 }
 
-module.exports = { createRouter, seguradoraCanonica, parseData, parseDinheiro, cruzar, SEGURADORAS };
+// Renovações de um mês agrupadas por seguradora, em prêmio LÍQUIDO — a mesma base
+// das vendas e das metas por seguradora. "Renovada" não entra no previsto: assume-se
+// que já foi lançada como venda; só o que está em aberto é somado, com a retenção.
+function previsaoPorSeguradora(mes, calcularVenda, retencaoPct) {
+  const por = {};
+  for (const l of cruzar()) {
+    if (!l.vigencia || !l.vigencia.startsWith(mes) || l.status === "cancelada") continue;
+    const x = (por[l.seguradora] ||= { seguradora: l.seguradora, apolices: 0, renovadas: 0, perdidas: 0, em_aberto: 0, liquido_em_aberto: 0, a_confirmar: 0 });
+    x.apolices++;
+    if (l.confirmar) x.a_confirmar++;
+    if (l.status === "renovada") x.renovadas++;
+    else if (l.status === "perdida") x.perdidas++;
+    else {
+      x.em_aberto++;
+      if (l.premio > 0) x.liquido_em_aberto += calcularVenda(l.premio, l.ramo, l.seguradora).net_value;
+    }
+  }
+  return Object.values(por).map((x) => ({ ...x, liquido_em_aberto: +x.liquido_em_aberto.toFixed(2), liquido_previsto: +(x.liquido_em_aberto * retencaoPct / 100).toFixed(2) }));
+}
+
+module.exports = { createRouter, previsaoPorSeguradora, retencaoAtual, seguradoraCanonica, parseData, parseDinheiro, cruzar, SEGURADORAS };
