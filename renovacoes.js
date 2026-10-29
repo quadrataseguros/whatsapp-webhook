@@ -29,6 +29,11 @@ const SEGURADORAS = {
   ZURICH: ["zurich"],
 };
 
+// Azul e Itaú são marcas do grupo Porto e saem no mesmo relatório (SUSEP 054J0J):
+// o cruzamento olha o GRUPO, mas a tela segue mostrando a marca que o SICS tem.
+const GRUPO = { PORTO: "PORTO", AZUL: "PORTO", ITAU: "PORTO" };
+const grupoDe = (seg) => GRUPO[seg] || seg;
+
 const STATUS = ["pendente", "em_contato", "cotando", "renovada", "perdida", "cancelada"];
 const FONTES = ["sics", "seguradora"];
 const TOLERANCIA_VIGENCIA_DIAS = 3;
@@ -121,7 +126,14 @@ const diasEntre = (a, b) => Math.abs(Date.parse(a) - Date.parse(b)) / 86400000;
 //   mesmo item (placa) quando houver, e vencimento a no máximo 31 dias — pega o
 //   caso de a seguradora listar o número da apólice nova e o SICS o da velha.
 function cruzar() {
-  const regs = db.prepare("SELECT * FROM ren_registros").all();
+  // Relatórios repetem a mesma apólice em mais de uma linha (endosso, vários itens):
+  // vale a primeira de cada grupo+apólice, senão a repetição vira falsa divergência.
+  const vistos = new Set();
+  const regs = db.prepare("SELECT * FROM ren_registros ORDER BY id").all().filter((r) => {
+    if (!r.apolice_norm) return true;
+    const k = r.fonte + "|" + grupoDe(r.seguradora) + "|" + r.apolice_norm;
+    return !vistos.has(k) && vistos.add(k);
+  });
   const sics = regs.filter((r) => r.fonte === "sics");
   const segs = regs.filter((r) => r.fonte === "seguradora");
   const usados = new Set();
@@ -130,13 +142,13 @@ function cruzar() {
   const porApolice = new Map();
   for (const s of segs) {
     if (!s.apolice_norm) continue;
-    const k = s.seguradora + "|" + s.apolice_norm;
+    const k = grupoDe(s.seguradora) + "|" + s.apolice_norm;
     if (!porApolice.has(k)) porApolice.set(k, []);
     porApolice.get(k).push(s);
   }
   const restoSics = [];
   for (const a of sics) {
-    const cand = a.apolice_norm && (porApolice.get(a.seguradora + "|" + a.apolice_norm) || []).find((s) => !usados.has(s.id));
+    const cand = a.apolice_norm && (porApolice.get(grupoDe(a.seguradora) + "|" + a.apolice_norm) || []).find((s) => !usados.has(s.id));
     if (cand) { usados.add(cand.id); pares.push({ sics: a, seg: cand, via: "apolice" }); }
     else restoSics.push(a);
   }
@@ -146,7 +158,7 @@ function cruzar() {
     let cand = null;
     if (a.documento) {
       cand = livres.find((s) =>
-        !usados.has(s.id) && s.seguradora === a.seguradora && s.documento === a.documento &&
+        !usados.has(s.id) && grupoDe(s.seguradora) === grupoDe(a.seguradora) && s.documento === a.documento &&
         (!a.item || !s.item || a.item === s.item) &&
         (!a.ramo || !s.ramo || semAcento(a.ramo).slice(0, 4) === semAcento(s.ramo).slice(0, 4)) &&
         (!a.vigencia_fim || !s.vigencia_fim || diasEntre(a.vigencia_fim, s.vigencia_fim) <= JANELA_FALLBACK_DIAS));
@@ -168,7 +180,7 @@ function montarLinha({ sics, seg, via }, acomp) {
     situacao = dif > TOLERANCIA_VIGENCIA_DIAS ? "divergente" : "conferido";
   } else situacao = sics ? "so_sics" : "so_seguradora";
 
-  const chave = base.seguradora + "|" + (base.apolice_norm || "id" + base.id);
+  const chave = grupoDe(base.seguradora) + "|" + (base.apolice_norm || "id" + base.id);
   const ac = acomp.get(chave);
   const premio = sics?.premio ?? seg?.premio ?? null;
   const premioSeg = seg?.premio ?? null;
