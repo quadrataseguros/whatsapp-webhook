@@ -109,7 +109,7 @@ var CAMPOS = [
   {k:'ramo', l:'Ramo', syn:['nomeproduto','ramo','produto','modalidade']},
   {k:'item', l:'Placa / item', syn:['placa','item','chassi','bem']},
   {k:'vigencia_fim', l:'Fim da vigência', syn:['fim vig','termino','vencimento','venc','fim de vig','final vig','dt fim','data fim','finalvigencia']},
-  {k:'premio', l:'Prêmio (bruto)', syn:['premio total','premio bruto','valor']},
+  {k:'premio', l:'Prêmio (bruto)', syn:['premio total','premio bruto','premio renovacao','=premio']},
   {k:'premio_liquido', l:'Prêmio líquido (se não houver bruto)', syn:['premio liq. anterior','premio liquido']},
   {k:'vendedor', l:'Vendedor / produtor', syn:['preposto','vendedor','produtor','executivo']},
   {k:'situacao', l:'Situação (relatório)', syn:['situacao','status']},
@@ -190,8 +190,9 @@ function autoMapa(headers) {
     if (salvo[c.k] && headers.indexOf(salvo[c.k])>=0) { m[c.k] = salvo[c.k]; return; }
     // Nome exato do cabeçalho vence; só depois vale "contém" ("Preposto" antes de "Preposto/Afiliado…").
     var achou = '';
-    c.syn.some(function(s){ return headers.some(function(h){ if (norm(h)===s) { achou = h; return true; } }); });
-    if (!achou) c.syn.some(function(s){ return headers.some(function(h){ if (norm(h).indexOf(s)>=0) { achou = h; return true; } }); });
+    // "=termo" só vale para cabeçalho exatamente igual (ex.: "Prêmio" sim, "Prêmio Líquido" não).
+    c.syn.some(function(s){ var e = s.replace(/^=/,''); return headers.some(function(h){ if (norm(h)===e) { achou = h; return true; } }); });
+    if (!achou) c.syn.some(function(s){ if (s.charAt(0)==='=') return false; return headers.some(function(h){ if (norm(h).indexOf(s)>=0) { achou = h; return true; } }); });
     m[c.k] = achou;
   });
   return m;
@@ -217,8 +218,16 @@ $('iFile').onchange = function(){
     var ws = wb.Sheets[wb.SheetNames[0]];
     var mat = XLSX.utils.sheet_to_json(ws, {header:1, raw:false, dateNF:'yyyy-mm-dd', defval:''});
     var hi = 0; mat.slice(0,15).forEach(function(r,i){ var n = r.filter(function(c){return String(c).trim();}).length; if (n > mat[hi].filter(function(c){return String(c).trim();}).length) hi = i; });
+    var cheia = function(r){ return r.filter(function(c){ return String(c).trim(); }); };
     dados.headers = mat[hi].map(function(h){ return String(h).trim(); });
     dados.rows = mat.slice(hi+1).filter(function(r){ return r.some(function(c){ return String(c).trim(); }); });
+    // Relatórios de impressão (Bradesco) têm células mescladas: título e dado ficam em colunas
+    // diferentes. Se o cabeçalho é todo espalhado, compacta cada linha e só aceita as com o mesmo nº de colunas.
+    var nh = cheia(mat[hi]).length;
+    if (mat[hi].length > nh * 1.5) {
+      dados.headers = cheia(mat[hi]).map(function(h){ return String(h).trim(); });
+      dados.rows = mat.slice(hi+1).map(cheia).filter(function(r){ return r.length === nh; });
+    }
     $('mapInfo').textContent = '— cabeçalho na linha ' + (hi+1) + ', ' + dados.rows.length + ' linhas';
     desenharMapa();
   };

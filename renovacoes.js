@@ -207,6 +207,11 @@ function montarLinha({ sics, seg, via }, acomp, comRelatorio) {
     so_seguradora: "Não consta na lista do SICS — confirmar se falta cadastro no sistema.",
     sem_relatorio: "Ainda sem relatório desta seguradora — vencimento vem só do SICS, não foi conferido.",
   };
+  // Prêmio 5× maior/menor entre SICS e seguradora quase sempre é digitação errada no SICS.
+  const razao = sics?.premio > 0 && seg?.premio > 0 ? Math.max(sics.premio / seg.premio, seg.premio / sics.premio) : 0;
+  const alerta = razao >= 5
+    ? `Prêmio muito diferente (SICS R$ ${sics.premio.toLocaleString("pt-BR")} × seguradora R$ ${seg.premio.toLocaleString("pt-BR")}) — conferir a digitação no SICS.`
+    : "";
   const premio = sics?.premio ?? seg?.premio ?? null;
   const premioSeg = seg?.premio ?? null;
   return {
@@ -228,9 +233,10 @@ function montarLinha({ sics, seg, via }, acomp, comRelatorio) {
     vendedor_sics: sics?.vendedor || null,
     situacao_seg: seg?.situacao_seg || null,
     situacao,
-    confirmar: situacao !== "conferido" && !confirmado,
+    confirmar: (situacao !== "conferido" || !!alerta) && !confirmado,
     confirmado,
-    motivo: situacao === "conferido" ? "" : MOTIVOS[situacao],
+    alerta_premio: alerta,
+    motivo: alerta || (situacao === "conferido" ? "" : MOTIVOS[situacao]),
     via_cruzamento: via || null,
     status: ac?.status || "pendente",
     responsavel_id: ac?.responsavel_id ?? null,
