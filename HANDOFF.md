@@ -146,6 +146,33 @@ https://claude.ai/code/artifact/b6059110-efaa-4d5c-8ff6-6e35d9a39b11
 
 ---
 
+## Organizador de renovações
+
+`renovacoes.js` + `public/renovacoes.html`. Importa a lista do SICS Web e o
+relatório de cada seguradora (xlsx/csv, lidos no navegador), cruza por nº de
+apólice (fallback: CPF/CNPJ + placa + vencimento ±31 dias) e classifica em
+conferido / vigência diverge / só no SICS / só na seguradora. Acompanhamento
+(pendente → renovada/perdida) fica em `ren_acompanhamento`, ligado à chave da
+apólice, e sobrevive a reimportações. `GET /api/renovacoes/previsao` (pública,
+só totais) alimenta a seção "Previsibilidade" do dashboard: comissão prevista =
+renovado + em aberto × retenção (padrão 85%), pela mesma regra de `calcularVenda`.
+Cada renovação não conferida (só num dos lados, vigência diferente ou
+seguradora sem relatório) fica **em destaque "a confirmar"** até alguém clicar
+em "Confirmei". Cruzamento é por grupo: Porto, Azul, Itaú e Mitsui (mesmo
+relatório, SUSEP 054J0J); Yellum, HDI e Alliro. **Ligação com as metas:** `GET /api/seguradora-stats`
+devolve, por seguradora, as renovações em aberto do mês e a projeção
+(vendido + renovações em aberto em prêmio líquido × retenção); o card da
+seguradora no dashboard mostra isso. Renovação marcada como "renovada" não
+entra na projeção — assume-se que já virou venda lançada (evita contar duas
+vezes). Nas metas, Mitsui conta no card PORTO e HDI e Alliro no card YELLUM (meta única do grupo; metas antigas cadastradas como "HDI" deixam de aparecer).
+**Visão Master** (`/master.html`, exige senha de admin; `GET /api/master/estrategia`):
+por seguradora com meta no mês, diz se a renovação fecha a meta, se só fecha
+renovando quase tudo, ou se precisa de venda nova (e quanto), e lista as
+renovações em aberto com as "prioridade" primeiro (as maiores até cobrir o gap,
+depois por vencimento mais próximo). Tudo em prêmio líquido × retenção.
+Premissa: o prêmio das listas é bruto (com IOF) — confirmado com a Allianz. Mapeamento de colunas é
+auto-detectado e lembrado por seguradora — ajustar com planilhas reais.
+
 ## Pendências
 
 1. **Deploy** — seguir o [DEPLOY-RAILWAY.md](DEPLOY-RAILWAY.md). Três coisas não

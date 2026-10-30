@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Master — Estratégia de Metas · Quadrata Seguros</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#f1f5f9;--card:#fff;--border:#e2e8f0;--t1:#1e293b;--t2:#475569;--t3:#94a3b8;--blue:#3b82f6;--green:#16a34a;--red:#dc2626;--orange:#ea580c;--gold:#d97706;--rad:12px}
+body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;padding-bottom:60px}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;position:sticky;top:0;z-index:5}
+header h1{font-size:18px;font-weight:800;flex:1 1 240px}
+header a{font-size:13px;color:var(--t2);text-decoration:none}
+select,input{font:500 13px Inter;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:#fff}
+main{max-width:1200px;margin:0 auto;padding:24px 20px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:22px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--rad);padding:16px 18px}
+.kpi small{display:block;font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.kpi b{font-size:24px;font-weight:800}
+.kpi span{display:block;font-size:11px;color:var(--t3);margin-top:3px}
+.sg{background:var(--card);border:1px solid var(--border);border-left:6px solid var(--t3);border-radius:var(--rad);padding:18px 20px;margin-bottom:16px}
+.sg.renovacao_fecha{border-left-color:var(--green)}.sg.renovar_quase_tudo{border-left-color:var(--gold)}.sg.venda_nova{border-left-color:var(--red)}.sg.batida{border-left-color:var(--blue)}
+.sgh{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.sgh h2{font-size:17px;font-weight:800}
+.badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;color:#fff;background:var(--t3)}
+.renovacao_fecha .badge{background:var(--green)}.renovar_quase_tudo .badge{background:var(--gold)}.venda_nova .badge{background:var(--red)}.batida .badge{background:var(--blue)}
+.dica{font-size:14px;font-weight:600;margin:6px 0 12px}
+.nums{display:flex;gap:22px;flex-wrap:wrap;font-size:12px;color:var(--t2);margin-bottom:10px}
+.nums b{display:block;font-size:15px;color:var(--t1)}
+.bar{height:8px;background:var(--bg);border-radius:99px;overflow:hidden;margin:6px 0 12px;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+details summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--blue);margin-bottom:8px}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th{text-align:left;font-size:11px;text-transform:uppercase;color:var(--t3);padding:6px 8px;border-bottom:1px solid var(--border)}
+td{padding:6px 8px;border-bottom:1px solid var(--border)}
+tr.ess td:first-child{border-left:3px solid var(--green)}
+.tag{font-size:10px;font-weight:700;padding:2px 7px;border-radius:99px;background:#dcfce7;color:var(--green)}
+.warn{color:#b45309;font-size:11px}
+.scroll{overflow-x:auto}
+.msg{padding:14px;color:var(--t2);font-size:14px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎯 Master — Estratégia para bater as metas</h1>
+  <label style="font-size:12px;color:var(--t3)">Mês <input type="month" id="mes"></label>
+  <a href="/dashboard.html">Painel de Metas</a>
+  <a href="/renovacoes.html">Organizador de Renovações</a>
+</header>
+<main>
+  <div class="kpis" id="kpis"></div>
+  <div id="lista"><div class="msg">Carregando…</div></div>
+</main>
+<script>
+var pwd = sessionStorage.getItem('ren_pwd') || '';
+var $ = function(id){ return document.getElementById(id); };
+var esc = function(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+var brl = function(n){ return (n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}); };
+var dbr = function(d){ return d?d.split('-').reverse().join('/'):'—'; };
+var LBL = {renovacao_fecha:'Renovação fecha a meta',renovar_quase_tudo:'Só fecha renovando quase tudo',venda_nova:'Precisa de venda nova',batida:'Meta batida',sem_meta:'Sem meta'};
+
+function carregar() {
+  if (!pwd) { pwd = prompt('Senha de administrador:') || ''; sessionStorage.setItem('ren_pwd', pwd); }
+  var p = $('mes').value.split('-');
+  fetch('/api/master/estrategia?year=' + p[0] + '&month=' + +p[1], {headers:{'x-admin-password':pwd}})
+    .then(function(r){ if (r.status===401) { pwd=''; sessionStorage.removeItem('ren_pwd'); throw new Error('Senha incorreta — recarregue a página.'); } return r.json(); })
+    .then(desenhar)
+    .catch(function(e){ $('lista').innerHTML = '<div class="msg">'+esc(e.message)+'</div>'; });
+}
+
+function desenhar(d) {
+  var r = d.resumo;
+  $('kpis').innerHTML =
+    '<div class="kpi"><small>Bônus em jogo (alcançável)</small><b style="color:var(--gold)">'+brl(r.bonus_em_jogo)+'</b><span>metas que renovação ainda pode fechar</span></div>'
+   +'<div class="kpi"><small>Metas batidas</small><b style="color:var(--blue)">'+r.metas_batidas+'</b></div>'
+   +'<div class="kpi"><small>Renovação fecha a meta</small><b style="color:var(--green)">'+r.renovacao_fecha+'</b><span>retenção '+d.retencao+'%</span></div>'
+   +'<div class="kpi"><small>Risco: renovar quase tudo</small><b style="color:var(--gold)">'+r.renovar_quase_tudo+'</b></div>'
+   +'<div class="kpi"><small>Exigem venda nova</small><b style="color:var(--red)">'+r.venda_nova+'</b><span>faltam ~'+brl(r.venda_nova_total)+' em vendas novas</span></div>'
+   +'<div class="kpi"><small>Renovações a confirmar</small><b style="color:var(--orange)">'+r.a_confirmar+'</b><span>antes de contar com elas</span></div>';
+  $('lista').innerHTML = d.seguradoras.filter(function(s){ return s.situacao!=='sem_meta' || s.renovacoes_abertas; }).map(card).join('') || '<div class="msg">Nenhuma meta ou renovação neste mês.</div>';
+}
+
+function card(s) {
+  var pct = Math.min(100, s.meta ? (s.vendido / s.meta * 100) : 0), pr = Math.min(100 - pct, s.meta ? (s.esperado / s.meta * 100) : 0);
+  var linhas = s.renovacoes.map(function(l){
+    return '<tr class="'+(l.essencial?'ess':'')+'"><td>'+(l.essencial?'<span class="tag">prioridade</span>':'')+'</td><td>'+esc(l.segurado)+(l.confirmar?'<div class="warn">⚠ a confirmar: '+esc(l.motivo)+'</div>':'')+'</td>'
+      +'<td>'+esc(l.ramo)+' '+esc(l.item)+'</td><td>'+dbr(l.vigencia)+(l.dias<=7?'<div class="warn">'+(l.dias<0?'vencida':'em '+l.dias+' d')+'</div>':'')+'</td><td>'+brl(l.liquido)+'</td><td>'+esc(l.vendedor||'—')+'</td><td>'+esc(l.status)+'</td></tr>';
+  }).join('');
+  return '<div class="sg '+s.situacao+'"><div class="sgh"><h2>'+esc(s.seguradora)+'</h2><span class="badge">'+LBL[s.situacao]+'</span></div>'
+    +'<div class="dica">'+esc(s.dica)+'</div>'
+    +(s.meta ? '<div class="nums"><div>Meta<b>'+brl(s.meta)+'</b></div><div>Vendido<b>'+brl(s.vendido)+'</b></div><div>Falta<b>'+brl(s.gap)+'</b></div><div>Renovações em aberto<b>'+s.renovacoes_abertas+' · '+brl(s.potencial)+'</b></div><div>Renovação esperada<b>'+brl(s.esperado)+'</b></div><div>Projeção do mês<b>'+s.projecao_pct+'% da meta</b></div>'+(s.bonus?'<div>Bônus<b>'+brl(s.bonus)+'</b></div>':'')+'</div>'
+      +'<div class="bar"><i style="width:'+pct+'%;background:var(--blue)"></i><i style="left:'+pct+'%;width:'+pr+'%;background:var(--green);opacity:.55"></i></div>' : '')
+    +(s.renovacoes.length ? '<details'+(s.situacao==='renovacao_fecha'||s.situacao==='renovar_quase_tudo'?' open':'')+'><summary>'+s.renovacoes.length+' renovações em aberto (prioritárias primeiro)</summary><div class="scroll"><table><thead><tr><th></th><th>Segurado</th><th>Ramo / item</th><th>Vence</th><th>Líquido</th><th>Vendedor</th><th>Status</th></tr></thead><tbody>'+linhas+'</tbody></table></div></details>' : '')
+    +'</div>';
+}
+
+var h = new Date(); $('mes').value = h.getFullYear()+'-'+String(h.getMonth()+1).padStart(2,'0');
+$('mes').onchange = carregar;
+carregar();
+</script>
+</body>
+</html>

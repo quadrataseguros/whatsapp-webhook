@@ -313,12 +313,23 @@ tbody td{padding:10px 14px;color:var(--t2)}
     <div class="chart-box"><canvas id="chartDaily"></canvas></div>
   </div>
 
+  <div class="sec" id="secREN" style="display:none">
+    <div class="sec-title">Previsibilidade — Renovações a Vencer <a href="/master.html" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--gold);text-decoration:none">🎯 Visão Master</a> <a href="/renovacoes.html" style="margin-left:12px;font-size:12px;font-weight:600;color:var(--blue);text-decoration:none">Abrir organizador →</a></div>
+    <div class="sumgrid" id="renGrid"></div>
+    <div style="font-size:11px;color:var(--t3);margin-top:-14px" id="renNota"></div>
+  </div>
+
   <div class="sec" id="secSG">
     <div class="sec-title">Metas por Seguradora (Grupo) — Crescimento +10% vs Ano Anterior</div>
     <div class="ro-summary">
       <div class="ro-sum-card">
         <div class="ro-sum-lbl">Seguradoras com meta batida</div>
         <div class="ro-sum-val" id="sgAchieved" style="color:var(--green)">—</div>
+      </div>
+      <div class="ro-sum-card">
+        <div class="ro-sum-lbl">Metas projetadas c/ renovações</div>
+        <div class="ro-sum-val" id="sgProj" style="color:var(--blue)">—</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px" id="sgProjSub"></div>
       </div>
       <div class="ro-sum-card">
         <div class="ro-sum-lbl">Total de prêmios disponíveis</div>
@@ -763,11 +774,28 @@ function renderTable(sales) {
 }
 
 // ── Seguradoras ────────────────────────────────────────────────────────────
+function renovBlock(s) {
+  var r = s.renovacao;
+  if (!r || !r.apolices) return '';
+  var h = '<div class="sg-row" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)"><span>🔄 Renovações em aberto</span><strong>' + r.emAberto + ' de ' + r.apolices + '</strong></div>'
+    + '<div class="sg-row"><span>Previsto a renovar (líq.)</span><strong>' + fmtR(r.previstoLiquido) + '</strong></div>';
+  if (s.configured) {
+    var c = cor(s.projecaoPct);
+    h += '<div class="sg-row"><span>Projeção do mês</span><strong style="color:' + c + '">' + fmtR(s.projecao) + ' · ' + s.projecaoPct.toFixed(0) + '%</strong></div>'
+      + '<div class="sg-bar"><div class="sg-bar-fill" style="width:' + Math.min(s.projecaoPct, 100) + '%;background:' + c + ';opacity:.55"></div></div>';
+  }
+  if (r.aConfirmar) h += '<div style="font-size:11px;color:#b45309;margin-top:4px">⚠ ' + r.aConfirmar + ' a confirmar em <a href="/renovacoes.html" style="color:inherit">renovações</a></div>';
+  return h;
+}
+
 function renderSeguradoras(data) {
   var meses = ['', 'Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
   document.getElementById('sgMonthLbl').textContent = 'Referência: ' + meses[data.month] + '/' + data.year;
   document.getElementById('sgAchieved').textContent = data.achievedCount + ' / ' + data.seguradoras.length;
   document.getElementById('sgTotalPrize').textContent = fmtR(data.totalBonus || 0);
+  var cfg = data.seguradoras.filter(function(x) { return x.configured; }).length;
+  document.getElementById('sgProj').textContent = data.projecaoCount + ' / ' + cfg;
+  document.getElementById('sgProjSub').textContent = 'com renovações previstas (retenção ' + data.retencao + '%)';
 
   var grid = document.getElementById('sgGrid');
   var html = '';
@@ -779,6 +807,7 @@ function renderSeguradoras(data) {
         + '<div class="sg-head"><span class="sg-name">' + s.seguradora + '</span></div>'
         + '<div style="font-size:12px;color:var(--t3);text-align:center;padding:18px 0">Meta não configurada</div>'
         + '<div class="sg-row"><span>Vendido este mês</span><strong>' + fmtR(s.currentValue) + '</strong></div>'
+        + renovBlock(s)
         + '</div>';
       continue;
     }
@@ -800,6 +829,7 @@ function renderSeguradoras(data) {
       + '<div class="sg-bar"><div class="sg-bar-fill" style="width:' + Math.min(s.percentage, 100) + '%;background:' + c + '"></div></div>'
       + '<div class="sg-row" style="margin-top:4px"><span>Variação vs ano anterior</span>' + growth + '</div>';
 
+    html += renovBlock(s);
     if (s.bonusValue > 0) {
       html += '<div class="sg-prize">'
         + (s.achieved ? '🏆 ' + fmtR(s.bonusValue) : '🔒 ' + fmtR(s.bonusValue) + ' (não atingida)')
@@ -1195,6 +1225,27 @@ document.addEventListener('visibilitychange', function() {
 
 load();
 agendar();
+
+function carregarRenovacoes() {
+  fetch('/api/renovacoes/previsao?meses=3').then(function(r) { return r.json(); }).then(function(d) {
+    var ms = (d.meses || []).filter(function(m) { return m.apolices > 0; });
+    if (!ms.length) return;
+    var NOMES = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+    document.getElementById('secREN').style.display = '';
+    document.getElementById('renGrid').innerHTML = ms.map(function(m) {
+      var p = m.mes.split('-');
+      var pct = m.apolices ? Math.round(m.renovadas / m.apolices * 100) : 0;
+      return '<div class="sc"><div class="sc-lbl">' + NOMES[+p[1] - 1] + '/' + p[0] + ' · ' + m.apolices + ' apólices</div>'
+        + '<div class="sc-val" style="color:var(--gold)">' + fmtR(m.comissao_prevista) + '</div>'
+        + '<div class="sc-sub">comissão prevista · prêmio ' + fmtR(m.premio_previsto) + '</div>'
+        + '<div class="sc-bar"><div class="sc-bar-fill" style="width:' + pct + '%;background:var(--green)"></div></div>'
+        + '<div class="sc-sub">' + m.renovadas + ' renovadas · ' + m.em_aberto + ' em aberto · ' + m.perdidas + ' perdidas'
+        + (m.divergencias ? ' · ' + m.divergencias + ' a conferir' : '') + '</div></div>';
+    }).join('');
+    document.getElementById('renNota').textContent = 'Previsto = já renovado + em aberto × retenção de ' + d.retencao + '%. Comissão pela mesma regra das vendas.';
+  }).catch(function() {});
+}
+carregarRenovacoes();
 </script>
 </body>
 </html>
