@@ -87,8 +87,8 @@ function seguradoraCanonica(texto) {
 // são a mesma apólice para quem compara.
 const normApolice = (s) => String(s || "").toUpperCase().replace(/[^0-9A-Z]/g, "").replace(/^0+/, "");
 const normDoc = (s) => String(s || "").replace(/\D/g, "");
-// "0" é como alguns relatórios dizem "sem item".
-const normItem = (s) => { const v = String(s || "").toUpperCase().replace(/[^0-9A-Z]/g, ""); return v === "0" ? "" : v; };
+// "0", "1"… é o nº do item na apólice (sem placa), não identifica o bem.
+const normItem = (s) => { const v = String(s || "").toUpperCase().replace(/[^0-9A-Z]/g, ""); return /^\d{1,2}$/.test(v) ? "" : v; };
 
 function parseData(v) {
   if (v == null || v === "") return null;
