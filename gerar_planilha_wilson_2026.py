@@ -31,7 +31,7 @@ MESES = {
         ("ANDREA NASCIMENTO SANTANA MARTIENA",   "AZUL SEGUROS", "CRETA SYD1B66",         1541.46, 12,  1, 12),
     ],
     "set/26": [
-        ("DEANDARA DE SOUSA CARVALHO",           "TOKIO MARINE", "A CONFIRMAR",               0.00,  1,  1,  1),
+        ("DIANDARA DE SOUSA CARVALHO",           "TOKIO MARINE", "A CONFIRMAR",               0.00,  1,  1,  1),
         ("ADAILTON DE JESUS BARRETO SALES",      "SUHAI",        "CG 160 USB5H79",        2230.15, 12,  1, 12),
     ],
     "out/26": [
