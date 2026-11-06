@@ -11,21 +11,36 @@ from openpyxl.formatting.rule import FormulaRule
 
 MESES = {
     "mai/26": [
-        ("JULIO CESAR ALMEIDA DE OLIVEIRA", "SUHAI",         "CG 160 FAN GEB0F70",    722.68,  3,  1,  3),
-        ("ROSEMEIRE SAMPAIO ROCHA",          "AZUL SEGUROS",  "POLO SEDAN FSY3B13",   2114.88, 10,  1, 10),
+        ("ROSANGELA DE JESUS MELO",              "SUHAI",        "IDEA DFW4C64",          1414.18,  6,  1,  6),
+        ("ROSEMEIRE SAMPAIO ROCHA",              "AZUL SEGUROS", "POLO SEDAN FSY3B13",    2114.88, 10,  1, 10),
+        ("JULIO CESAR ALMEIDA DE OLIVEIRA",      "SUHAI",        "CG 160 FAN GEB0F70",     722.68,  3,  1,  3),
+        ("IRIS NASCIMENTO LESSE",                "SUHAI",        "ELITE TLS4C20",           954.12, 12,  1, 12),
+    ],
+    "jun/26": [
+        ("JOSE NILTON DOS SANTOS",               "PORTO SEGURO", "HR-V GBY1495",          1910.52,  4,  1,  4),
+        ("OTAVIANO DE JESUS",                    "PORTO SEGURO", "CORSA ATB3223",         2311.81, 10,  1, 10),
+        ("JOSE MARIA COELHO",                    "ZURICH",       "T-CROSS FZX2J64",       4095.68, 10,  1, 10),
+        ("LEONARDO VAZ DE FREITAS",              "SUHAI",        "TUCSON HKT1J57",        1747.26, 12,  1, 12),
+    ],
+    "jul/26": [
+        ("VALDISLEI XAVIER DO NASCIMENTO",       "YELUM",        "COROLLA FFS7573",       2886.31, 10,  1, 10),
     ],
     "ago/26": [
-        ("ANDREA NASCIMENTO SANTANA MARTIENA", "AZUL SEGUROS", "CRETA SYD1B66",       1541.46, 12,  1, 12),
+        ("IVO REIS DO NASCIMENTO",               "AZUL SEGUROS", "CITY DPJ0517",           981.51, 10,  1, 10),
+        ("IVO REIS DO NASCIMENTO",               "MITSUI",       "FOX FPZ0086",           1978.61, 10,  1, 10),
+        ("ANDREA NASCIMENTO SANTANA MARTIENA",   "AZUL SEGUROS", "CRETA SYD1B66",         1541.46, 12,  1, 12),
     ],
     "set/26": [
-        ("ADAILTON DE JESUS BARRETO SALES",    "SUHAI",         "CG 160 USB5H79",     2230.15, 12,  1, 12),
+        ("DEANDARA DE SOUSA CARVALHO",           "TOKIO MARINE", "A CONFIRMAR",               0.00,  1,  1,  1),
+        ("ADAILTON DE JESUS BARRETO SALES",      "SUHAI",        "CG 160 USB5H79",        2230.15, 12,  1, 12),
     ],
     "out/26": [
-        ("ADAILTON DE JESUS BARRETO SALES",    "ALLIANZ",       "PRISMA LT FVA0076",  2522.41, 10,  1, 10),
-        ("CAIQUE FREITAS SOUZA",               "HDI",           "PICANTO EZH6G23",    1788.05, 12,  1, 12),
+        ("ADAILTON DE JESUS BARRETO SALES",      "ALLIANZ",      "PRISMA LT FVA0076",     2522.41, 10,  1, 10),
+        ("CAIQUE FREITAS SOUZA",                 "HDI",          "PICANTO EZH6G23",       1788.05, 12,  1, 12),
+        ("LEIDE DAYANE DE SOUZA",                "SUHAI",        "DL 1000 GIB7F31",       1176.92, 12,  1, 12),
     ],
     "nov/26": [
-        ("FERNANDA APARECIDA DE ARAUJO",       "PORTO SEGURO",  "HB20 FIU0950",       1540.73, 12,  1, 12),
+        ("FERNANDA APARECIDA DE ARAUJO",         "PORTO SEGURO", "HB20 FIU0950",          1540.73, 12,  1, 12),
     ],
 }
 
@@ -152,8 +167,11 @@ def build_sheet(wb):
             ac2.fill      = fill(COR_VERDE_CLR); ac2.border = BORDA_FINA
             ac2.alignment = Alignment(horizontal="center", vertical="center")
 
-            oc = ws.cell(row=r, column=18, value="")
+            obs_txt = "DADOS PENDENTES" if premio == 0 else ""
+            oc = ws.cell(row=r, column=18, value=obs_txt)
             oc.fill = fill(alt); oc.border = BORDA_FINA
+            if obs_txt:
+                oc.font = Font(name="Calibri", size=9, bold=True, color="C00000")
 
             all_data_rows.append(r)
             current_row += 1
